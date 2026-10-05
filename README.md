@@ -1,3 +1,5 @@
+<img src="docs/images/laica-dog.png" alt="LAICA dog icon" width="104">
+
 # LAICA
 
 **Light Weight AI Container for Agents**
@@ -7,6 +9,33 @@ A Windows workspace for arranging agent teams and following their work. Built by
 LAICA brings the team graph, model choices, assignments and recorded activity into one place. The aim is simple: make it clear who is working on a task, what they have done, and what needs attention. The interface uses smoked glass, restrained purple accents and a space backdrop, while keeping commands and results readable.
 
 **Status: 0.7.0 source preview.** The source is public and can be built locally. There is no trusted signed Windows release available yet. Unsigned local builds may be blocked by Smart App Control. Keep Windows security enabled; signing is still part of the release work.
+
+**[Start here: step-by-step setup guide](docs/getting-started.md)** — get the source, build the app, select a team, connect Codex and read recorded work.
+
+## Screenshots
+
+Captured from the 0.7.0 frontend development preview. Activity uses example records; no live agents or private chats are shown.
+
+**Teams — arrange the crew and inspect each agent's assignment.**
+
+![LAICA Teams graph](docs/images/teams.jpg)
+
+**Activity — see recent work across chats and inspect the team.**
+
+![LAICA Activity work overview](docs/images/activity.jpg)
+
+<details>
+<summary>Recorded commands and model connections</summary>
+
+**Recorded logs — expand a step to see its command, purpose and result.**
+
+![LAICA recorded logs](docs/images/recorded-logs.jpg)
+
+**Services — choose Codex or an OpenAI-compatible model connection.**
+
+![LAICA Services](docs/images/services.jpg)
+
+</details>
 
 ## What it does
 
