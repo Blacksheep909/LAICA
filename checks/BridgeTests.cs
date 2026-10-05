@@ -12,7 +12,8 @@ static class BridgeTests
     static readonly JavaScriptSerializer Json = new JavaScriptSerializer();
     static int Main(string[] args)
     {
-        try { return RunAll(args); }
+        // Exercise the UTF-8 console default used by clean Windows CI runners.
+        try { Console.InputEncoding=new UTF8Encoding(true); return RunAll(args); }
         catch(Exception ex) { Console.Error.WriteLine("Bridge test failed: "+ex.Message); return 1; }
     }
     static int RunAll(string[] args)
@@ -89,6 +90,8 @@ static class BridgeTests
         var si=new ProcessStartInfo(exe){UseShellExecute=false,RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true,CreateNoWindow=true,StandardOutputEncoding=Encoding.UTF8};
         if(dataDir==null)dataDir=Path.Combine(Path.GetDirectoryName(exe),"bridge-data");
         if(dataDir.Length>0)si.Arguments="--data-dir \""+dataDir+"\"";
+        // Framework Process uses the parent console input encoding for its stdin writer.
+        Console.InputEncoding=new UTF8Encoding(false);
         using(var proc=Process.Start(si)){foreach(string l in lines)proc.StandardInput.WriteLine(l);proc.StandardInput.Close();string output=proc.StandardOutput.ReadToEnd();string error=proc.StandardError.ReadToEnd();proc.WaitForExit();if(proc.ExitCode!=0)throw new Exception("Bridge failed: "+error);var result=new System.Collections.Generic.List<object>();using(var reader=new StringReader(output)){string line;while((line=reader.ReadLine())!=null)result.Add(Json.DeserializeObject(line));}return result.ToArray();}
     }
     static object Get(object o,string k){var d=o as System.Collections.Generic.Dictionary<string,object>;object v;return d!=null&&d.TryGetValue(k,out v)?v:null;}
