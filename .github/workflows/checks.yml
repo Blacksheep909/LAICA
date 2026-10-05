@@ -1,0 +1,27 @@
+name: LAICA checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Build unsigned test payload
+        shell: pwsh
+        run: ./Build.ps1 -Development
+      - name: Verify backend, bridge, observer, frontend, installer and signing safeguards
+        shell: pwsh
+        run: ./Test.ps1
