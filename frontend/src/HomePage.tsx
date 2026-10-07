@@ -13,13 +13,13 @@ import type {GlassOption} from './GlassSelect';
 import type {Assistant} from './assistants-data';
 import type {Service,Model,Profile} from './types';
 
-const claudeModels:[string,string,string][]=[['default','Claude Code','Your default model'],['opus','Opus','Most capable'],['sonnet','Sonnet','Balanced'],['haiku','Haiku','Fastest']];
+import {useClaudeModels} from './ClaudeModels';
 const PICK_KEY='laica-last-pick';
 const badge=(t:string)=><span>{t.slice(0,1).toUpperCase()}</span>;
 
 export default function HomePage({workingDirectory,onOpened,onOpenTeam,services,models,profiles}:{workingDirectory:string;onOpened:()=>void;onOpenTeam:(id:string)=>void;services:Service[];models:Model[];profiles:Profile[]}){
   const {toast}=useToast();
-  const {harnesses,assistants,sessions,teams,project,create,send,savedProjects,history,addProject,codexProjects}=useHarness();
+  const {harnesses,assistants,sessions,teams,project,create,send,savedProjects,history,addProject,codexProjects}=useHarness();const claudeList=useClaudeModels();
   const [pick,setPick]=useState(()=>{try{return localStorage.getItem(PICK_KEY)??'';}catch{return '';}}),[mode,setMode]=useState(''),[cwd,setCwd]=useState(()=>{try{return localStorage.getItem('laica-last-cwd')||workingDirectory;}catch{return workingDirectory;}}),[prompt,setPrompt]=useState(''),[assistant,setAssistant]=useState<Assistant|null>(null),[isolate,setIsolate]=useState(false),[repo,setRepo]=useState<{IsRepo:boolean;Exists?:boolean;Branch?:string;Dirty?:number}|null>(null),[editFolder,setEditFolder]=useState(false),[busy,setBusy]=useState(false),[effort,setEffort]=useState('');
   const box=useRef<HTMLTextAreaElement>(null);
   useEffect(()=>{setCwd(c=>c||workingDirectory);},[workingDirectory]);
@@ -33,14 +33,14 @@ export default function HomePage({workingDirectory,onOpened,onOpenTeam,services,
     teams.forEach(t=>out.push({value:'t:'+t.Id,label:t.Title,description:`Agent team · ${t.Members.length} teammates`,group:'Your teams',icon:<Users size={12}/>}));
     harnesses.filter(h=>h.Available&&h.Id!=='laica'&&h.Id!=='workflow').forEach(h=>{
       if(h.Id==='codex'){const list=models.filter(m=>m.ConnectionId==='codex');(list.length?list:[{Id:'default',Name:'Codex default',ConnectionId:'codex',Efforts:[]}]).forEach(m=>out.push({value:`m:codex:${m.Id}`,label:m.Name,description:m.Id==='default'?'Uses your Codex setting':undefined,group:'Codex',icon:badge('C')}));}
-      else if(h.Id==='claude')claudeModels.forEach(([id,name,d])=>out.push({value:`m:claude:${id}`,label:id==='default'?'Claude Code':`Claude ${name}`,description:d,group:'Claude Code',icon:badge('C')}));
+      else if(h.Id==='claude')claudeList.forEach(c=>out.push({value:`m:claude:${c.value}`,label:c.label,description:c.description,group:'Claude Code',icon:badge('C')}));
       else out.push({value:`m:${h.Id}:default`,label:h.Name,description:h.Custom?'Custom agent':'Command-line agent',group:'Other agents',icon:badge(h.Name)});
     });
     services.forEach(s=>{const list=models.filter(m=>m.ConnectionId===s.Id);
       if(!list.length)out.push({value:'x:'+s.Id,label:'No models loaded yet',description:'Open Services and refresh models',group:`${s.Name} (API key)`,disabled:true,icon:badge(s.Name)});
       list.forEach(m=>out.push({value:`m:laica:${s.Id}:${m.Id}`,label:m.Name||m.Id,group:`${s.Name} (API key)`,icon:badge(s.Name)}));});
     return out;
-  },[profiles,teams,harnesses,models,services]);
+  },[profiles,teams,harnesses,models,services,claudeList]);
   const current=options.find(o=>o.value===pick&&!o.disabled)??options.find(o=>!o.disabled);
   const kind=current?.value.split(':')[0]??'';
   const harnessId=kind==='m'?current!.value.split(':')[1]:'';

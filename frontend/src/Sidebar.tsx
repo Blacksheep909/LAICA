@@ -72,8 +72,8 @@ export default function Sidebar({page,go,version,onGuide,teams,activeTeam,openTe
   return <Glass as="aside" material="frosted" className="navigation sidebar">
     <div className="brand"><span className="brand-mark"><img src="./LAICA.ico" alt=""/></span><div><strong>LAICA</strong><span>Agent workspace</span></div></div>
     <button className="new-chat-btn" title="New chat (Ctrl+N)" onClick={()=>{setActive(null);go('home');}}><SquarePen size={16}/><span>New chat</span><span className="nc-plus" aria-hidden="true"><Plus size={12}/></span></button>
-    <label className="side-search"><Search size={14}/><input aria-label="Search chats" placeholder="Search" value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<button aria-label="Clear search" onClick={()=>setQuery('')}><X size={12}/></button>}</label>
     <nav aria-label="Workspace" className="side-nav">{item('tasks','Scheduled tasks',CalendarClock)}{item('plugins','Plugins',Store)}{item('teams','Workflow designer',Workflow)}{item('activity','Activity',ActivityIcon)}</nav>
+    <label className="side-search"><Search size={14}/><input aria-label="Search chats" placeholder="Search" value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<button aria-label="Clear search" onClick={()=>setQuery('')}><X size={12}/></button>}</label>
     <div className="side-scroll">
       <div className="side-section">{fb('teams','Teams')}<span>Teams</span><button aria-label="New team" title="New team" onClick={newTeam}><Plus size={13}/></button></div>
       {!folded('teams')&&!teams.length&&<p className="side-empty">Team mode runs a leader and teammates in parallel.</p>}

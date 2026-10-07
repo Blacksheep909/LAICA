@@ -3,6 +3,14 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.19.3]
+
+### Changed
+- **Claude models are named properly.** The model pickers list Claude Fable 5.1, Opus 5.5, Sonnet 5.5 and Haiku 4.5 with their model ids, taken from the model names on Anthropic's pricing page, instead of a generic 'Claude Opus'.
+- The search box sits directly under the navigation, with the chats it searches.
+- The status bar always sits at the very bottom of the window with some space beneath it, instead of touching the edge or floating on short pages.
+- The chat message box grows with what you type, with no blank band between your text and the toolbar.
+
 ## [0.19.2]
 
 ### Changed

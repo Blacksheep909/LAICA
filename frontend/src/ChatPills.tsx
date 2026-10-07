@@ -7,18 +7,18 @@ import {useHarness,modeLabel,effortLabel} from './harness-store';
 import type {HSession} from './harness-store';
 import type {Model} from './types';
 
-const claudeModels:[string,string][]=[['default','Claude Code (default)'],['opus','Claude Opus'],['sonnet','Claude Sonnet'],['haiku','Claude Haiku']];
+import {useClaudeModels} from './ClaudeModels';
 
 /** Model, reasoning and permission pills for an open chat, the same choices the new-chat screen offers. Changes apply from the next message. */
 export default function ChatPills({session,models}:{session:HSession;models:Model[]}){
-  const {toast}=useToast();const {harnesses,reload}=useHarness();
+  const {toast}=useToast();const {harnesses,reload}=useHarness();const claudeList=useClaudeModels();
   const info=harnesses.find(h=>h.Id===session.Harness);
   const modelOptions=useMemo<GlassOption[]>(()=>{
     if(session.Harness==='codex'){const list=models.filter(m=>m.ConnectionId==='codex');return [{value:'default',label:'Codex default',description:'Uses your Codex setting'},...list.map(m=>({value:m.Id,label:m.Name}))];}
-    if(session.Harness==='claude')return claudeModels.map(([id,name])=>({value:id,label:name}));
+    if(session.Harness==='claude')return claudeList.map(c=>({value:c.value,label:c.label,description:c.description}));
     if(session.Harness==='laica'&&session.ServiceId)return models.filter(m=>m.ConnectionId===session.ServiceId).map(m=>({value:m.Id,label:m.Name||m.Id}));
     return [];
-  },[session.Harness,session.ServiceId,models]);
+  },[session.Harness,session.ServiceId,models,claudeList]);
   const levels=useMemo<string[]>(()=>{
     if(session.Harness==='claude')return ['low','medium','high','xhigh','max'];
     if(session.Harness==='codex')return (models.find(m=>m.ConnectionId==='codex'&&m.Id===(session.Model||''))?.Efforts??models.find(m=>m.ConnectionId==='codex')?.Efforts??[]).filter(l=>l!=='default'&&effortLabel[l]);

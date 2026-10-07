@@ -492,3 +492,10 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .plus-pop{background:rgba(20,17,38,.94)!important}
 .plus-pop .ui-item{color:#fff}.plus-pop .ui-item small{color:var(--ink-2)}
 .plus-pop .ui-item svg{color:var(--ink)}
+
+/* status bar: always at the bottom, never flush against the window edge */
+.app-status{margin-top:auto!important;flex-shrink:0;padding-bottom:12px!important}
+/* the message box grows with what you type instead of leaving a blank band */
+.harness-compose .compose-field textarea{field-sizing:content;min-height:28px!important;max-height:200px;padding-top:6px!important;padding-bottom:6px!important}
+/* the search sits under the nav, right above the chats */
+.sidebar .side-search{margin:8px 6px 2px!important}
