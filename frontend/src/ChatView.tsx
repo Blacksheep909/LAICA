@@ -1,3 +1,4 @@
+import {Thumbs,refsOf} from './Images';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {Button,Glass,IconButton,useToast} from 'open-glass-ui';
 import {Bot,Send,Square,Wrench,TerminalSquare,Brain,AlertTriangle,PanelRightOpen,ArrowDown,ArrowRightLeft,Pencil,Paperclip,GitBranch,Info,ShieldQuestion,Check,X,Pause,Play,Download,Clock} from 'lucide-react';
@@ -79,6 +80,7 @@ function Row({e,resolved,answer}:{e:HEvent;resolved:Map<string,string>;answer:(i
   if(e.Kind==='paused'||e.Kind==='resumed')return <div className="hmsg log">{e.Kind==='paused'?<Pause size={12}/>:<Play size={12}/>} {e.Text}</div>;
     if(e.Kind==='user'){const p=splitPrompt(e.Text);return <div className="hmsg user">{p.tags.length>0&&<div className="msg-tags">{p.tags.map(t=><span key={t} className="ui-badge is-accent">{t}</span>)}</div>}{p.body}{p.files.length>0&&<div className="msg-files">{p.files.map(f=><span key={f.path} className="file-chip" title={f.path}><Paperclip size={11}/>{f.name}</span>)}</div>}<CopyBtn text={p.body}/></div>;}
   if(e.Kind==='assistant')return <div className="hmsg assistant"><Markdown text={e.Text}/><CopyBtn text={e.Text}/></div>;
+  if(e.Kind==='image')return <div className="hmsg image-row"><Thumbs images={refsOf(e.SessionId,e.Images)} max={6} big/></div>;
   if(e.Kind==='thinking')return <details className="hmsg thinking"><summary><Brain size={13}/> Thinking</summary>{e.Text}</details>;
   if(e.Kind==='tool')return <details className="hmsg tool"><summary><Wrench size={13}/> {e.Text}</summary><pre>{e.Detail}</pre></details>;
   if(e.Kind==='tool_result')return <details className="hmsg tool"><summary><TerminalSquare size={13}/> {e.Detail?`Output of ${e.Detail.slice(0,80)}`:'Result'}</summary><pre>{e.Text||'(no output)'}</pre></details>;

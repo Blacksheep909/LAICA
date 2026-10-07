@@ -76,7 +76,7 @@ namespace Laica.GlassWorkspace {
         void Navigate(string page){Restore();Post(new {Type="navigate",Page=page});}
         async Task Initialize(){try{
             if(!Directory.Exists(assets)||!File.Exists(Path.Combine(assets,"index.html")))throw new FileNotFoundException("LAICA's interface files are missing. Reinstall the application.");
-            string cache=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"LAICA","WebView2");
+            string cache=Environment.GetEnvironmentVariable("LAICA_WEBVIEW_CACHE");if(String.IsNullOrWhiteSpace(cache))cache=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"LAICA","WebView2");
             var environment=await CoreWebView2Environment.CreateAsync(null,cache);
             await web.EnsureCoreWebView2Async(environment);
             web.CoreWebView2.Settings.AreDefaultContextMenusEnabled=false;web.CoreWebView2.Settings.AreDevToolsEnabled=Environment.GetCommandLineArgs().Contains("--preview");web.CoreWebView2.Settings.IsStatusBarEnabled=false;

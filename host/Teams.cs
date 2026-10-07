@@ -33,7 +33,7 @@ namespace Laica
         /// <summary>Writes one finished run (who did what, how long, tokens, estimated cost, whether agents had to be swapped) to the team run log.</summary>
         void RecordTeamRun(Dictionary<string, object> t, DateTime startedUtc, string outcome)
         {
-            string tid = Str(t, "Id"); var pr = Prices(); var members = new List<object>(); var counts = new Dictionary<string, int>();
+            string tid = Str(t, "Id"); LoadVerifiedOnce(); var pr = Prices(); var members = new List<object>(); var counts = new Dictionary<string, int>();
             lock (gate)
             {
                 List<RunSess> rs; if (!runSess.TryGetValue(tid, out rs)) return; runSess.Remove(tid);
@@ -43,7 +43,7 @@ namespace Laica
                     Session s; if (!sessions.TryGetValue(r.Sid, out s)) continue;
                     string name = r.Leader ? "Leader" : r.Name; int n; counts.TryGetValue(name, out n); counts[name] = n + 1;
                     string model = !String.IsNullOrEmpty(s.Model) ? s.Model : (r.Model != "" ? r.Model : r.Harness);
-                    double cost = CostOf(pr[PriceClass(model)], new long[] { 0, s.TIn, s.TOut, s.TCr, s.TCw });
+                    double cost = CostOf(PriceFor(model), new long[] { 0, s.TIn, s.TOut, s.TCr, s.TCw });
                     string status = "done"; if (!r.Leader) foreach (object o in tasks) { var d = o as Dictionary<string, object>; if (d != null && Str(d, "SessionId") == r.Sid && Str(d, "Status") == "failed") status = "failed"; }
                     members.Add(new Dictionary<string, object> { { "Name", name }, { "Role", r.Role }, { "Harness", r.Harness }, { "Model", model }, { "Seconds", Math.Round(r.Seconds) }, { "Tokens", s.TIn + s.TOut + s.TCr + s.TCw }, { "Output", s.TOut }, { "Cost", Math.Round(cost, 4) }, { "Status", status } });
                 }

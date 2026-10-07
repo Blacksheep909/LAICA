@@ -75,5 +75,5 @@ export function installLens(){
   scan(document.body);
   // a light that follows the pointer: every glass surface uses --px/--py in its sheen
   let raf=0,x=0,y=0;const root=document.documentElement;
-  document.addEventListener('pointermove',e=>{x=e.clientX;y=e.clientY;if(!raf)raf=requestAnimationFrame(()=>{raf=0;root.style.setProperty('--px',x+'px');root.style.setProperty('--py',y+'px');});},{passive:true});
+// (the pointer-following light was removed on purpose; --px/--py are no longer updated)
 }

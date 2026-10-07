@@ -25,8 +25,8 @@ It runs your own installed tools with your own logins. Nothing is proxied throug
 - **Chat with any agent.** Codex, Claude Code, Gemini, anything you add as a custom CLI, or an API model through your own key. Your existing Codex and Claude Code history shows up automatically, with the same project folders and thread titles.
 - **Build mixed-vendor teams.** A leader plans, teammates work in parallel (each in its own chat and optionally its own git worktree), the leader reviews. Every member can be a different vendor and model.
 - **Never get stuck on a usage limit.** When a vendor runs out, LAICA can hand the chat or the whole team's work to a backup team or another agent, with everything done so far carried over.
-- **Know what it costs.** Analytics shows tokens, an API-equivalent cost estimate, and a **Teams** tab that compares your team designs: success rate, time per run, cost per run, how parallel the work really was, leader overhead and which teammate costs what.
-- **See what happened.** Activity is written in plain sentences, grouped like "Ran 2 commands, edited 3 files", with per-file diffs and a turn summary.
+- **Know what it costs.** Analytics shows tokens, an API-equivalent cost estimate (priced from Anthropic's, OpenAI's and Google's own pricing pages, re-checked every time LAICA starts), and a **Teams** tab that compares your team designs: success rate, time per run, cost per run, how parallel the work really was, leader overhead and which teammate costs what.
+- **See what happened.** Activity is written in plain sentences, grouped like "Ran 2 commands, edited 3 files", with per-file diffs, a turn summary and thumbnails of the screenshots and images the agent saw or made (click for full size).
 - **Stay in control.** Pause and resume running work, queue messages, undo with Ctrl+Z, drag in files, paste images, dictate by voice, export chats as Markdown.
 - **Extend it.** A plugin library with one-click install of MCP servers, skills and agent CLIs, suggested first for the programs found on your PC.
 - **Give credit.** Commits made by agents through LAICA carry a `Co-authored-by: LAICA` trailer next to the agent's own credit. On by default, off per project if you like.
@@ -43,8 +43,12 @@ It runs your own installed tools with your own logins. Nothing is proxied throug
 <td><img src="docs/images/analytics-charts.jpg" alt="Analytics charts"><br><sub><b>Analytics</b>: tokens, estimated cost and activity over time</sub></td>
 </tr>
 <tr>
+<td><img src="docs/images/designer.jpg" alt="The workflow designer"><br><sub><b>Workflow designer</b>: arrange agents, pick any installed vendor and model for each</sub></td>
+<td><img src="docs/images/settings-agents.jpg" alt="Settings: workflow handoff and co-author"><br><sub><b>Settings</b>: workflow handoff, LAICA as a co-author and updates</sub></td>
+</tr>
+<tr>
 <td><img src="docs/images/plugins.jpg" alt="The plugin library"><br><sub><b>Plugin library</b> with suggestions for what is installed on your PC</sub></td>
-<td><img src="docs/images/settings-agents.jpg" alt="Settings: workflow handoff and co-author"><br><sub><b>Settings</b>: workflow handoff and LAICA as a co-author</sub></td>
+<td><img src="docs/images/analytics-prices.jpg" alt="Verified prices"><br><sub><b>Verified prices</b>, read from each vendor's own pricing page</sub></td>
 </tr>
 </table>
 

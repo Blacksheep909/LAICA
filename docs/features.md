@@ -11,6 +11,7 @@ Everything LAICA does as of version 0.17.0, grouped by area. The [changelog](../
 - **Per-chat drafts.** Each chat keeps its unsent text. Up-arrow recalls your last message, Esc stops a running turn, and messages typed while an agent is busy are queued.
 - **Composer.** Attach files and folders (button, drag-and-drop or Ctrl+V for images), sketch, **Plan mode**, **Goal**, dictation by microphone (Windows speech recognition, offline), copy buttons on messages and code, and a Markdown export of any chat.
 - **Pause and resume.** Suspend a running agent (and a whole team) without losing its work.
+- **Resizable sidebar:** drag its edge from 320 px out to 460 px; double-click to reset.
 - **Command palette (Ctrl+K)**, keyboard shortcuts (Ctrl+N, Ctrl+L, Ctrl+F, Ctrl+1 to 9, Ctrl+,) and **undo (Ctrl+Z)** across renames, pins, closes and project removal.
 
 ## Seeing what happened
@@ -58,6 +59,11 @@ The index is read once in the background, cached on disk and only re-read for lo
 - **Channels:** Telegram is two-way (pair a chat with a one-time code and talk to an agent from your phone). Slack, Discord, Lark, DingTalk, WeCom and generic webhooks receive a notification when a scheduled task or team finishes.
 - **Remote access** (off by default) serves the same interface to a browser on your network behind a password, over Server-Sent Events.
 - A read-only **Codex bridge** (`LAICA.Bridge.exe`, an MCP server) lets Codex read LAICA's observed work.
+
+## Pictures and prices
+
+- **Pictures.** Screenshots and images an agent sees or makes (Claude tool results, MCP image content, Codex image items) are stored with the chat and shown as thumbnails on the activity line. Click one for a full-size viewer (arrows to move, Esc to close).
+- **Verified prices.** Cost estimates use the exact per-model prices from Anthropic's, OpenAI's and Google's own pricing pages, read every time LAICA starts. The Analytics Prices tab shows when each vendor was last checked and lists the verified models; an editable family table covers models a vendor doesn't list.
 
 ## Updates
 

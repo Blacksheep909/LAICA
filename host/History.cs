@@ -174,9 +174,8 @@ namespace Laica
             var map = new Dictionary<string, ClaudeDesktopMeta>(StringComparer.OrdinalIgnoreCase);
             try
             {
-                string root = Environment.GetEnvironmentVariable("LAICA_CLAUDE_DESKTOP_DIR"); if (String.IsNullOrWhiteSpace(root)) root = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Claude", "claude-code-sessions");
-                if (!Directory.Exists(root)) return map;
-                foreach (string f in Directory.GetFiles(root, "local_*.json", SearchOption.AllDirectories))
+                string over = Environment.GetEnvironmentVariable("LAICA_CLAUDE_DESKTOP_DIR"); var roots = new List<string>(); if (!String.IsNullOrWhiteSpace(over)) roots.Add(over); else foreach (string cr in HarnessManager.ClaudeRoamingRoots()) roots.Add(System.IO.Path.Combine(cr, "claude-code-sessions"));
+                foreach (string f in roots.Where(Directory.Exists).SelectMany(r => Directory.GetFiles(r, "local_*.json", SearchOption.AllDirectories)))
                 {
                     try
                     {

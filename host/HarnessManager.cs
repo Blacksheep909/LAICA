@@ -49,10 +49,27 @@ namespace Laica
         // ---------- discovery ----------
         public static string FindClaude()
         {
-            string roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string root = Path.Combine(roaming, "Claude", "claude-code");
-            try { if (Directory.Exists(root)) { string f = Directory.GetDirectories(root).SelectMany(d => Directory.GetDirectories(d).Concat(new[] { d })).SelectMany(d => Directory.GetFiles(d, "claude.exe")).OrderByDescending(p => File.GetLastWriteTimeUtc(p)).FirstOrDefault(); if (f != null) return f; } } catch (Exception) { }
+            foreach (string claudeRoot in ClaudeRoamingRoots())
+            {
+                string root = Path.Combine(claudeRoot, "claude-code");
+                try { if (Directory.Exists(root)) { string f = Directory.GetDirectories(root).SelectMany(d => Directory.GetDirectories(d).Concat(new[] { d })).SelectMany(d => Directory.GetFiles(d, "claude.exe")).OrderByDescending(p => File.GetLastWriteTimeUtc(p)).FirstOrDefault(); if (f != null) return f; } } catch (Exception) { }
+            }
             return FindOnPath("claude.exe") ?? FindOnPath("claude.cmd");
+        }
+        /// <summary>
+        /// Where the Claude desktop app keeps its data. The Store (MSIX) build of Claude redirects %APPDATA%\Claude for itself, so programs outside it
+        /// (including LAICA) only see the real files under %LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude.
+        /// </summary>
+        public static string[] ClaudeRoamingRoots()
+        {
+            var list = new List<string> { Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Claude") };
+            try
+            {
+                string pk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Packages");
+                if (Directory.Exists(pk)) foreach (string d in Directory.GetDirectories(pk, "Claude_*")) list.Add(Path.Combine(d, "LocalCache", "Roaming", "Claude"));
+            }
+            catch (Exception) { }
+            return list.ToArray();
         }
         static string FindOnPath(string file)
         {
@@ -214,7 +231,7 @@ namespace Laica
         }
         void PurgeTrash()
         {
-            try { string trash = Path.Combine(dir, "trash"); if (Directory.Exists(trash)) foreach (string f in Directory.GetFiles(trash)) if ((DateTime.UtcNow - File.GetLastWriteTimeUtc(f)).TotalDays > 14) File.Delete(f); } catch (Exception) { }
+            try { string trash = Path.Combine(dir, "trash"); if (Directory.Exists(trash)) foreach (string f in Directory.GetFiles(trash)) if ((DateTime.UtcNow - File.GetLastWriteTimeUtc(f)).TotalDays > 14) { File.Delete(f); try { string imgs = Path.Combine(dir, "images", Safe(Path.GetFileNameWithoutExtension(f))); if (Directory.Exists(imgs)) Directory.Delete(imgs, true); } catch (Exception) { } } } catch (Exception) { }
         }
         public void Stop(string id)
         {
@@ -381,7 +398,8 @@ namespace Laica
                 if (type == "assistant" && ct == "text") Emit(s, "assistant", Str(c, "text"), null);
                 else if (type == "assistant" && ct == "thinking") Emit(s, "thinking", Str(c, "thinking"), null);
                 else if (type == "assistant" && ct == "tool_use") Emit(s, "tool", Str(c, "name"), json.Serialize(c.ContainsKey("input") ? c["input"] : null));
-                else if (type == "user" && ct == "tool_result") Emit(s, "tool_result", Trim(Flatten(c.ContainsKey("content") ? c["content"] : null)), Str(c, "is_error") == "True" ? "error" : null);
+                else if (type == "user" && ct == "tool_result") Emit(s, "tool_result", Trim(Flatten(c.ContainsKey("content") ? c["content"] : null)), Str(c, "is_error") == "True" ? "error" : null, SaveImages(s, c.ContainsKey("content") ? c["content"] : null));
+                else if (type == "user" && ct == "image") { var im = SaveImages(s, new object[] { c }); if (im.Count > 0) Emit(s, "image", "", "attached", im); }
             }
         }
 
@@ -439,7 +457,8 @@ namespace Laica
             else if (it == "reasoning") { string txt = Flatten(item.ContainsKey("summary") ? item["summary"] : null); if (txt != "") Emit(s, "thinking", txt, null); }
             else if (it == "commandExecution") Emit(s, "tool_result", Trim(Str(item, "aggregatedOutput")), Str(item, "command"));
             else if (it == "fileChange") Emit(s, "tool", "file change", json.Serialize(item.ContainsKey("changes") ? item["changes"] : null));
-            else if (it == "mcpToolCall") Emit(s, "tool", Str(item, "server") + "." + Str(item, "tool"), json.Serialize(item.ContainsKey("arguments") ? item["arguments"] : null));
+            else if (it == "mcpToolCall") Emit(s, "tool", Str(item, "server") + "." + Str(item, "tool"), json.Serialize(item.ContainsKey("arguments") ? item["arguments"] : null), SaveImages(s, Obj(item, "result") != null && Obj(item, "result").ContainsKey("content") ? Obj(item, "result")["content"] : item.ContainsKey("result") ? item["result"] : null));
+            else if (it.IndexOf("image", StringComparison.OrdinalIgnoreCase) >= 0) { var im = ImagesFromItem(s, item); if (im.Count > 0) Emit(s, "image", it, Str(item, "path"), im); }
         }
 
         void ParseCodex(Session s, Dictionary<string, object> o, string type)
@@ -456,7 +475,8 @@ namespace Laica
             else if (it == "reasoning") Emit(s, "thinking", Str(item, "text"), null);
             else if (it == "command_execution") Emit(s, "tool_result", Trim(Str(item, "aggregated_output")), Str(item, "command"));
             else if (it == "file_change") Emit(s, "tool", "file change", json.Serialize(item.ContainsKey("changes") ? item["changes"] : null));
-            else if (it == "mcp_tool_call") Emit(s, "tool", Str(item, "server") + "." + Str(item, "tool"), json.Serialize(item.ContainsKey("arguments") ? item["arguments"] : null));
+            else if (it == "mcp_tool_call") Emit(s, "tool", Str(item, "server") + "." + Str(item, "tool"), json.Serialize(item.ContainsKey("arguments") ? item["arguments"] : null), SaveImages(s, Obj(Obj(item, "result"), "content") != null ? null : (Obj(item, "result") != null && Obj(item, "result").ContainsKey("content") ? Obj(item, "result")["content"] : item.ContainsKey("result") ? item["result"] : null)));
+            else if (it.IndexOf("image", StringComparison.OrdinalIgnoreCase) >= 0) { var im = ImagesFromItem(s, item); if (im.Count > 0) Emit(s, "image", it, Str(item, "path"), im); }
         }
 
         static string Str(Dictionary<string, object> d, string k) { object v; return d != null && d.TryGetValue(k, out v) && v != null ? Convert.ToString(v) : ""; }
@@ -472,9 +492,11 @@ namespace Laica
             return sb.ToString().Trim();
         }
 
-        void Emit(Session s, string kind, string text, string detail)
+        void Emit(Session s, string kind, string text, string detail) { Emit(s, kind, text, detail, null); }
+        void Emit(Session s, string kind, string text, string detail, IList<string> images)
         {
             var e = new Dictionary<string, object> { { "SessionId", s.Id }, { "Kind", kind }, { "Text", text }, { "Detail", detail }, { "TimeUtc", DateTime.UtcNow.ToString("o") } };
+            if (images != null && images.Count > 0) e["Images"] = images.ToArray();
             lock (gate) { s.Events.Add(e); if (s.Events.Count > 3000) s.Events.RemoveRange(0, 500); }
             var h = Event; if (h != null) h(e);
             if (kind == "error") NoteError(s, text);

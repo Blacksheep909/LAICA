@@ -2,12 +2,14 @@ import {useEffect,useState} from 'react';
 import {ChevronRight,SquareTerminal,FileText,Pencil,Search,Globe,Wrench,LoaderCircle,AlertTriangle,FileCode2} from 'lucide-react';
 import type {HEvent} from './harness-store';
 import {WorkingGlyph} from './ui/kit';
+import {Thumbs,refsOf} from './Images';
+import type {ImgRef} from './Images';
 
 /* The activity view: tool calls turned into plain sentences, grouped the way a person would describe them ("Ran 2 commands, edited a file"),
    with the exact command, edit or output one click away. Works for Claude Code, Codex, the built-in agent and imported history. */
 type Kind='cmd'|'read'|'edit'|'search'|'web'|'tool';
 export interface FileEdit { file:string; add:number; del:number; text:string; note?:string }
-export interface Step { edits?:FileEdit[]; tool:string; kind:Kind; title:string; body:string; result?:string; failed?:boolean; running?:boolean; time?:string }
+export interface Step { edits?:FileEdit[]; tool:string; kind:Kind; title:string; body:string; result?:string; failed?:boolean; running?:boolean; time?:string; images?:ImgRef[] }
 export type RowItem={type:'event';e:HEvent}|{type:'steps';items:Step[];running:boolean}|{type:'files';files:FileEdit[]}|{type:'summary';files:number;add:number;del:number}|{type:'worked';ms:number};
 
 /** Lines added and removed by one edit: the common start and end are trimmed, the rest is what changed. */
@@ -71,7 +73,7 @@ export function stepOf(e:HEvent):Step{
   else if(j)body=JSON.stringify(j,null,2);else body=raw;
   const edits=kind==='edit'?editsOf(tool,e.Detail,j):undefined;
   if(kind==='edit'&&(!desc)&&edits&&edits.length===1&&edits[0].file)title=(/write/i.test(tool)?'Wrote ':'Edited ')+base(edits[0].file);
-  return {tool,kind,title,body:body.length>6000?body.slice(0,6000)+'\n...':body,time:e.TimeUtc,edits};
+  return {tool,kind,title,body:body.length>6000?body.slice(0,6000)+'\n...':body,time:e.TimeUtc,edits,images:refsOf(e.SessionId,e.Images)};
 }
 
 const failedText=(t:string)=>/^(error|fatal|exception|command failed)\b/i.test(t.trim())||/\bexit code:?\s*[1-9]\d*\b/i.test(t)||/\bexited with code [1-9]/i.test(t);
@@ -91,7 +93,8 @@ export function groupRows(events:HEvent[],busy:boolean):RowItem[]{
   const summarize=()=>{if(!turn.size)return;let add=0,del=0;turn.forEach(v=>{add+=v.add;del+=v.del;});out.push({type:'summary',files:turn.size,add,del});turn.clear();};
   for(const e of events){
     if(e.Kind==='tool'){(cur??=[]).push(stepOf(e));}
-    else if(e.Kind==='tool_result'&&cur){const open=cur.find(x=>x.result===undefined);if(open){open.result=e.Text||'';open.failed=e.Detail==='error'||failedText(e.Text||'');}else{(cur as Step[]).push({tool:'Result',kind:'tool',title:'Output',body:'',result:e.Text||'',failed:e.Detail==='error'});}}
+    else if(e.Kind==='tool_result'&&cur){const open=cur.find(x=>x.result===undefined);if(open){open.result=e.Text||'';open.failed=e.Detail==='error'||failedText(e.Text||'');if(e.Images?.length)open.images=[...(open.images??[]),...refsOf(e.SessionId,e.Images)];}else{(cur as Step[]).push({tool:'Result',kind:'tool',title:'Output',body:'',result:e.Text||'',failed:e.Detail==='error',images:refsOf(e.SessionId,e.Images)});}}
+    else if(e.Kind==='image'&&cur){(cur as Step[]).push({tool:'Image',kind:'tool',title:'Looked at a picture',body:'',result:'',images:refsOf(e.SessionId,e.Images)});}
     else if(e.Kind==='done'){
       flush();
       let started=0;for(let i=events.indexOf(e)-1;i>=0;i--){if(events[i].Kind==='user'){started=Date.parse(events[i].TimeUtc)||0;break;}}
@@ -122,9 +125,10 @@ function summary(items:Step[]):string{
 }
 
 function StepRow({step}:{step:Step}){
-  const has=!!step.body||!!step.result;
+  const has=!!step.body||!!step.result;const pics=step.images??[];
   return <details className={`step ${step.failed?'is-failed':''} ${step.running?'is-running':''}`}>
-    <summary><span className="step-ico">{step.running?<LoaderCircle size={14} className="ui-spin"/>:step.failed?<AlertTriangle size={14}/>:icon(step.kind)}</span><span className="step-title">{step.title}</span>{step.failed&&<span className="step-bad">failed</span>}{has&&<ChevronRight size={14} className="step-chev"/>}</summary>
+    <summary><span className="step-ico">{step.running?<LoaderCircle size={14} className="ui-spin"/>:step.failed?<AlertTriangle size={14}/>:icon(step.kind)}</span><span className="step-title">{step.title}</span>{step.failed&&<span className="step-bad">failed</span>}{pics.length>0&&<Thumbs images={pics} max={3}/>}{has&&<ChevronRight size={14} className="step-chev"/>}</summary>
+    {pics.length>0&&<div className="step-pics"><Thumbs images={pics} max={12} big/></div>}
     {step.body&&<pre className="step-code">{step.body}</pre>}
     {step.result!==undefined&&step.result!==''&&<pre className={`step-out ${step.failed?'is-bad':''}`}>{step.result.length>6000?step.result.slice(0,6000)+'\n…':step.result}</pre>}
     {step.result==='' &&<p className="step-empty">No output.</p>}
@@ -133,10 +137,11 @@ function StepRow({step}:{step:Step}){
 
 export function Steps({items,running}:{items:Step[];running:boolean}){
   if(items.length===1)return <div className="steps single"><StepRow step={items[0]}/></div>;
+  const allPics=items.flatMap(i=>i.images??[]);
   const failed=items.some(i=>i.failed);
   const live=items.find(i=>i.running);
   return <details className={`steps ${failed?'has-failed':''}`} open={running&&!!live}>
-    <summary><span className="step-ico">{live?<LoaderCircle size={14} className="ui-spin"/>:icon(items[0].kind)}</span><span className="step-title">{live?live.title:summary(items)}</span><ChevronRight size={14} className="step-chev"/></summary>
+    <summary><span className="step-ico">{live?<LoaderCircle size={14} className="ui-spin"/>:icon(items[0].kind)}</span><span className="step-title">{live?live.title:summary(items)}</span>{allPics.length>0&&<Thumbs images={allPics} max={3}/>}<ChevronRight size={14} className="step-chev"/></summary>
     <div className="steps-list">{items.map((it,i)=><StepRow key={i} step={it}/>)}</div>
   </details>;
 }

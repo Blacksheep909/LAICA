@@ -15,7 +15,7 @@
   --glass-tint:rgba(22,20,40,.36);
   --glass-sheen:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015) 42%,rgba(255,255,255,.025));
   --rim:linear-gradient(135deg,rgba(255,255,255,.62),rgba(255,255,255,.14) 20%,rgba(255,255,255,.025) 46%,rgba(255,255,255,.03) 58%,rgba(255,255,255,.16) 82%,rgba(255,255,255,.46));
-  --pointer:radial-gradient(520px circle at var(--px,70%) var(--py,0%),rgba(255,255,255,.03),transparent 60%);
+  --pointer:linear-gradient(transparent,transparent); /* the cursor-following light was removed: it was distracting */
 }
 
 /* ---------- scene: a luminous, slow backdrop so glass has something to bend ---------- */
@@ -31,7 +31,7 @@
 :root[data-backdrop="plain"] .app:before{opacity:.6!important}
 
 /* ---------- connected layout: the sidebar is part of the window ---------- */
-.app{padding:0!important;gap:0!important;grid-template-columns:276px minmax(0,1fr)!important}
+.app{--sbw:320px;padding:0!important;gap:0!important;grid-template-columns:var(--sbw) minmax(0,1fr)!important}
 .app.sidebar-hidden{grid-template-columns:minmax(0,1fr)!important}
 .app.has-titlebar{padding-top:0!important}
 .main{padding:0!important}
@@ -394,3 +394,82 @@ details[open]>summary>.step-chev{transform:rotate(90deg)}
 .update-pill{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:2px 8px 6px;padding:6px 8px 6px 10px;border-radius:12px;background:rgba(181,166,255,.14);color:var(--ink);font-size:12px}
 .update-pill span{flex:1;min-width:0}.update-pill button{border:0;border-radius:99px;padding:3px 10px;background:var(--accent);color:#14102b;font:inherit;font-weight:600;cursor:pointer}.update-pill button:disabled{opacity:.6}.update-pill .bad{width:100%;color:#ff9a9a}
 .update-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap}.update-row small{display:block;color:var(--ink-3);margin-top:2px}.update-actions{display:flex;align-items:center;gap:8px}
+
+/* the chat list never scrolls sideways */
+.sidebar .side-scroll{overflow-x:hidden!important}
+
+.sidebar .side-item,.sidebar .side-section{width:auto!important;max-width:100%;box-sizing:border-box}
+
+/* resizable sidebar: 320px by default (File Edit View Help sit inside it with room to spare), draggable from 320 to 460 */
+.side-resize{position:absolute;top:0;bottom:0;left:calc(var(--sbw) - 4px);width:8px;z-index:70;cursor:col-resize;touch-action:none}
+.side-resize::after{content:'';position:absolute;top:44px;bottom:0;left:3px;width:2px;border-radius:2px;background:var(--accent);opacity:0;transition:opacity .15s}
+.side-resize:hover::after,.side-resize.dragging::after{opacity:.55}
+.app.sidebar-hidden .side-resize{display:none}
+body.sb-dragging{cursor:col-resize;user-select:none}
+@media(max-width:850px){.side-resize{display:none}}
+
+/* analytics: a fixed-size panel, so switching app or tab never resizes it; the content scrolls inside */
+.an-pop{height:min(640px,calc(100vh - 110px))!important;overflow-y:auto!important;justify-content:flex-start}
+.an-pop .an-charts,.an-pop .an-teams,.an-pop .an-models,.an-pop .an-prices{max-height:none!important;overflow:visible!important}
+.an-pop>*{flex-shrink:0}
+
+/* the chosen option in a group of look-tiles must be visible (the shared button style used to hide it) */
+.look-tile[aria-pressed="true"]{background:rgba(181,166,255,.18)!important;box-shadow:inset 0 0 0 1.5px var(--accent)!important;color:#fff}
+.look-tile{transition:background .15s,box-shadow .15s}
+
+/* dialog close button: draw the X instead of using the "×" character, whose font metrics sit it off centre */
+[role="dialog"] button[aria-label^="Close "]{font-size:0!important;position:relative;line-height:0}
+[role="dialog"] button[aria-label^="Close "]::before,[role="dialog"] button[aria-label^="Close "]::after{content:"";position:absolute;left:50%;top:50%;width:11px;height:1.6px;border-radius:2px;background:currentColor}
+[role="dialog"] button[aria-label^="Close "]::before{transform:translate(-50%,-50%) rotate(45deg)}
+[role="dialog"] button[aria-label^="Close "]::after{transform:translate(-50%,-50%) rotate(-45deg)}
+
+/* pictures the agent saw or made */
+.img-row{display:inline-flex;align-items:center;gap:6px;margin-left:auto;flex:none}
+.img-more{font-size:11.5px;color:var(--ink-3);margin-right:2px}
+.img-thumb{width:34px;height:26px;padding:0;border:1px solid rgba(255,255,255,.14);border-radius:7px;overflow:hidden;background:rgba(255,255,255,.05);cursor:zoom-in;display:block;transition:transform .15s,border-color .15s}
+.img-thumb:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.4)}
+.img-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.img-thumb.big{width:132px;height:92px;border-radius:12px}
+.img-thumb.is-bad{opacity:.4;cursor:default}
+.img-wait{display:block;width:100%;height:100%;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.1),rgba(255,255,255,.04));background-size:200% 100%;animation:img-shimmer 1.2s linear infinite}
+.img-wait.big{width:260px;height:160px;border-radius:14px}
+@keyframes img-shimmer{to{background-position:-200% 0}}
+.step-pics{padding:6px 0 4px 26px}.step-pics .img-row{margin-left:0;flex-wrap:wrap}
+.hmsg.image-row{display:flex;padding:2px 0}.hmsg.image-row .img-row{margin-left:0;flex-wrap:wrap}
+.lightbox{position:fixed;inset:0;z-index:400;display:grid;place-items:center;background:rgba(4,3,10,.78);backdrop-filter:blur(10px);cursor:zoom-out}
+.lightbox img{max-width:min(92vw,1600px);max-height:88vh;border-radius:14px;box-shadow:0 30px 90px rgba(0,0,0,.6);cursor:default;background:#0b0916}
+.lb-close,.lb-nav{position:absolute;display:grid;place-items:center;width:38px;height:38px;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;cursor:pointer;backdrop-filter:blur(8px)}
+.lb-close{top:18px;right:18px}.lb-nav{top:50%;transform:translateY(-50%)}.lb-nav.prev{left:18px}.lb-nav.next{right:18px}
+.lb-close:hover,.lb-nav:hover{background:rgba(255,255,255,.22)}
+.lb-count{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.12);font-size:12px;color:#fff}
+
+/* the workflow designer sits inside the same 28px gutters as the page title above it */
+.teams-workspace{padding:0 28px 22px!important}
+.workspace-top{margin:0 0 14px!important}
+
+/* graph "more tools" menu: one consistent row style */
+.laica-tools-pop{padding:6px!important;display:flex;flex-direction:column;gap:2px;min-width:200px}
+.laica-tools-pop .ogui-button,.laica-tools-pop button{width:100%;justify-content:flex-start!important;gap:9px!important;font-size:12px!important;border-radius:9px!important;min-height:30px!important;height:30px!important;color:var(--ink-2)!important}
+.laica-tools-pop .ogui-button:hover,.laica-tools-pop button:hover{background:rgba(255,255,255,.09)!important;color:#fff!important}
+.laica-tools-pop svg{width:14px!important;height:14px!important;flex:none}
+.laica-tools-pop .laica-grid-state{display:flex;align-items:center;gap:9px;min-height:30px;padding:0 9px;font-size:12px;color:var(--ink-3)}
+
+/* every page uses the same 28px gutters, the same as the page title */
+.settings-content,.settings-content.page-pad{margin-left:0!important;margin-right:0!important;padding-left:28px!important;padding-right:28px!important}
+.activity-content{padding-left:28px!important;padding-right:28px!important}
+.settings-content>.section-heading,.settings-content>.setting-card{margin-left:0!important;margin-right:0!important}
+.settings-content,.settings-content.page-pad{max-width:none!important;width:auto!important;align-self:stretch!important;box-sizing:border-box}
+
+/* prices table: no browser spinners */
+.an-prices input[type=number]{-moz-appearance:textfield;appearance:textfield}
+.an-prices input[type=number]::-webkit-inner-spin-button,.an-prices input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;appearance:none;margin:0;display:none}
+.an-prices input:focus{outline:none;box-shadow:inset 0 0 0 1.5px var(--accent)}
+
+/* prices tab: verification status */
+.price-verify{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.05)}
+.price-verify b{display:block;font-size:13px;font-weight:600}.price-verify small{display:block;color:var(--ink-3);font-size:11.5px;margin-top:2px}
+.price-sources{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 10px}
+.price-src{font-size:11px;padding:3px 9px;border-radius:99px;background:rgba(255,255,255,.07);color:var(--ink-2)}
+.price-src.ok{background:rgba(88,214,141,.14);color:#8fe3b3}.price-src.bad{background:rgba(255,154,154,.14);color:#ff9a9a}
+.price-official{margin:6px 0 12px}.price-official summary{cursor:pointer;font-size:12.5px;color:var(--ink-2);padding:4px 0}
+.price-official table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px}.price-official th{text-align:left;color:var(--ink-3);font-weight:500;padding:3px 4px}.price-official td{padding:3px 4px;color:var(--ink-2);border-top:1px solid var(--hair)}

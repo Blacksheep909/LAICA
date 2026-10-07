@@ -3,6 +3,39 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.19.0]
+
+### Added
+- **Pictures in chats.** Screenshots and images an agent sees or makes (Claude tool results, MCP image content, Codex image items) are stored with the chat and shown as small thumbnails on the activity line, like Claude and Codex do. Click one to open a full-size viewer with arrows and Esc.
+- **Verified prices.** Every time LAICA starts it reads Anthropic's, OpenAI's and Google's own pricing pages and uses their exact per-model prices for the cost estimates. The Prices tab shows when each vendor was last checked, lists the verified models and has a Check now button. A vendor whose page can't be read keeps its last verified prices. The editable family table is only the fallback for models a vendor doesn't list. (The built-in fallback prices were out of date and are corrected.)
+- **Resizable sidebar.** It is wider by default (320 px) so File, Edit, View and Help sit inside it with room to spare, and can be dragged out to 460 px. Double-click the edge to reset.
+
+### Changed
+- Analytics is a fixed-size panel, so switching app or tab no longer resizes it.
+- Every page uses the same 28 px side gutters as its title (Settings, Services, Assistants, Scheduled tasks, Activity and the workflow designer were uneven or reached the window edge).
+- The workflow designer no longer has the Team / Solo switch, and the separate "Choose a service and model" bar on the Services page is gone (the designer does it better). The AI service list shows only agents that are installed, marked Installed.
+- The graph tools menu uses one consistent row style.
+- Dictation options show which one is selected, the dialog close button is centred, and the Prices tab uses the app's own buttons without browser spinners.
+
+### Fixed
+- Claude Code is detected when the Claude desktop app is the Microsoft Store version (its data lives under Packages\Claude_*).
+- The chat list no longer scrolls sideways; the glowing light that followed the mouse is gone; the glow behind the glass is subtler; the Analytics icon matches the others; costs are labelled US dollars.
+## [0.18.2]
+
+### Fixed
+- The sidebar's chat list no longer shows a horizontal scrollbar (a few rows were 4 to 8 pixels too wide).
+- The title strip (back, forward, File, Edit, View, Help) is now one continuous bar: the sidebar's glass starts below it, so there is no colour seam next to Help.
+
+## [0.18.1]
+
+### Fixed
+- **Claude Code was not detected** when the Claude desktop app is the Microsoft Store version: the Store build keeps its data under %LOCALAPPDATA%\Packages\Claude_*, which LAICA did not look in, so Claude Code was missing from the team designer's AI service menu, the model picker and new chats. LAICA now searches that location too (for the program and for the desktop app's chat titles).
+- The team designer lists agents it could not find as greyed-out entries with the reason, instead of hiding them, and re-detects agents when the page opens and every 30 seconds.
+
+### Changed
+- The glowing light that followed the mouse across the glass is gone.
+- Developer option: the LAICA_WEBVIEW_CACHE environment variable moves the WebView cache folder, so a second preview instance can run beside the installed app.
+
 ## [0.18.0]
 
 ### Added

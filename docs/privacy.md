@@ -22,6 +22,8 @@ Under the install folder, in `harness\` (survives upgrades and uninstalls):
 | `sessions\*.json` | chats you start in LAICA: messages, tool events, settings |
 | `trash\` | chats you closed, kept 14 days so you can restore them |
 | `teams.json`, `teamruns.json` | your teams and one record per finished team run (vendors, models, times, tokens, estimated cost) |
+| `images\` | pictures the agent saw or made in your chats (screenshots and the like), kept with each chat |
+| `prices-verified.json`, `prices2.json` | the last prices read from the vendors' pages, and any family price you edited |
 | `usage.json`, `analytics.json` | token counters and the cached summary of your Codex and Claude logs (counts only, no message text) |
 | `prices.json`, `handoff.json`, `coauthor.json`, `updates.json`, `agents.json`, `tasks.json` | your settings |
 | `hooks\` | the small git hooks used for the co-author trailer |
@@ -40,6 +42,7 @@ To delete everything LAICA stored, close it and delete the `harness` folder and 
 - **Channels** (optional) post to Telegram, Slack and similar services when you configure them.
 - **Remote access** is off by default. When on, it listens on localhost, or on your local network if you choose that, and requires a password. Nothing is exposed to the internet by LAICA.
 - **Update checks.** Every few hours (and when you click Check now) LAICA asks `api.github.com` for the latest release of this repository. It sends no identifiers beyond a `LAICA-updater` user agent. Clicking Update downloads the installer from the same repository's releases and checks its SHA-256 before running it. Turn the checks off in Settings > Agents > Updates. The MCP servers you installed fetch their own updates from npm or PyPI when they start, as they would for any `npx`/`uvx` server.
+- **Price checks.** Every time LAICA starts (and when you click Check now on the Analytics Prices tab) it downloads the public pricing pages of Anthropic (`platform.claude.com`), OpenAI (`developers.openai.com`) and Google (`ai.google.dev`) to keep cost estimates accurate. Nothing about you is sent. Turn this off with the automatic-checks switch in Settings > Agents > Updates.
 - **Git.** Only the git commands you or an agent run. LAICA does not push anything by itself.
 
 LAICA's only own network request is the update check below. The interface is loaded from local files under a Content-Security-Policy that blocks remote scripts and connections.

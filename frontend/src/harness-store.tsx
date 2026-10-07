@@ -8,7 +8,7 @@ import type {Assistant} from './assistants-data';
 
 export interface HarnessInfo { Id:string; Name:string; Path:string|null; Available:boolean; Custom:boolean; Modes:string[]; DefaultMode:string }
 export interface HSession { Id:string; Harness:string; Title:string; Cwd:string; Project:string; Mode:string; Busy:boolean; BusySince?:string; UpdatedUtc?:string; Paused?:boolean; AssistantId?:string; Isolated?:boolean; Branch?:string; Effort?:string; ServiceId?:string; Model?:string; TeamId?:string }
-export interface HEvent { SessionId:string; Kind:string; Text:string; Detail?:string|null; TimeUtc:string }
+export interface HEvent { SessionId:string; Kind:string; Text:string; Detail?:string|null; TimeUtc:string; Images?:string[] }
 export interface TeamRun { Id:string; Title:string; Running:boolean; Paused?:boolean; Cwd:string; Leader:string; Members:{Name:string;Harness:string;Role:string}[]; Goal:string; Phase:string }
 export interface HistoryItem { Source:'codex'|'claude'; ExternalId:string; Title:string; Project:string; ProjectName:string; ProjectId:string; UpdatedUtc:string; SessionId:string }
 export interface PlanWindow { Label:string; Percent:number; ResetsUtc:string; SeenUtc:string; Source:string; Stale:boolean }
@@ -25,7 +25,7 @@ interface Store {
   project:string|null; setProject:(p:string|null)=>void; savedProjects:string[]; addProject:(p:string)=>void; removeProject:(p:string)=>void;
   codexProjects:CodexProject[]; history:HistoryItem[]; historyLoading:boolean; reloadHistory:(refresh?:boolean)=>void; openHistory:(h:HistoryItem,cwd:string)=>Promise<void>;
   teams:TeamRun[]; reloadTeams:()=>void;
-  harnesses:HarnessInfo[]; assistants:Assistant[]; sessions:HSession[]; active:string|null; events:Record<string,HEvent[]>; refreshKey:number;
+  harnesses:HarnessInfo[]; refreshHarnesses:()=>void; assistants:Assistant[]; sessions:HSession[]; active:string|null; events:Record<string,HEvent[]>; refreshKey:number;
   setActive:(id:string|null)=>void; reload:(prefer?:string|null)=>Promise<void>; reloadAssistants:()=>void;
   create:(o:CreateOptions)=>Promise<HSession>; send:(id:string,text:string)=>Promise<void>; stop:(id:string)=>void; close:(id:string)=>void; rename:(id:string,title:string)=>void;
   nameOf:(id:string)=>string;
@@ -79,6 +79,8 @@ export function HarnessProvider({children}:{children:ReactNode}){
   const openHistory=useCallback(async(h:HistoryItem,cwd:string)=>{try{const s=await request<HSession>('historyOpen',{Source:h.Source,ExternalId:h.ExternalId,Cwd:cwd});await reload(s.Id);setHistory(cur=>cur.map(x=>x.ExternalId===h.ExternalId&&x.Source===h.Source?{...x,SessionId:s.Id}:x));}catch(e){fail('Could not open that conversation')(e as Error);}},[reload,fail]);
   const continueElsewhere=useCallback(async(id:string,harness:string,serviceId?:string,model?:string)=>{const s=await request<HSession>('harnessContinue',{Id:id,Harness:harness,ServiceId:serviceId??'',Model:model??''});await reload(s.Id);},[reload]);
   const nameOf=useCallback((id:string)=>harnesses.find(h=>h.Id===id)?.Name??id,[harnesses]);
-  const value=useMemo(()=>({pinned,togglePin,usage,reloadUsage,setBudget,clearLimit,continueElsewhere,project,setProject,savedProjects,addProject,removeProject,codexProjects,history,historyLoading,reloadHistory,openHistory,teams,reloadTeams,harnesses,assistants,sessions,active,events,refreshKey,setActive,reload,reloadAssistants,create,send,stop,close,rename,nameOf}),[pinned,togglePin,usage,reloadUsage,setBudget,clearLimit,continueElsewhere,project,savedProjects,addProject,removeProject,codexProjects,history,historyLoading,reloadHistory,openHistory,teams,reloadTeams,harnesses,assistants,sessions,active,events,refreshKey,reload,reloadAssistants,create,send,stop,close,rename,nameOf]);
+  const refreshHarnesses=useCallback(()=>{request<HarnessInfo[]>('harnesses').then(setHarnesses).catch(()=>{});},[]);
+  useEffect(()=>{const first=[setTimeout(refreshHarnesses,2500),setTimeout(refreshHarnesses,8000)];const t=setInterval(refreshHarnesses,30000);return()=>{first.forEach(clearTimeout);clearInterval(t);};},[refreshHarnesses]);
+  const value=useMemo(()=>({pinned,togglePin,usage,reloadUsage,setBudget,clearLimit,continueElsewhere,project,setProject,savedProjects,addProject,removeProject,codexProjects,history,historyLoading,reloadHistory,openHistory,teams,reloadTeams,harnesses,refreshHarnesses,assistants,sessions,active,events,refreshKey,setActive,reload,reloadAssistants,create,send,stop,close,rename,nameOf}),[pinned,togglePin,usage,reloadUsage,setBudget,clearLimit,continueElsewhere,project,savedProjects,addProject,removeProject,codexProjects,history,historyLoading,reloadHistory,openHistory,teams,reloadTeams,harnesses,refreshHarnesses,assistants,sessions,active,events,refreshKey,reload,reloadAssistants,create,send,stop,close,rename,nameOf]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

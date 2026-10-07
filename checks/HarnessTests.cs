@@ -790,7 +790,7 @@ public static class HarnessTests
                         Check(daily.Length >= 2 && dailySum == 657 && ((object[])all["Weekdays"]).Cast<object>().Sum(x => Convert.ToInt64(x)) == 6, "analytics: the daily series and weekday totals add up to the same figures");
                         double costBefore = Convert.ToDouble(all["Cost"], System.Globalization.CultureInfo.InvariantCulture);
                         Check(costBefore > 0, "analytics: an estimated cost is produced from the token counts");
-                        var rows = new List<object>(); foreach (object pr in (object[])m.PricesGet()) { var d = (Dictionary<string, object>)pr; rows.Add(new Dictionary<string, object> { { "Class", d["Class"] }, { "Input", "0" }, { "Output", "0" }, { "CacheRead", "0" }, { "CacheWrite", "0" } }); }
+                        var rows = new List<object>(); foreach (object pr in (object[])((Dictionary<string, object>)m.PricesGet())["Rows"]) { var d = (Dictionary<string, object>)pr; rows.Add(new Dictionary<string, object> { { "Class", d["Class"] }, { "Input", "0" }, { "Output", "0" }, { "CacheRead", "0" }, { "CacheWrite", "0" } }); }
                         m.PricesSet(new Dictionary<string, object> { { "Rows", rows } });
                         Check(Convert.ToDouble(((Dictionary<string, object>)m.Analytics("all", ""))["Cost"], System.Globalization.CultureInfo.InvariantCulture) == 0.0, "analytics: editing prices changes the estimate");
                         m.PricesSet(new Dictionary<string, object>());                    }
@@ -829,6 +829,51 @@ public static class HarnessTests
                     m.CoAuthorSet(new Dictionary<string, object> { { "Enabled", false } });
                     Check(!commitAs("five").Contains("LAICA"), "co-author: the global switch turns it off everywhere");
                 }
+            }            {
+                using (var m = new HarnessManager(Path.Combine(root, "data-img")))
+                {
+                    m.SaveAgent(new Dictionary<string, object> { { "Name", "ImgEcho" }, { "Command", "cmd.exe" }, { "Args", "/c more" } }); string iid = m.Harnesses().First(h => h.Name == "ImgEcho").Id;
+                    var sd = (Dictionary<string, object>)m.Create(iid, work, null, null, null, "img", false, null, null); string imgSid = (string)sd["Id"];
+                    string png = Convert.ToBase64String(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137 });
+                    var claudeShape = new object[] { new Dictionary<string, object> { { "type", "text" }, { "text", "Screenshot taken" } }, new Dictionary<string, object> { { "type", "image" }, { "source", new Dictionary<string, object> { { "type", "base64" }, { "media_type", "image/png" }, { "data", png } } } } };
+                    var got = m.SaveImagesForTest(imgSid, claudeShape);
+                    Check(got.Length == 1 && got[0].EndsWith(".png"), "images: a screenshot in a Claude tool result is stored with the chat");
+                    var mcpShape = new object[] { new Dictionary<string, object> { { "type", "image" }, { "data", png }, { "mimeType", "image/png" } } };
+                    Check(m.SaveImagesForTest(imgSid, mcpShape).SequenceEqual(got), "images: the same picture in the MCP shape is stored once");
+                    var back = (Dictionary<string, object>)m.ImageGet(imgSid, got[0]); Check((string)back["Mime"] == "image/png" && (string)back["Data"] == png, "images: a stored picture can be read back");
+                    var notPicture = new object[] { new Dictionary<string, object> { { "type", "image" }, { "source", new Dictionary<string, object> { { "type", "base64" }, { "data", Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("<svg onload=alert(1)>................................")) } } } } };
+                    Check(m.SaveImagesForTest(imgSid, notPicture).Length == 0, "images: data that is not a png, jpeg, gif or webp picture is ignored");
+                    bool badName = false; try { m.ImageGet(imgSid, "..\\..\\x.png"); } catch (ArgumentException) { badName = true; } Check(badName, "images: file names are checked, so a path cannot escape the chat's folder");
+                    Check(m.SaveImagesForTest(imgSid, "just text").Length == 0 && m.SaveImagesForTest(imgSid, null).Length == 0, "images: plain text results have no pictures");
+                }
+            }            {
+                string anth = "<td>Claude Opus 5.5</td><td>For long-running work</td><td>$4</td><td>/ MTok</td><td>$20</td><td>/ MTok</td><td>$5</td><td>/ MTok</td><td>$8</td><td>/ MTok</td><td>$0.20</td><td>/ MTok</td><td>Claude Haiku 4.5</td><td>$1</td><td>/ MTok</td><td>$5</td><td>/ MTok</td><td>$1.25</td><td>/ MTok</td><td>$2</td><td>/ MTok</td><td>$0.10</td><td>/ MTok</td>";
+                var pa = HarnessManager.ParseAnthropicPrices(anth);
+                Check(pa.Count == 2 && pa["claude-opus-5-5"].SequenceEqual(new[] { 4.0, 20.0, 0.2, 5.0 }) && pa["claude-haiku-4-5"].SequenceEqual(new[] { 1.0, 5.0, 0.1, 1.25 }), "prices: Anthropic's table is read (input, output, cache hits, 5-minute cache writes)");
+                string oai = "x \"tier\":[0,&quot;standard&quot;],&quot;rows&quot;:[1,[[1,[[0,&quot;gpt-6-luna&quot;],[0,0.1],[0,0.01],[0,0.125],[0,0.5]]],[1,[[0,&quot;gpt-5.5 (&lt;272K context length)&quot;],[0,5],[0,0.5],[0,&quot;-&quot;],[0,30]]]]] &quot;tier&quot;:[0,&quot;batch&quot;] [0,&quot;gpt-6-luna&quot;],[0,0.05],[0,0.005],[0,0.0625],[0,0.25]";
+                var po = HarnessManager.ParseOpenAiPrices(oai);
+                Check(po["gpt-6-luna"].SequenceEqual(new[] { 0.1, 0.5, 0.01, 0.125 }) && po["gpt-5-5"].SequenceEqual(new[] { 5.0, 30.0, 0.5, 5.0 }), "prices: OpenAI's standard rows are read, a dash for cache writes means the input price, and batch prices are ignored");
+                string goo = "Gemini 3.8 Flash|gemini-3.8-flash|Try it in Google AI Studio|Our most intelligent Flash model|Standard|Free Tier|Paid Tier, per 1M tokens in USD|Input price|Free of charge|$0.75 through December 31, 2026.|$1.50 starting January 1, 2027.|Output price (including thinking tokens)|Free of charge|$3.75 through December 31, 2026.|Context caching price|Free of charge|$0.075 through December 31, 2026.|Batch|Input price|$0.375|";
+                var pg = HarnessManager.ParseGooglePrices(goo);
+                Check(pg["gemini-3-8-flash"].SequenceEqual(new[] { 0.75, 3.75, 0.075, 0.75 }), "prices: Google's current paid-tier prices are read, not the later date or the batch tier");
+                using (var m = new HarnessManager(Path.Combine(root, "data-prices")))
+                {
+                    m.PriceHttp = url => { if (url.Contains("claude.com")) return anth; if (url.Contains("openai.com")) return oai; throw new System.Net.WebException("offline"); };
+                    var v = (Dictionary<string, object>)m.VerifyPrices(); var srcs = Dicts(v["Sources"]);
+                    Check(srcs.Length == 3 && (bool)srcs[0]["Ok"] && (bool)srcs[1]["Ok"] && !(bool)srcs[2]["Ok"] && ((object[])v["Official"]).Length == 4, "prices: each vendor is checked on its own; one being unreachable is reported and does not stop the others");
+                    m.PriceHttp = url => url.Contains("claude.com") ? "<html>changed</html>" : (url.Contains("openai.com") ? oai : goo);
+                    var v2 = (Dictionary<string, object>)m.VerifyPrices(); var keys = ((object[])v2["Official"]).Cast<Dictionary<string, object>>().Select(o => (string)o["Model"]).ToArray();
+                    Check(keys.Contains("claude-opus-5-5") && keys.Contains("gemini-3-8-flash") && !(bool)Dicts(v2["Sources"])[0]["Ok"], "prices: when a vendor's page can't be read its last verified prices are kept");
+                }
+                using (var m = new HarnessManager(Path.Combine(root, "data-prices")))
+                {
+                    var again = (Dictionary<string, object>)m.PricesGet(); Check(((object[])again["Official"]).Length >= 4 && (string)again["VerifiedUtc"] != "", "prices: the last verified table is remembered across restarts");
+                }
+            }            {
+                var roots = HarnessManager.ClaudeRoamingRoots();
+                Check(roots.Length >= 1 && roots[0].EndsWith("Claude"), "claude: the normal AppData folder is searched first");
+                string pk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Packages");
+                Check(!Directory.Exists(pk) || Directory.GetDirectories(pk, "Claude_*").All(d => roots.Contains(Path.Combine(d, "LocalCache", "Roaming", "Claude"))), "claude: the Store (MSIX) copy of the Claude app's data is searched too");
             }            {
                 Check(HarnessManager.StalePackage("npx", new[] { "-y", "@modelcontextprotocol/server-memory" }) == "@modelcontextprotocol/server-memory", "updates: an unversioned npx package is found");
                 Check(HarnessManager.StalePackage("npx", new[] { "-y", "@playwright/mcp@latest" }) == null && HarnessManager.StalePackage("npx", new[] { "-y", "pkg@1.2.3" }) == null, "updates: packages already on latest or pinned on purpose are left alone");

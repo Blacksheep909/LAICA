@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -201,12 +202,15 @@ namespace Laica
         }
 
         // ---------- estimated cost ----------
-        // US dollars per million tokens: input, output, cache read, cache write. Public list prices by model family; editable in the analytics panel.
-        static readonly string[] PriceOrder = { "opus", "sonnet", "haiku", "claude", "mini", "gpt", "codex", "other" };
+        // US dollars per million tokens: input, output, cache read, cache write.
+        // 1. Prices checked against each vendor's own pricing page (Anthropic, OpenAI, Google) every time LAICA starts: exact per-model rows.
+        // 2. Family fallbacks (below), used for a model the vendors' pages do not list. You can edit these; the verified rows can't be edited.
+        static readonly string[] PriceOrder = { "opus", "sonnet", "haiku", "fable", "mythos", "claude", "gemini", "mini", "gpt", "codex", "other" };
         static readonly Dictionary<string, double[]> DefaultPrices = new Dictionary<string, double[]> {
-            { "opus", new[] { 15.0, 75.0, 1.5, 18.75 } }, { "sonnet", new[] { 3.0, 15.0, 0.3, 3.75 } }, { "haiku", new[] { 1.0, 5.0, 0.1, 1.25 } }, { "claude", new[] { 3.0, 15.0, 0.3, 3.75 } },
-            { "mini", new[] { 0.25, 2.0, 0.025, 0.25 } }, { "gpt", new[] { 1.25, 10.0, 0.125, 1.25 } }, { "codex", new[] { 1.25, 10.0, 0.125, 1.25 } }, { "other", new[] { 1.25, 10.0, 0.125, 1.25 } } };
-        Dictionary<string, double[]> prices;
+            { "opus", new[] { 4.0, 20.0, 0.2, 5.0 } }, { "sonnet", new[] { 2.0, 10.0, 0.2, 2.5 } }, { "haiku", new[] { 1.0, 5.0, 0.1, 1.25 } }, { "fable", new[] { 10.0, 50.0, 0.25, 12.5 } }, { "mythos", new[] { 10.0, 50.0, 0.25, 12.5 } }, { "claude", new[] { 2.0, 10.0, 0.2, 2.5 } },
+            { "gemini", new[] { 0.75, 3.75, 0.075, 0.75 } }, { "mini", new[] { 0.1, 0.5, 0.01, 0.125 } }, { "gpt", new[] { 2.0, 10.0, 0.1, 2.5 } }, { "codex", new[] { 2.0, 10.0, 0.1, 2.5 } }, { "other", new[] { 2.0, 10.0, 0.1, 2.5 } } };
+        Dictionary<string, double[]> prices;                 // the family fallbacks in use (defaults plus the user's edits)
+        Dictionary<string, double[]> official; DateTime officialAt; List<Dictionary<string, object>> officialSources = new List<Dictionary<string, object>>();   // verified per-model rows
 
         Dictionary<string, double[]> Prices()
         {
@@ -214,17 +218,45 @@ namespace Laica
             {
                 if (prices != null) return prices;
                 var p = DefaultPrices.ToDictionary(kv => kv.Key, kv => (double[])kv.Value.Clone());
-                try { var l = LoadList("prices.json"); if (l.Count > 0) foreach (var kv in l[0]) { var a = kv.Value as System.Collections.IList; if (a != null && a.Count >= 4 && p.ContainsKey(kv.Key)) p[kv.Key] = new[] { Convert.ToDouble(a[0], CultureInfo.InvariantCulture), Convert.ToDouble(a[1], CultureInfo.InvariantCulture), Convert.ToDouble(a[2], CultureInfo.InvariantCulture), Convert.ToDouble(a[3], CultureInfo.InvariantCulture) }; } } catch (Exception) { }
+                try { var l = LoadList("prices2.json"); if (l.Count > 0) foreach (var kv in l[0]) { var a = kv.Value as System.Collections.IList; if (a != null && a.Count >= 4 && p.ContainsKey(kv.Key)) p[kv.Key] = new[] { Convert.ToDouble(a[0], CultureInfo.InvariantCulture), Convert.ToDouble(a[1], CultureInfo.InvariantCulture), Convert.ToDouble(a[2], CultureInfo.InvariantCulture), Convert.ToDouble(a[3], CultureInfo.InvariantCulture) }; } } catch (Exception) { }
                 return prices = p;
             }
         }
         static string PriceClass(string model)
         {
             string m = (model ?? "").ToLowerInvariant();
+            if (m.Contains("luna")) return "mini";
             foreach (string k in PriceOrder) if (k != "other" && m.Contains(k)) return k;
             return "other";
         }
-        public object PricesGet() { var p = Prices(); return PriceOrder.Select(k => (object)new Dictionary<string, object> { { "Class", k }, { "Input", p[k][0] }, { "Output", p[k][1] }, { "CacheRead", p[k][2] }, { "CacheWrite", p[k][3] }, { "Default", DefaultPrices[k] } }).ToArray(); }
+        static string PriceKey(string model) { string m = Regex.Replace((model ?? "").ToLowerInvariant().Trim(), @"-\d{8}$", ""); return m.Replace('.', '-').Replace(' ', '-'); }
+        /// <summary>The price row for a model: the vendor's verified row when there is one (longest matching name), else the family fallback.</summary>
+        double[] PriceFor(string model)
+        {
+            LoadVerifiedOnce(); var fam = Prices(); string key = PriceKey(model);
+            lock (anaGate)
+            {
+                if (official != null)
+                {
+                    double[] hit; if (official.TryGetValue(key, out hit)) return hit;
+                    string best = null; foreach (string k in official.Keys) if (key.StartsWith(k + "-") && (best == null || k.Length > best.Length)) best = k;
+                    if (best != null) return official[best];
+                }
+            }
+            return fam[PriceClass(model)];
+        }
+        bool IsVerified(string model)
+        {
+            string key = PriceKey(model); lock (anaGate) { if (official == null) return false; if (official.ContainsKey(key)) return true; return official.Keys.Any(k => key.StartsWith(k + "-")); }
+        }
+        public object PricesGet()
+        {
+            LoadVerifiedOnce(); var p = Prices(); object[] off; string at;
+            lock (anaGate) { off = official == null ? new object[0] : official.OrderBy(k => k.Key).Select(k => (object)new Dictionary<string, object> { { "Model", k.Key }, { "Input", k.Value[0] }, { "Output", k.Value[1] }, { "CacheRead", k.Value[2] }, { "CacheWrite", k.Value[3] } }).ToArray(); at = officialAt == DateTime.MinValue ? "" : officialAt.ToString("o"); }
+            return new Dictionary<string, object> {
+                { "Rows", PriceOrder.Select(k => (object)new Dictionary<string, object> { { "Class", k }, { "Input", p[k][0] }, { "Output", p[k][1] }, { "CacheRead", p[k][2] }, { "CacheWrite", p[k][3] }, { "Default", DefaultPrices[k] } }).ToArray() },
+                { "Official", off }, { "VerifiedUtc", at }, { "Sources", officialSources.ToArray() } };
+        }
         public object PricesSet(Dictionary<string, object> d)
         {
             var next = DefaultPrices.ToDictionary(kv => kv.Key, kv => (double[])kv.Value.Clone()); var rows = d != null && d.ContainsKey("Rows") ? d["Rows"] as System.Collections.IEnumerable : null;
@@ -233,17 +265,112 @@ namespace Laica
                     var r = o as Dictionary<string, object>; if (r == null || !next.ContainsKey(Str(r, "Class"))) continue; double a, b, c, e; var inv = CultureInfo.InvariantCulture;
                     if (Double.TryParse(Str(r, "Input"), NumberStyles.Float, inv, out a) && Double.TryParse(Str(r, "Output"), NumberStyles.Float, inv, out b) && Double.TryParse(Str(r, "CacheRead"), NumberStyles.Float, inv, out c) && Double.TryParse(Str(r, "CacheWrite"), NumberStyles.Float, inv, out e) && a >= 0 && b >= 0 && c >= 0 && e >= 0 && a < 10000 && b < 10000 && c < 10000 && e < 10000) next[Str(r, "Class")] = new[] { a, b, c, e };
                 }
-            lock (anaGate) { prices = next; SaveList("prices.json", new List<Dictionary<string, object>> { next.ToDictionary(kv => kv.Key, kv => (object)kv.Value) }); }
+            var changed = next.Where(kv => !kv.Value.SequenceEqual(DefaultPrices[kv.Key])).ToDictionary(kv => kv.Key, kv => (object)kv.Value);
+            lock (anaGate) { prices = next; SaveList("prices2.json", new List<Dictionary<string, object>> { changed }); }
             return PricesGet();
         }
         static double CostOf(double[] p, long[] x) { return (x[1] * p[0] + x[2] * p[1] + x[3] * p[2] + x[4] * p[3]) / 1e6; }
 
+        // ---------- checking prices against the vendors' own pages ----------
+        static readonly string[][] PriceSources = {
+            new[] { "Anthropic", "https://platform.claude.com/docs/en/about-claude/pricing" },
+            new[] { "OpenAI", "https://developers.openai.com/api/docs/pricing" },
+            new[] { "Google", "https://ai.google.dev/gemini-api/docs/pricing" } };
+        static string PageText(string html) { string t = Regex.Replace(Regex.Replace(html ?? "", @"<(script|style)[\s\S]*?</\1>", " "), "<[^>]+>", "|"); t = System.Net.WebUtility.HtmlDecode(t); t = Regex.Replace(t, @"\s+", " "); return Regex.Replace(t, @"(\| ?)+", "|"); }
+        static double Dollars(string s) { double v; return Double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out v) ? v : 0; }
+
+        /// <summary>Anthropic's table: Claude NAME VERSION | blurb | input | output | 5m cache write | 1h cache write | cache hits (all per MTok).</summary>
+        internal static Dictionary<string, double[]> ParseAnthropicPrices(string html)
+        {
+            var map = new Dictionary<string, double[]>(); string t = PageText(html); string tok = @"\$([\d.]+)\|/ ?\|?MTok\|?";
+            foreach (Match m in Regex.Matches(t, @"Claude (\w+) (\d+(?:\.\d+)?)\|(?:[^$]*?\|)?" + tok + tok + tok + tok + tok))
+            {
+                string key = "claude-" + m.Groups[1].Value.ToLowerInvariant() + "-" + m.Groups[2].Value.Replace('.', '-');
+                if (!map.ContainsKey(key)) map[key] = new[] { Dollars(m.Groups[3].Value), Dollars(m.Groups[4].Value), Dollars(m.Groups[7].Value), Dollars(m.Groups[5].Value) };
+            }
+            return map;
+        }
+        /// <summary>OpenAI's standard-tier rows are embedded as [model, input, cached input, cache writes, output].</summary>
+        internal static Dictionary<string, double[]> ParseOpenAiPrices(string html)
+        {
+            var map = new Dictionary<string, double[]>(); string h = html ?? ""; int std = h.IndexOf("&quot;standard&quot;", StringComparison.Ordinal); if (std < 0) std = h.IndexOf("\"standard\"", StringComparison.Ordinal); if (std < 0) return map;
+            string num = @"(&quot;-&quot;|""-""|[\d.]+)";
+            foreach (Match m in Regex.Matches(h.Substring(std), @"\[0,(?:&quot;|"")(gpt-[a-z0-9.\-]+)[^\]]*?\],\[0," + @"([\d.]+)\],\[0," + num + @"\],\[0," + num + @"\],\[0,([\d.]+)\]"))
+            {
+                string key = m.Groups[1].Value.Replace('.', '-'); if (map.ContainsKey(key)) continue;
+                double inp = Dollars(m.Groups[2].Value), cached = Dollars(m.Groups[3].Value), write = Dollars(m.Groups[4].Value), outp = Dollars(m.Groups[5].Value);
+                map[key] = new[] { inp, outp, cached > 0 ? cached : inp, write > 0 ? write : inp };
+            }
+            return map;
+        }
+        /// <summary>Google's page: one block per model with Input price, Output price and Context caching price (the first dollar amount after each label is the current paid-tier price).</summary>
+        internal static Dictionary<string, double[]> ParseGooglePrices(string html)
+        {
+            var map = new Dictionary<string, double[]>(); string t = PageText(html);
+            var starts = Regex.Matches(t, @"\|(gemini-[a-z0-9.\-]+)\|Try it in Google AI Studio");
+            for (int i = 0; i < starts.Count; i++)
+            {
+                int from = starts[i].Index, to = i + 1 < starts.Count ? starts[i + 1].Index : t.Length; string block = t.Substring(from, to - from);
+                int std = block.IndexOf("|Standard|", StringComparison.Ordinal); if (std >= 0) block = block.Substring(std);
+                Func<string, double> after = label => { int k = block.IndexOf(label, StringComparison.Ordinal); if (k < 0) return 0; var m = Regex.Match(block.Substring(k, Math.Min(400, block.Length - k)), @"\$([\d.]+)"); return m.Success ? Dollars(m.Groups[1].Value) : 0; };
+                double inp = after("Input price"), outp = after("Output price"), cache = after("Context caching price"); if (inp <= 0 || outp <= 0) continue;
+                string key = starts[i].Groups[1].Value.Replace('.', '-'); if (!map.ContainsKey(key)) map[key] = new[] { inp, outp, cache > 0 ? cache : inp, inp };
+            }
+            return map;
+        }
+
+        /// <summary>Reads each vendor's pricing page and replaces the verified rows. A vendor whose page can't be read keeps its previous rows and is reported.</summary>
+        public object VerifyPrices()
+        {
+            LoadVerifiedOnce(); var merged = new Dictionary<string, double[]>(); var sources = new List<Dictionary<string, object>>(); var previous = official;
+            foreach (var src in PriceSources)
+            {
+                var row = new Dictionary<string, object> { { "Vendor", src[0] }, { "Url", src[1] }, { "Ok", false }, { "Models", 0 }, { "Error", "" } };
+                try
+                {
+                    string html = (PriceHttp ?? PriceHttpGet)(src[1]);
+                    var got = src[0] == "Anthropic" ? ParseAnthropicPrices(html) : src[0] == "OpenAI" ? ParseOpenAiPrices(html) : ParseGooglePrices(html);
+                    if (got.Count == 0) throw new InvalidOperationException("The page's layout changed, so no prices could be read.");
+                    foreach (var kv in got) merged[kv.Key] = kv.Value; row["Ok"] = true; row["Models"] = got.Count;
+                }
+                catch (Exception ex)
+                {
+                    row["Error"] = ex.Message;
+                    string prefix = src[0] == "Anthropic" ? "claude-" : src[0] == "OpenAI" ? "gpt-" : "gemini-";
+                    if (previous != null) foreach (var kv in previous) if (kv.Key.StartsWith(prefix) && !merged.ContainsKey(kv.Key)) merged[kv.Key] = kv.Value;   // keep the last verified rows for this vendor
+                }
+                sources.Add(row);
+            }
+            lock (anaGate) { if (merged.Count > 0) official = merged; officialAt = DateTime.UtcNow; officialSources = sources; }
+            try { SaveList("prices-verified.json", new List<Dictionary<string, object>> { new Dictionary<string, object> { { "At", officialAt.ToString("o") }, { "Models", official == null ? new Dictionary<string, object>() : official.ToDictionary(k => k.Key, k => (object)k.Value) }, { "Sources", sources.ToArray() } } }); } catch (Exception) { }
+            Raise(); return PricesGet();
+        }
+        internal Func<string, string> PriceHttp { get; set; }
+        static string PriceHttpGet(string url)
+        {
+            ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
+            var rq = (HttpWebRequest)WebRequest.Create(url); rq.UserAgent = "Mozilla/5.0 (LAICA price check)"; rq.Timeout = 20000; rq.ReadWriteTimeout = 20000; rq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+            using (var rs = (HttpWebResponse)rq.GetResponse()) using (var sr = new StreamReader(rs.GetResponseStream(), Encoding.UTF8)) return sr.ReadToEnd();
+        }
+        /// <summary>The last verified table is loaded at start so cost figures are right before the live check finishes.</summary>
+        void LoadVerifiedPrices()
+        {
+            try
+            {
+                var l = LoadList("prices-verified.json"); if (l.Count == 0) return; var m = Obj(l[0], "Models"); if (m == null) return; var map = new Dictionary<string, double[]>();
+                foreach (var kv in m) { var a = kv.Value as System.Collections.IList; if (a != null && a.Count >= 4) map[kv.Key] = new[] { Convert.ToDouble(a[0], CultureInfo.InvariantCulture), Convert.ToDouble(a[1], CultureInfo.InvariantCulture), Convert.ToDouble(a[2], CultureInfo.InvariantCulture), Convert.ToDouble(a[3], CultureInfo.InvariantCulture) }; }
+                DateTime at; DateTime.TryParse(Str(l[0], "At"), null, DateTimeStyles.RoundtripKind, out at);
+                lock (anaGate) { if (map.Count > 0) { official = map; officialAt = at; } }
+            }
+            catch (Exception) { }
+        }
+        bool verifiedLoaded; void LoadVerifiedOnce() { if (verifiedLoaded) return; verifiedLoaded = true; LoadVerifiedPrices(); }
         const double HobbitTokens = 123000;
 
         public object Analytics(string range) { return Analytics(range, ""); }
         public object Analytics(string range, string vendor)
         {
-            EnsureAnalytics(); vendor = vendor == "codex" || vendor == "claude" ? vendor : ""; var pr = Prices();
+            EnsureAnalytics(); vendor = vendor == "codex" || vendor == "claude" ? vendor : ""; var pr = Prices(); LoadVerifiedOnce();
             DateTime cutoff = range == "7d" ? DateTime.Now.Date.AddDays(-6) : range == "30d" ? DateTime.Now.Date.AddDays(-29) : DateTime.MinValue; string cutDay = cutoff == DateTime.MinValue ? "" : cutoff.ToString("yyyy-MM-dd");
             long msgs = 0, tokens = 0; int sessions = 0; double cost = 0; var days = new Dictionary<string, long[]>(); var hours = new long[24]; var models = new Dictionary<string, long[]>(); var modelCost = new Dictionary<string, double>(); var vendors = new Dictionary<string, long[]>(); var vendorCost = new Dictionary<string, double>(); var tools = new Dictionary<string, long>(); double longest = 0;
             var modelVendor = new Dictionary<string, string>(); var heat = new Dictionary<string, long[]>(); var dayVendor = new Dictionary<string, long[]>(); var dayCost = new Dictionary<string, double>();
@@ -266,7 +393,7 @@ namespace Laica
                     {
                         int bar = x.Key.IndexOf('|'); string day = x.Key.Substring(0, bar), model = x.Key.Substring(bar + 1);
                         if (cutDay != "" && String.CompareOrdinal(day, cutDay) < 0) continue;
-                        double c = CostOf(pr[PriceClass(model)], x.Value); fc += c; double mc; modelCost.TryGetValue(model, out mc); modelCost[model] = mc + c; double dc; dayCost.TryGetValue(day, out dc); dayCost[day] = dc + c;
+                        double c = CostOf(PriceFor(model), x.Value); fc += c; double mc; modelCost.TryGetValue(model, out mc); modelCost[model] = mc + c; double dc; dayCost.TryGetValue(day, out dc); dayCost[day] = dc + c;
                     }
                     if (!any) continue;
                     sessions++; msgs += fm; tokens += ft; cost += fc; string vname = s.Source == "claude" ? "Claude" : "Codex (GPT)"; long[] v; if (!vendors.TryGetValue(vname, out v)) vendors[vname] = v = new long[3]; v[0] += fm; v[1] += ft; v[2]++; double vc; vendorCost.TryGetValue(vname, out vc); vendorCost[vname] = vc + fc;

@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {BarChart3} from 'lucide-react';
+import {Button} from 'open-glass-ui';
 import {request,isDesktop} from './bridge';
 import {Popover,PopoverTrigger,PopoverContent,ToggleGroup,ToggleGroupItem,Progress,Tip} from './ui/kit';
 
@@ -53,26 +54,37 @@ function CostBars({daily}:{daily:Day[]}){
   </svg>;
 }
 
-/** Editable price table: dollars per million tokens by model family. */
+interface OfficialRow { Model:string; Input:number; Output:number; CacheRead:number; CacheWrite:number }
+interface PriceState { Rows:Price[]; Official:OfficialRow[]; VerifiedUtc:string; Sources:{Vendor:string;Url:string;Ok:boolean;Models:number;Error:string}[] }
+const ago=(iso:string)=>{if(!iso)return 'not yet';const m=Math.round((Date.now()-new Date(iso).getTime())/60000);return m<1?'just now':m<60?`${m} min ago`:m<1440?`${Math.round(m/60)} h ago`:`${Math.round(m/1440)} d ago`;};
+
+/** Prices: checked against each vendor's own pricing page every time LAICA starts; the family table below is only the fallback for models a vendor does not list. */
 function PriceEditor({onSaved}:{onSaved:()=>void}){
-  const [rows,setRows]=useState<Price[]>([]),[busy,setBusy]=useState(false);
-  useEffect(()=>{void request<Price[]>('pricesGet',{}).then(setRows).catch(()=>{});},[]);
+  const [st,setSt]=useState<PriceState|null>(null),[rows,setRows]=useState<Price[]>([]),[busy,setBusy]=useState(false),[checking,setChecking]=useState(false);
+  const take=(s:PriceState)=>{setSt(s);setRows(s.Rows);};
+  useEffect(()=>{void request<PriceState>('pricesGet',{}).then(take).catch(()=>{});},[]);
   const edit=(i:number,k:keyof Price,v:string)=>setRows(r=>r.map((x,j)=>j===i?{...x,[k]:v as unknown as number}:x));
-  const save=(list:Price[])=>{setBusy(true);void request<Price[]>('pricesSet',{Rows:list}).then(r=>{setRows(r);onSaved();}).finally(()=>setBusy(false));};
+  const save=(list:Price[])=>{setBusy(true);void request<PriceState>('pricesSet',{Rows:list}).then(s=>{take(s);onSaved();}).finally(()=>setBusy(false));};
   const reset=()=>save(rows.map(r=>({...r,Input:r.Default[0],Output:r.Default[1],CacheRead:r.Default[2],CacheWrite:r.Default[3]})));
-  return <div className="an-prices"><p className="an-note">All prices are in US dollars (USD) per million tokens. Defaults are public list prices by model family; change them to match your plan or provider.</p>
+  const verify=()=>{setChecking(true);void request<PriceState>('pricesVerify',{}).then(s=>{take(s);onSaved();}).finally(()=>setChecking(false));};
+  const okAll=!!st&&st.Sources.length>0&&st.Sources.every(s=>s.Ok);
+  return <div className="an-prices">
+    <div className="price-verify"><div><b>{okAll?'Checked against the vendors’ own pricing pages':st?.VerifiedUtc?'Partly checked against the vendors’ pricing pages':'Not checked yet'}</b><small>{st?.VerifiedUtc?`Last checked ${ago(st.VerifiedUtc)}. LAICA checks every time it starts.`:'LAICA checks every time it starts.'}</small></div><Button size="small" variant="quiet" disabled={checking} onClick={verify}>{checking?'Checking…':'Check now'}</Button></div>
+    {st&&st.Sources.length>0&&<div className="price-sources">{st.Sources.map(s=><span key={s.Vendor} className={`price-src ${s.Ok?'ok':'bad'}`} title={s.Ok?`${s.Models} models read from ${s.Url}`:s.Error}>{s.Vendor}: {s.Ok?`${s.Models} models`:'could not read, kept the last prices'}</span>)}</div>}
+    {st&&st.Official.length>0&&<details className="price-official"><summary>Verified prices for {st.Official.length} models (US$ per million tokens)</summary>
+      <table><thead><tr><th>Model</th><th>Input</th><th>Output</th><th>Cache read</th><th>Cache write</th></tr></thead><tbody>{st.Official.map(o=><tr key={o.Model}><td>{o.Model}</td><td>{o.Input}</td><td>{o.Output}</td><td>{o.CacheRead}</td><td>{o.CacheWrite}</td></tr>)}</tbody></table></details>}
+    <p className="an-note">Models a vendor’s page lists use those exact prices. For any other model LAICA uses this family table, in US dollars per million tokens. You can change it.</p>
     <table><thead><tr><th>Model family</th><th>Input</th><th>Output</th><th>Cache read</th><th>Cache write</th></tr></thead><tbody>
       {rows.map((r,i)=><tr key={r.Class}><td>{r.Class}</td>{((['Input','Output','CacheRead','CacheWrite']) as (keyof Price)[]).map(k=><td key={k}><input type="number" min="0" step="0.01" value={String(r[k])} onChange={e=>edit(i,k,e.target.value)} aria-label={`${r.Class} ${k}`}/></td>)}</tr>)}
     </tbody></table>
-    <div className="an-price-actions"><button type="button" className="ui-btn" disabled={busy} onClick={()=>save(rows)}>Save prices</button><button type="button" className="ui-btn" disabled={busy} onClick={reset}>Reset to defaults</button></div></div>;
+    <div className="an-price-actions"><Button size="small" variant="primary" disabled={busy} onClick={()=>save(rows)}>Save prices</Button><Button size="small" variant="quiet" disabled={busy} onClick={reset}>Reset to defaults</Button></div></div>;
 }
-
 interface TMember { Name:string; Role:string; Harness:string; Model:string; Runs:number; Seconds:number; Tokens:number; Cost:number; Share:number; Failed:number }
 interface TTeam { TeamId:string; Title:string; Runs:number; Succeeded:number; Failed:number; Stopped:number; SuccessRate:number; AvgSeconds:number; AvgCost:number; TotalCost:number; TotalTokens:number; Speedup:number; LeaderShare:number; CostPerTask:number; TaskSuccess:number; Swaps:number; Vendors:string[]; Members:TMember[]; Recent:{Goal:string;StartUtc:string;Seconds:number;Outcome:string;Cost:number;Swaps:number}[] }
 const dur=(s:number)=>s>=3600?`${Math.floor(s/3600)}h ${Math.round(s%3600/60)}m`:s>=60?`${Math.floor(s/60)}m ${Math.round(s%60)}s`:`${Math.round(s)}s`;
 const vendorLabel=(h:string)=>h==='claude'?'Claude':h==='codex'?'Codex':h==='gemini'?'Gemini':h;
 
-/** How well each team design performs: success, time, cost, how parallel it really is, where the money goes, and whether it needed agent swaps. */
+/** How well each team design performs: success, time, cost, how parallel the work really was, where the money goes, and whether it needed agent swaps. */
 function TeamsView({range}:{range:string}){
   const [data,setData]=useState<{Runs:number;Cost:number;Teams:TTeam[]}|null>(null),[err,setErr]=useState('');
   useEffect(()=>{void request<{Runs:number;Cost:number;Teams:TTeam[]}>('teamAnalytics',{Range:range}).then(d=>{setData(d);setErr('');}).catch(e=>setErr((e as Error).message));},[range]);
@@ -103,7 +115,6 @@ function TeamsView({range}:{range:string}){
     </div>)}
   </div>;
 }
-
 /** Running total of tokens over the same days. */
 function Cumulative({daily}:{daily:Day[]}){
   const W=520,H=96;let run=0;const pts=daily.map(d=>{run+=d[2]+d[3];return run;});const max=Math.max(1,run);
