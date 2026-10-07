@@ -522,3 +522,8 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .screen-empty{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:36px 22px;color:var(--ink-3)}.screen-empty h3{color:var(--ink);font-size:14px;margin:4px 0 0}.screen-empty p{font-size:12.5px;line-height:1.55;margin:0}
 
 .computer-stopped{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:12px;background:rgba(255,154,154,.1);color:#ffb3b3;font-size:13px;margin-top:8px}
+
+/* one highlight for every sidebar row: hovering shows the same lavender as the selected row, a little softer */
+.sidebar .new-chat-btn:hover,.sidebar .side-nav .nav-item:hover,.sidebar .side-item:hover,.sidebar .side-foot .ogui-button:hover{background:linear-gradient(180deg,rgba(179,165,247,.13),rgba(150,130,235,.07))!important;box-shadow:none!important;border:0!important}
+.sidebar .side-item.on:hover,.sidebar .side-nav .nav-item.active:hover{background:linear-gradient(180deg,rgba(179,165,247,.24),rgba(150,130,235,.15))!important}
+.sidebar .side-item.on,.sidebar .side-item.nested.on,.sidebar .side-item.thread.on{border-radius:11px!important}

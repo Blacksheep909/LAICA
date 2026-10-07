@@ -3,6 +3,11 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.20.2]
+
+### Changed
+- Every row in the sidebar highlights the same way: the selected chat, the chats in Recent and in Projects, and the navigation items all use one lavender fill, and hovering a row shows the same lavender a little softer (it used to turn grey-white).
+
 ## [0.20.1]
 
 ### Changed
