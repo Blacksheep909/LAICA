@@ -3,6 +3,24 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.17.3]
+
+### Changed
+- Analytics now says which currency costs are in: amounts show as US$ and the labels, notes and price table say US dollars (USD).
+
+## [0.17.2]
+
+### Changed
+- The coloured glow behind the glass is much subtler: the scene colours and the pointer light are roughly halved in strength, so glass panels no longer pick up distracting blobs.
+
+### Fixed
+- The Analytics icon at the bottom left now matches the brightness of the other footer icons.
+
+## [0.17.1]
+
+### Added
+- Sidebar sections (Teams, Pinned, Projects, Chats) can be collapsed with the small minus button beside each heading. The choice is remembered.
+
 ## [0.17.0]
 
 ### Added

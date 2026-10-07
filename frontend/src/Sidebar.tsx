@@ -1,6 +1,6 @@
 import {useMemo,useState} from 'react';
 import {Button,Glass} from 'open-glass-ui';
-import {Pin,PinOff,Pencil,Download,FolderSearch,Trash2,Store,Plus,SquarePen,Search,CalendarClock,Sparkles,Workflow,Activity as ActivityIcon,FolderOpen,Folder,MessageSquare,X,Settings,Plug,BookOpen,GitBranch,ChevronDown,ChevronRight,Users,RefreshCw,FolderPlus,History as HistoryIcon} from 'lucide-react';
+import {Pin,PinOff,Pencil,Download,FolderSearch,Trash2,Store,Plus,SquarePen,Search,CalendarClock,Sparkles,Workflow,Activity as ActivityIcon,FolderOpen,Folder,MessageSquare,X,Settings,Plug,BookOpen,GitBranch,ChevronDown,ChevronRight,Minus,Users,RefreshCw,FolderPlus,History as HistoryIcon} from 'lucide-react';
 import {useHarness} from './harness-store';
 import type {TeamRun} from './harness-store';
 import {request,isRemote} from './bridge';
@@ -25,6 +25,10 @@ export default function Sidebar({page,go,version,onGuide,teams,activeTeam,openTe
   const {sessions,active,setActive,close,nameOf,project,setProject,savedProjects,addProject,removeProject,codexProjects,history,historyLoading,reloadHistory,openHistory,pinned,togglePin,rename}=useHarness();
   const [renameFor,setRenameFor]=useState<{id:string;title:string}|null>(null),[query,setQuery]=useState(''),[adding,setAdding]=useState(false),[newPath,setNewPath]=useState(''),[open,setOpen]=useState<Record<string,boolean>>({}),[more,setMore]=useState<Record<string,number>>({});
   const q=query.trim().toLowerCase();
+  const [fold,setFold]=useState<Record<string,boolean>>(()=>{try{return JSON.parse(localStorage.getItem('laica.sidebar.fold')||'{}');}catch{return {};}});
+  const folded=(id:string)=>!q&&!!fold[id];
+  const flip=(id:string)=>setFold(f=>{const n={...f,[id]:!f[id]};try{localStorage.setItem('laica.sidebar.fold',JSON.stringify(n));}catch{/* private mode */}return n;});
+  const fb=(id:string,label:string)=><button type="button" className="side-fold" aria-expanded={!folded(id)} aria-label={(folded(id)?'Expand ':'Collapse ')+label} title={(folded(id)?'Expand ':'Collapse ')+label} onClick={()=>flip(id)}>{folded(id)?<ChevronRight size={12}/>:<Minus size={12}/>}</button>;
 
   const projects=useMemo(()=>buildProjects(savedProjects,sessions,history,codexProjects),[savedProjects,sessions,history,codexProjects]);
   const rows=useMemo<Row[]>(()=>{
@@ -69,14 +73,14 @@ export default function Sidebar({page,go,version,onGuide,teams,activeTeam,openTe
     <label className="side-search"><Search size={14}/><input aria-label="Search chats" placeholder="Search" value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<button aria-label="Clear search" onClick={()=>setQuery('')}><X size={12}/></button>}</label>
     <nav aria-label="Workspace" className="side-nav">{item('tasks','Scheduled tasks',CalendarClock)}{item('assistants','Assistants',Sparkles)}{item('plugins','Plugins',Store)}{item('teams','Workflow designer',Workflow)}{item('activity','Activity',ActivityIcon)}</nav>
     <div className="side-scroll">
-      <div className="side-section"><span>Teams</span><button aria-label="New team" title="New team" onClick={newTeam}><Plus size={13}/></button></div>
-      {!teams.length&&<p className="side-empty">Team mode runs a leader and teammates in parallel.</p>}
-      {teams.map(t=><button key={t.Id} className={`side-item ${page==='team'&&activeTeam===t.Id?'on':''}`} onClick={()=>openTeam(t.Id)}><Users size={14}/><span className="side-title">{t.Title}</span><ProviderChip p={{kind:'team',label:'Team',detail:'Agent team'}}/>{t.Running&&<WorkingGlyph size={13} paused={t.Paused}/>}</button>)}
-      {pinnedRows.length>0&&<><div className="side-section"><span>Pinned</span></div>{pinnedRows.map(r=>threadRow(r,false))}</>}
-      <div className="side-section"><span>Projects</span><span className="side-actions"><button aria-label="Re-scan Codex and Claude Code history" title="Re-scan Codex and Claude Code history" onClick={()=>reloadHistory(true)}><RefreshCw size={12} className={historyLoading?'spin':''}/></button><button aria-label="Add project" title="Add a project folder" onClick={()=>setAdding(a=>!a)}><Plus size={13}/></button></span></div>
-      {adding&&<div className="side-add"><input aria-label="Project folder" autoFocus placeholder="Folder path, e.g. C:\code\my-app" value={newPath} onChange={e=>setNewPath(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')submit();if(e.key==='Escape')setAdding(false);}}/><div>{!isRemote&&<Button size="small" variant="quiet" leadingIcon={<FolderPlus size={14}/>} onClick={browse}>Browse…</Button>}<Button size="small" variant="primary" disabled={!newPath.trim()} onClick={submit}>Add</Button></div></div>}
-      {!shownProjects.length&&!adding&&<p className="side-empty">{historyLoading?'Reading your Codex and Claude Code projects…':'Add a folder with + to organise chats by project.'}</p>}
-      {shownProjects.map((p,i)=>{const list=byProject.get(p.name.toLowerCase())??[];const expanded=isOpen(p.name,i);const lim=limit(p.name);const sel=selectedName===p.name.toLowerCase();
+      <div className="side-section">{fb('teams','Teams')}<span>Teams</span><button aria-label="New team" title="New team" onClick={newTeam}><Plus size={13}/></button></div>
+      {!folded('teams')&&!teams.length&&<p className="side-empty">Team mode runs a leader and teammates in parallel.</p>}
+      {!folded('teams')&&teams.map(t=><button key={t.Id} className={`side-item ${page==='team'&&activeTeam===t.Id?'on':''}`} onClick={()=>openTeam(t.Id)}><Users size={14}/><span className="side-title">{t.Title}</span><ProviderChip p={{kind:'team',label:'Team',detail:'Agent team'}}/>{t.Running&&<WorkingGlyph size={13} paused={t.Paused}/>}</button>)}
+      {pinnedRows.length>0&&<><div className="side-section">{fb('pinned','Pinned')}<span>Pinned</span></div>{!folded('pinned')&&pinnedRows.map(r=>threadRow(r,false))}</>}
+      <div className="side-section">{fb('projects','Projects')}<span>Projects</span><span className="side-actions"><button aria-label="Re-scan Codex and Claude Code history" title="Re-scan Codex and Claude Code history" onClick={()=>reloadHistory(true)}><RefreshCw size={12} className={historyLoading?'spin':''}/></button><button aria-label="Add project" title="Add a project folder" onClick={()=>setAdding(a=>!a)}><Plus size={13}/></button></span></div>
+      {adding&&!folded('projects')&&<div className="side-add"><input aria-label="Project folder" autoFocus placeholder="Folder path, e.g. C:\code\my-app" value={newPath} onChange={e=>setNewPath(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')submit();if(e.key==='Escape')setAdding(false);}}/><div>{!isRemote&&<Button size="small" variant="quiet" leadingIcon={<FolderPlus size={14}/>} onClick={browse}>Browse…</Button>}<Button size="small" variant="primary" disabled={!newPath.trim()} onClick={submit}>Add</Button></div></div>}
+      {!folded('projects')&&!shownProjects.length&&!adding&&<p className="side-empty">{historyLoading?'Reading your Codex and Claude Code projects…':'Add a folder with + to organise chats by project.'}</p>}
+      {!folded('projects')&&shownProjects.map((p,i)=>{const list=byProject.get(p.name.toLowerCase())??[];const expanded=isOpen(p.name,i);const lim=limit(p.name);const sel=selectedName===p.name.toLowerCase();
         return <div key={p.name} className="side-group">
           <ContextMenu><ContextMenuTrigger asChild><div role="button" tabIndex={0} className={`side-item project ${sel?'on':''}`} title={p.path} onClick={()=>{toggle(p.name,i);setProject(p.path);}} onKeyDown={e=>{if(e.key==='Enter'){toggle(p.name,i);setProject(p.path);}}}>
             {expanded?<ChevronDown size={12} className="side-chev"/>:<ChevronRight size={12} className="side-chev"/>}{sel||expanded?<FolderOpen size={14}/>:<Folder size={14}/>}<span className="side-title">{p.name}</span>{list.some(r=>r.busy)&&<WorkingGlyph size={12}/>}{list.length>0&&<small>{list.length}</small>}
@@ -89,9 +93,9 @@ export default function Sidebar({page,go,version,onGuide,teams,activeTeam,openTe
             </ContextMenuContent></ContextMenu>
           {expanded&&(list.length===0?<p className="side-empty nested">No conversations yet.</p>:<>{list.slice(0,lim).map(r=>threadRow(r,true))}{list.length>lim&&<button className="side-more nested" onClick={()=>setMore(m=>({...m,[p.name]:lim+10}))}>Show more ({list.length-lim})</button>}</>)}
         </div>;})}
-      {(unfiled.length>0||!q)&&<div className="side-section"><span>Chats</span></div>}
-      {!unfiled.length&&!q&&<p className="side-empty">Conversations that don't belong to a project appear here.</p>}
-      {unfiled.slice(0,limit('')).map(r=>threadRow(r,false))}{unfiled.length>limit('')&&<button className="side-more" onClick={()=>setMore(m=>({...m,'':limit('')+12}))}>Show more ({unfiled.length-limit('')})</button>}
+      {(unfiled.length>0||!q)&&<div className="side-section">{fb('chats','Chats')}<span>Chats</span></div>}
+      {!folded('chats')&&!unfiled.length&&!q&&<p className="side-empty">Conversations that don't belong to a project appear here.</p>}
+      {!folded('chats')&&unfiled.slice(0,limit('')).map(r=>threadRow(r,false))}{!folded('chats')&&unfiled.length>limit('')&&<button className="side-more" onClick={()=>setMore(m=>({...m,'':limit('')+12}))}>Show more ({unfiled.length-limit('')})</button>}
     </div>
     <div className="side-foot">
       <div className="side-icons"><AnalyticsButton/><Tip label="Settings" shortcut="Ctrl ,"><Button variant="quiet" size="small" aria-label="Settings" className={page==='settings'?'active':''} onClick={()=>go('settings')}><Settings size={15}/></Button></Tip><Tip label="Services"><Button variant="quiet" size="small" aria-label="Services" onClick={()=>go('services')}><Plug size={15}/></Button></Tip><Tip label="Guide and shortcuts"><Button variant="quiet" size="small" aria-label="Guide" onClick={onGuide}><BookOpen size={15}/></Button></Tip></div>

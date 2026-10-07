@@ -13,19 +13,19 @@
   --ink:#f5f3fb;--ink-2:#bdb8cf;--ink-3:#8c879e;
   --accent:#b5a6ff;
   --glass-tint:rgba(22,20,40,.36);
-  --glass-sheen:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.02) 42%,rgba(255,255,255,.035));
+  --glass-sheen:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015) 42%,rgba(255,255,255,.025));
   --rim:linear-gradient(135deg,rgba(255,255,255,.62),rgba(255,255,255,.14) 20%,rgba(255,255,255,.025) 46%,rgba(255,255,255,.03) 58%,rgba(255,255,255,.16) 82%,rgba(255,255,255,.46));
-  --pointer:radial-gradient(520px circle at var(--px,70%) var(--py,0%),rgba(255,255,255,.085),transparent 62%);
+  --pointer:radial-gradient(520px circle at var(--px,70%) var(--py,0%),rgba(255,255,255,.03),transparent 60%);
 }
 
 /* ---------- scene: a luminous, slow backdrop so glass has something to bend ---------- */
 .app{background:radial-gradient(120% 90% at 50% -10%,#14102b 0%,#08071a 55%,#05040f 100%)!important}
 .app:before{inset:-10%!important;opacity:1!important;animation:scene-a 70s ease-in-out infinite alternate!important;will-change:transform;
   background:
-    radial-gradient(38% 34% at 14% 10%,rgba(124,92,255,.42),transparent 70%),
-    radial-gradient(34% 32% at 88% 14%,rgba(52,140,255,.30),transparent 72%),
-    radial-gradient(40% 36% at 78% 96%,rgba(255,92,180,.24),transparent 72%),
-    radial-gradient(32% 32% at 26% 92%,rgba(40,210,190,.20),transparent 72%)!important}
+    radial-gradient(38% 34% at 14% 10%,rgba(124,92,255,.17),transparent 68%),
+    radial-gradient(34% 32% at 88% 14%,rgba(52,140,255,.11),transparent 70%),
+    radial-gradient(40% 36% at 78% 96%,rgba(255,92,180,.09),transparent 70%),
+    radial-gradient(32% 32% at 26% 92%,rgba(40,210,190,.07),transparent 70%)!important}
 @keyframes scene-a{from{transform:translate3d(-2%,-1%,0) scale(1)}to{transform:translate3d(2.5%,2%,0) scale(1.08)}}
 .starfield{opacity:.55}
 :root[data-backdrop="plain"] .app:before{opacity:.6!important}
@@ -267,7 +267,7 @@ details[open]>summary>.step-chev{transform:rotate(90deg)}
 .worked-line{display:flex;align-items:center;gap:14px;margin:6px 0 2px;color:var(--ink-3);font-size:12px}
 .worked-line:before,.worked-line:after{content:"";flex:1;height:1px;background:var(--hair)}
 /* ---- analytics ---- */
-.an-btn{display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:10px;background:transparent;color:var(--ink-2);cursor:pointer;transition:background .15s,color .15s,transform .3s var(--ease-spring)}
+.an-btn{display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:10px;background:transparent;color:var(--ink);cursor:pointer;transition:background .15s,color .15s,transform .3s var(--ease-spring)}
 .an-btn:hover{background:rgba(255,255,255,.08);color:#fff}.an-btn:active{transform:scale(.92)}.an-btn[data-state=open]{background:rgba(181,166,255,.18);color:#fff}
 .an-pop{width:min(580px,calc(100vw - 32px))!important;padding:16px!important;display:flex;flex-direction:column;gap:14px}
 .an-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -382,3 +382,10 @@ details[open]>summary>.step-chev{transform:rotate(90deg)}
 
 .coauthor-email{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--ink-3);margin-top:6px}.coauthor-email .hinput{width:100%}
 .coauthor-projects{display:flex;flex-direction:column;gap:8px;margin-top:10px}.handoff-note.bad{color:#ff9a9a}
+
+/* collapsible sidebar sections */
+.sidebar .side-section{justify-content:flex-start!important;gap:4px}
+.sidebar .side-section>.side-actions,.sidebar .side-section>button:not(.side-fold){margin-left:auto}
+.sidebar .side-section .side-fold{width:18px;height:18px;margin-left:-4px;border-radius:6px;color:var(--ink-2);opacity:.8;transition:opacity .15s,background .15s}
+.sidebar .side-section:hover .side-fold,.sidebar .side-section .side-fold:focus-visible{opacity:1}
+.sidebar .side-section .side-fold:hover{background:rgba(255,255,255,.09);color:#fff}

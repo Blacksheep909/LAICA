@@ -14,7 +14,7 @@ interface Data {
 
 const compact=(n:number)=>n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e4?Math.round(n/1e3)+'k':n>=1e3?(n/1e3).toFixed(1)+'k':String(Math.round(n));
 const whole=(n:number)=>n.toLocaleString();
-const money=(n:number)=>n>=1000?'$'+Math.round(n).toLocaleString():n>=10?'$'+n.toFixed(0):'$'+n.toFixed(2);
+const money=(n:number)=>n>=1000?'US$'+Math.round(n).toLocaleString():n>=10?'US$'+n.toFixed(0):'US$'+n.toFixed(2);
 const hourName=(h:number)=>h<0?'–':`${h%12===0?12:h%12} ${h<12?'AM':'PM'}`;
 const span=(m:number)=>m>=1440?`${Math.round(m/1440)} d`:m>=60?`${Math.floor(m/60)}h ${Math.round(m%60)}m`:`${Math.round(m)} min`;
 const dayName=(iso:string)=>{if(!iso)return '–';const d=new Date(iso+'T12:00:00');return d.toLocaleDateString([],{month:'short',day:'numeric'});};
@@ -60,7 +60,7 @@ function PriceEditor({onSaved}:{onSaved:()=>void}){
   const edit=(i:number,k:keyof Price,v:string)=>setRows(r=>r.map((x,j)=>j===i?{...x,[k]:v as unknown as number}:x));
   const save=(list:Price[])=>{setBusy(true);void request<Price[]>('pricesSet',{Rows:list}).then(r=>{setRows(r);onSaved();}).finally(()=>setBusy(false));};
   const reset=()=>save(rows.map(r=>({...r,Input:r.Default[0],Output:r.Default[1],CacheRead:r.Default[2],CacheWrite:r.Default[3]})));
-  return <div className="an-prices"><p className="an-note">US dollars per million tokens. Defaults are public list prices by model family; change them to match your plan or provider.</p>
+  return <div className="an-prices"><p className="an-note">All prices are in US dollars (USD) per million tokens. Defaults are public list prices by model family; change them to match your plan or provider.</p>
     <table><thead><tr><th>Model family</th><th>Input</th><th>Output</th><th>Cache read</th><th>Cache write</th></tr></thead><tbody>
       {rows.map((r,i)=><tr key={r.Class}><td>{r.Class}</td>{((['Input','Output','CacheRead','CacheWrite']) as (keyof Price)[]).map(k=><td key={k}><input type="number" min="0" step="0.01" value={String(r[k])} onChange={e=>edit(i,k,e.target.value)} aria-label={`${r.Class} ${k}`}/></td>)}</tr>)}
     </tbody></table>
@@ -82,7 +82,7 @@ function TeamsView({range}:{range:string}){
   const best=(f:(t:TTeam)=>number,low=false)=>{const c=data.Teams.filter(t=>t.Runs>0);return c.length<2?'':c.slice().sort((a,b)=>low?f(a)-f(b):f(b)-f(a))[0].TeamId;};
   const fastest=best(t=>t.AvgSeconds,true),cheapest=best(t=>t.AvgCost,true),reliable=best(t=>t.SuccessRate);
   return <div className="an-teams">
-    <div className="an-tiles"><Tile label="Team runs" value={whole(data.Runs)}/><Tile label="Teams" value={whole(data.Teams.length)}/><Tile label="Est. cost" value={money(data.Cost)}/></div>
+    <div className="an-tiles"><Tile label="Team runs" value={whole(data.Runs)}/><Tile label="Teams" value={whole(data.Teams.length)}/><Tile label="Est. cost (USD)" value={money(data.Cost)}/></div>
     {data.Teams.map(t=><div key={t.TeamId} className="an-team">
       <div className="an-team-top"><b title={t.Title}>{t.Title}</b>{t.Vendors.length>1&&<span className="ui-badge">{t.Vendors.map(vendorLabel).join(' + ')}</span>}
         {t.TeamId===reliable&&<span className="ui-badge good">most reliable</span>}{t.TeamId===fastest&&<span className="ui-badge good">fastest</span>}{t.TeamId===cheapest&&<span className="ui-badge good">cheapest</span>}</div>
@@ -150,10 +150,10 @@ export default function AnalyticsButton(){
       {ix?.Running&&<div className="an-index"><span>Reading your history · {ix.Done} of {ix.Total} sessions</span><Progress value={pct} aria-label="Indexing progress"/></div>}
       {data&&view==='overview'&&<>
         <div className="an-tiles">
-          <Tile label="Sessions" value={whole(data.Sessions)}/><Tile label="Messages" value={whole(data.Messages)}/><Tile label="Total tokens" value={compact(data.Tokens)}/><Tile label="Est. cost" value={money(data.Cost)}/>
+          <Tile label="Sessions" value={whole(data.Sessions)}/><Tile label="Messages" value={whole(data.Messages)}/><Tile label="Total tokens" value={compact(data.Tokens)}/><Tile label="Est. cost (USD)" value={money(data.Cost)}/>
           <Tile label="Active days" value={whole(data.ActiveDays)}/><Tile label="Peak hour" value={hourName(data.PeakHour)}/><Tile label="Favorite model" value={data.FavoriteModel||'–'}/>
         </div>
-        <p className="an-note an-cost-note">Est. cost is what these tokens would cost at API list prices. On a flat plan you pay your subscription instead, so treat it as the compute you got. <button type="button" className="an-link" onClick={()=>setView('prices')}>Edit prices</button></p>
+        <p className="an-note an-cost-note">Est. cost is in US dollars (USD): what these tokens would cost at API list prices. On a flat plan you pay your subscription instead, so treat it as the compute you got. <button type="button" className="an-link" onClick={()=>setView('prices')}>Edit prices</button></p>
         <Heat grid={data.Grid}/>
         <div className="an-row">
           <div className="an-mini"><span>Streak</span><b>{data.CurrentStreak} day{data.CurrentStreak===1?'':'s'}</b><small>best {data.LongestStreak}</small></div>
@@ -168,7 +168,7 @@ export default function AnalyticsButton(){
       </>}
       {data&&view==='charts'&&<div className="an-charts">
         <div className="an-section"><div className="an-label">Tokens per day <span className="an-key"><i className="vc-codex-f"/>Codex<i className="vc-claude-f"/>Claude</span></div><DailyBars daily={data.Daily}/></div>
-        <div className="an-section"><div className="an-label">Estimated cost per day</div><CostBars daily={data.Daily}/></div>
+        <div className="an-section"><div className="an-label">Estimated cost per day (USD)</div><CostBars daily={data.Daily}/></div>
         <div className="an-section"><div className="an-label">Total tokens over time</div><Cumulative daily={data.Daily}/></div>
         <div className="an-pair">
           <div className="an-section"><div className="an-label">Messages by weekday</div><Bars values={data.Weekdays} label="Messages by weekday" names={i=>weekdayNames[i]}/></div>
