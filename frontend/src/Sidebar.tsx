@@ -19,7 +19,7 @@ interface Row { since?:string; paused?:boolean; sid?:string; key:string; title:s
 export function MobileBar({page,go}:{page:string;go:(p:string)=>void}){
   const {sessions,active,setActive}=useHarness();
   const b=(id:string,text:string)=><Button key={id} size="small" variant="quiet" className={page===id?'active':''} onClick={()=>go(id)}>{text}</Button>;
-  return <div className="mobile-bar" role="navigation" aria-label="Workspace"><Button size="small" variant="primary" onClick={()=>{setActive(null);go('home');}}>New</Button>{sessions.length>0&&<select aria-label="Open a chat" className="hinput" style={{width:150,height:30}} value={page==='chat'&&active?active:''} onChange={e=>{if(e.target.value){setActive(e.target.value);go('chat');}}}><option value="">Chats…</option>{sessions.map(s=><option key={s.Id} value={s.Id}>{s.Title}</option>)}</select>}{b('tasks','Tasks')}{b('assistants','Assistants')}{b('team','Teams')}{b('settings','Settings')}</div>;
+  return <div className="mobile-bar" role="navigation" aria-label="Workspace"><Button size="small" variant="primary" onClick={()=>{setActive(null);go('home');}}>New</Button>{sessions.length>0&&<select aria-label="Open a chat" className="hinput" style={{width:150,height:30}} value={page==='chat'&&active?active:''} onChange={e=>{if(e.target.value){setActive(e.target.value);go('chat');}}}><option value="">Chats…</option>{sessions.map(s=><option key={s.Id} value={s.Id}>{s.Title}</option>)}</select>}{b('tasks','Tasks')}{b('team','Teams')}{b('settings','Settings')}</div>;
 }
 
 export default function Sidebar({page,go,version,onGuide,teams,activeTeam,openTeam,newTeam,workingDirectory}:{page:string;go:(p:string)=>void;version:string;onGuide:()=>void;teams:TeamRun[];activeTeam:string|null;openTeam:(id:string)=>void;newTeam:()=>void;workingDirectory:string}){
@@ -73,7 +73,7 @@ export default function Sidebar({page,go,version,onGuide,teams,activeTeam,openTe
     <div className="brand"><span className="brand-mark"><img src="./LAICA.ico" alt=""/></span><div><strong>LAICA</strong><span>Agent workspace</span></div></div>
     <button className="new-chat-btn" title="New chat (Ctrl+N)" onClick={()=>{setActive(null);go('home');}}><SquarePen size={16}/><span>New chat</span><span className="nc-plus" aria-hidden="true"><Plus size={12}/></span></button>
     <label className="side-search"><Search size={14}/><input aria-label="Search chats" placeholder="Search" value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<button aria-label="Clear search" onClick={()=>setQuery('')}><X size={12}/></button>}</label>
-    <nav aria-label="Workspace" className="side-nav">{item('tasks','Scheduled tasks',CalendarClock)}{item('assistants','Assistants',Sparkles)}{item('plugins','Plugins',Store)}{item('teams','Workflow designer',Workflow)}{item('activity','Activity',ActivityIcon)}</nav>
+    <nav aria-label="Workspace" className="side-nav">{item('tasks','Scheduled tasks',CalendarClock)}{item('plugins','Plugins',Store)}{item('teams','Workflow designer',Workflow)}{item('activity','Activity',ActivityIcon)}</nav>
     <div className="side-scroll">
       <div className="side-section">{fb('teams','Teams')}<span>Teams</span><button aria-label="New team" title="New team" onClick={newTeam}><Plus size={13}/></button></div>
       {!folded('teams')&&!teams.length&&<p className="side-empty">Team mode runs a leader and teammates in parallel.</p>}

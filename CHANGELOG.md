@@ -3,6 +3,12 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.19.2]
+
+### Changed
+- The Assistants tab is gone (sidebar, command palette and page).
+- The + menu is a denser, brighter panel so its rows no longer look disabled, and **Image from clipboard** now works: it attaches the picture you copied.
+
 ## [0.19.1]
 
 ### Added

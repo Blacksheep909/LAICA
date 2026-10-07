@@ -487,3 +487,8 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .harness-compose .compose-left,.harness-compose .compose-right{display:flex;align-items:center;gap:6px;min-width:0}
 .harness-compose .compose-left{flex-wrap:wrap}
 .to-bottom{left:50%!important;right:auto!important;transform:translateX(-50%)}
+
+/* the + menu: a denser, brighter panel so the rows are never mistaken for disabled ones */
+.plus-pop{background:rgba(20,17,38,.94)!important}
+.plus-pop .ui-item{color:#fff}.plus-pop .ui-item small{color:var(--ink-2)}
+.plus-pop .ui-item svg{color:var(--ink)}

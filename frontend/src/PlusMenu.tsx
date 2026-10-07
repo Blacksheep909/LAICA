@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
+import {useToast} from 'open-glass-ui';
 import {Paperclip,PenLine,Lightbulb,Target,Plug,Sparkles,Store,Plus,Check,Eraser,Undo2,Image as ImageIcon} from 'lucide-react';
 import {Popover,PopoverTrigger,PopoverContent,Command,CommandInput,CommandList,CommandEmpty,CommandGroup,CommandItem,Dialog,DialogContent,DialogTitle,DialogDescription,Slider,Tip,Kbd} from './ui/kit';
 import {request,isDesktop} from './bridge';
@@ -16,6 +17,14 @@ export default function PlusMenu({onPick,onFiles,flags,setFlags,insert,disabled}
     request<Tools>('harnessTools').then(setTools).catch(()=>setTools({Mcp:[],Skills:[]}));
     request<{Items:Suggest[]}>('pluginLibrary').then(l=>setSuggest(l.Items.filter(i=>i.Suggested&&i.Kind!=='runtime').slice(0,3))).catch(()=>undefined);
   },[open]);
+  const {toast}=useToast();
+  const pasteImage=async()=>{
+    try{
+      const items=await navigator.clipboard.read();
+      for(const it of items){const type=it.types.find(t=>t.startsWith('image/'));if(type){const blob=await it.getType(type);onFiles([new File([blob],'clipboard.'+(type.split('/')[1]||'png'),{type})]);return;}}
+      toast({title:'No picture on the clipboard',description:'Copy an image or take a screenshot first, then try again.',duration:5000});
+    }catch{toast({title:'Could not read the clipboard',description:'Press Ctrl+V in the message box instead.',duration:5000});}
+  };
   const pick=(fn:()=>void)=>()=>{setOpen(false);setTimeout(fn,60);};
   const mcp=(tools?.Mcp??[]).filter((m,i,a)=>a.findIndex(x=>x.Name===m.Name)===i);
   const skills=(tools?.Skills??[]).filter((m,i,a)=>!m.Name.startsWith('.')&&a.findIndex(x=>x.Name===m.Name)===i);
@@ -29,7 +38,7 @@ export default function PlusMenu({onPick,onFiles,flags,setFlags,insert,disabled}
             <CommandEmpty>Nothing matches. Try the plugin library.</CommandEmpty>
             <CommandGroup heading="Add">
               <CommandItem value="files and folders attach upload" onSelect={pick(onPick)}><Paperclip size={16}/><span className="ui-grow"><span>Files and folders</span></span></CommandItem>
-              <CommandItem value="photo screenshot image clipboard paste" onSelect={pick(()=>undefined)} disabled><ImageIcon size={16}/><span className="ui-grow"><span>Image from clipboard</span><small>press Ctrl+V in the message box</small></span><Kbd>Ctrl V</Kbd></CommandItem>
+              <CommandItem value="photo screenshot image clipboard paste" onSelect={pick(()=>{void pasteImage();})}><ImageIcon size={16}/><span className="ui-grow"><span>Image from clipboard</span><small>Attach the picture you copied (or press Ctrl+V)</small></span><Kbd>Ctrl V</Kbd></CommandItem>
               <CommandItem value="sketch draw" onSelect={pick(()=>setSketch(true))}><PenLine size={16}/><span className="ui-grow"><span>Sketch</span><small>Draw an idea to attach</small></span></CommandItem>
               <CommandItem value="plan mode" onSelect={()=>{setFlags({...flags,plan:!flags.plan});setOpen(false);}}><Lightbulb size={16}/><span className="ui-grow"><span>Plan mode</span><small>Plan first, change nothing</small></span>{flags.plan&&<Check size={15}/>}</CommandItem>
               <CommandItem value="goal keep going autonomously" onSelect={()=>{setFlags({...flags,goal:!flags.goal});setOpen(false);}}><Target size={16}/><span className="ui-grow"><span>Goal</span><small>Keep pursuing it until it is done</small></span>{flags.goal&&<Check size={15}/>}</CommandItem>

@@ -19,7 +19,6 @@ import TitleBar,{windowControl} from './TitleBar';
 import type {TopMenus} from './TitleBar';
 import {useHarness,effortLabel} from './harness-store';
 import type {HarnessInfo} from './harness-store';
-import AssistantsPage from './AssistantsPage';
 import TasksPage from './TasksPage';
 import SettingsPage,{CSS_KEY} from './SettingsPage';
 import {request,subscribe,previewState,isDesktop,isRemote} from './bridge';
@@ -113,7 +112,6 @@ export default function App(){
         {page==='chat'&&<ChatView models={state.Models}/>}
         {page==='team'&&<TeamPage workingDirectory={state.WorkingDirectory} teamId={activeTeam} onOpened={id=>setActiveTeam(id||null)} services={state.Services} models={state.Models} openChat={id=>{setActive(id);setPage('chat');}} onCancel={()=>setPage('home')}/>}
         {page==='plugins'&&<PluginsPage/>}
-        {page==='assistants'&&<AssistantsPage workingDirectory={state.WorkingDirectory} onStarted={id=>{setActive(id);setPage('chat');}}/>}
         {page==='tasks'&&<TasksPage workingDirectory={state.WorkingDirectory}/>}
         {page==='settings'&&<SettingsPage onCss={setCustomCss} workingDirectory={state.WorkingDirectory} services={state.Services} models={state.Models} animate={animateBg} onAnimate={v=>{setAnimateBg(v);try{localStorage.setItem('laica-animate-bg',String(v));}catch{/* storage unavailable */}}} reduce={reduce} onReduce={v=>{setReduce(v);localStorage.setItem('laica-solid',String(v));}} snap={state.SnapToGrid} snapDisabled={state.Busy} onSnap={v=>edit(state.Plan,{SnapToGrid:v})}/>}
         {page==='teams'&&<div className="teams-workspace">

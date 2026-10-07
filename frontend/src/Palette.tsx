@@ -28,7 +28,6 @@ export default function PaletteHost({go,openChat,openTeam,newChat,toggleSidebar,
       {id:'p-workflow',label:'Workflow designer',group:'Go to',icon:<Workflow size={16}/>,run:()=>go('teams')},
       {id:'p-activity',label:'Activity',group:'Go to',icon:<ActivityIcon size={16}/>,run:()=>go('activity')},
       {id:'p-tasks',label:'Scheduled tasks',group:'Go to',icon:<CalendarClock size={16}/>,run:()=>go('tasks')},
-      {id:'p-assist',label:'Assistants',group:'Go to',icon:<Sparkles size={16}/>,run:()=>go('assistants')}
     ];
     const view:Cmd[]=[
       {id:'v-side',label:'Toggle sidebar',group:'View',icon:<PanelLeft size={16}/>,keys:'Ctrl B',run:toggleSidebar},
