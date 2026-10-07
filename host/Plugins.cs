@@ -179,7 +179,7 @@ namespace Laica
             {
                 string cmd = p.Command == null ? "" : FillTemplate(p.Command, values.Where(kv => p.Inputs.Any(i => i.Key == kv.Key && i.Kind != "env")).ToDictionary(kv => kv.Key, kv => kv.Value));
                 string env = String.Join(" ", p.Inputs.Where(i => i.Kind == "env").Select(i => i.Key + "=" + (values[i.Key].IndexOf(' ') >= 0 ? "\"" + values[i.Key] + "\"" : values[i.Key])));
-                foreach (string t in targets.Where(t => t == "claude" || t == "codex")) { McpAdd(t, p.Id, cmd, p.Url ?? "", env); done.Add(t); }
+                foreach (string t in targets.Where(t => t == "claude" || t == "codex")) { McpAdd(t, p.Id, LatestCommand(cmd), p.Url ?? "", env); done.Add(t); }
                 if (done.Count == 0) throw new ArgumentException("MCP servers install into Claude Code or Codex.");
             }
             return new Dictionary<string, object> { { "Installed", done.ToArray() } };

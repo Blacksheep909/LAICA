@@ -6,6 +6,7 @@ Everything LAICA does as of version 0.17.0, grouped by area. The [changelog](../
 
 - **Many vendors, one place.** Codex, Claude Code and Gemini CLI are detected automatically, including when installed with npm, bun or scoop. Add any other command-line agent as a custom agent. API models (OpenAI-compatible and others) connect through your own keys under Settings > Services.
 - **Your history, in sync.** LAICA reads the local history of Codex and Claude Code and shows it with the same project folders and thread titles. Claude chats use the Claude desktop app's real titles and folders. It rescans on every launch and when the window regains focus.
+- **Recent.** A Recent section lists your six most recently active chats from every project (shown again in their project, like Codex), and every list is ordered by real last activity.
 - **Projects.** Pin projects and chats, rename, close (closed chats are restorable for 14 days) and search. Scratch-folder chats do not turn into fake projects.
 - **Per-chat drafts.** Each chat keeps its unsent text. Up-arrow recalls your last message, Esc stops a running turn, and messages typed while an agent is busy are queued.
 - **Composer.** Attach files and folders (button, drag-and-drop or Ctrl+V for images), sketch, **Plan mode**, **Goal**, dictation by microphone (Windows speech recognition, offline), copy buttons on messages and code, and a Markdown export of any chat.
@@ -57,6 +58,11 @@ The index is read once in the background, cached on disk and only re-read for lo
 - **Channels:** Telegram is two-way (pair a chat with a one-time code and talk to an agent from your phone). Slack, Discord, Lark, DingTalk, WeCom and generic webhooks receive a notification when a scheduled task or team finishes.
 - **Remote access** (off by default) serves the same interface to a browser on your network behind a password, over Server-Sent Events.
 - A read-only **Codex bridge** (`LAICA.Bridge.exe`, an MCP server) lets Codex read LAICA's observed work.
+
+## Updates
+
+- **LAICA** checks GitHub for a newer release every few hours. A pill in the sidebar footer offers the update; clicking it downloads the installer, verifies its SHA-256 against the release's sums file, installs over the current folder and restarts. Nothing installs without a click, and Settings > Agents > Updates switches the automatic checks off.
+- **MCP servers** installed for Claude Code or Codex through npx or uvx are set to fetch their latest version each time they start (`pkg@latest`). LAICA does this once a day and on Check now, backs up the config files first and leaves servers you pinned to a version alone. New installs from the plugin library already use `@latest`.
 
 ## Commits and credit
 

@@ -8,6 +8,7 @@ import {ContextMenu,ContextMenuTrigger,ContextMenuContent,ContextMenuItem,Contex
 import {Elapsed} from './Steps';
 import AnalyticsButton from './Analytics';
 import {buildProjects,projectOf} from './projects';
+import {UpdatePill} from './Updates';
 import {ProviderChip,providerOfSession,providerOfHistory} from './provider';
 import type {Provider} from './provider';
 
@@ -35,7 +36,7 @@ export default function Sidebar({page,go,version,onGuide,teams,activeTeam,openTe
     const out:Row[]=[];
     sessions.forEach(s=>{
       const name=s.TeamId?'':projectOf(s.Project||s.Cwd,codexProjects,savedProjects)||(projects.find(p=>p.path.toLowerCase()===(s.Project||s.Cwd).toLowerCase())?.name??'');
-      out.push({sid:s.Id,key:'s'+s.Id,title:s.Title,provider:providerOfSession(s,nameOf),when:Date.now()-(s.Busy?0:1000),project:name,active:page==='chat'&&s.Id===active,busy:s.Busy,since:s.BusySince,paused:s.Paused,branch:s.Isolated?s.Branch:undefined,past:false,open:()=>{setActive(s.Id);go('chat');},close:()=>close(s.Id)});
+      out.push({sid:s.Id,key:'s'+s.Id,title:s.Title,provider:providerOfSession(s,nameOf),when:s.Busy?Date.now():(Date.parse(s.UpdatedUtc||'')||Date.parse(history.find(h=>h.SessionId===s.Id)?.UpdatedUtc||'')||Date.now()-60000),project:name,active:page==='chat'&&s.Id===active,busy:s.Busy,since:s.BusySince,paused:s.Paused,branch:s.Isolated?s.Branch:undefined,past:false,open:()=>{setActive(s.Id);go('chat');},close:()=>close(s.Id)});
     });
     history.filter(h=>!h.SessionId).forEach(h=>out.push({key:'h'+h.Source+h.ExternalId,title:h.Title,provider:providerOfHistory(h),when:new Date(h.UpdatedUtc).getTime(),project:h.ProjectName||'',active:false,past:true,open:()=>{void openHistory(h,workingDirectory).then(()=>go('chat'));}}));
     return out;
@@ -47,6 +48,7 @@ export default function Sidebar({page,go,version,onGuide,teams,activeTeam,openTe
   const isOpen=(name:string,i:number)=>q?true:open[name]??(i<3||name.toLowerCase()===selectedName);
   const toggle=(name:string,i:number)=>setOpen(o=>({...o,[name]:!isOpen(name,i)}));
   const unfiled=byProject.get('')??[];
+  const recent=useMemo(()=>rows.filter(r=>!pinned.includes(r.key)).sort((a,b)=>b.when-a.when).slice(0,6),[rows,pinned]);
   const shownProjects=projects.filter(p=>!q||byProject.has(p.name.toLowerCase())||p.name.toLowerCase().includes(q));
 
   const item=(id:string,title:string,Icon:typeof Plus)=><Button key={id} variant="quiet" className={`nav-item ${page===id?'active':''}`} onClick={()=>go(id)} aria-current={page===id?'page':undefined} leadingIcon={<Icon size={16}/>}>{title}</Button>;
@@ -77,6 +79,7 @@ export default function Sidebar({page,go,version,onGuide,teams,activeTeam,openTe
       {!folded('teams')&&!teams.length&&<p className="side-empty">Team mode runs a leader and teammates in parallel.</p>}
       {!folded('teams')&&teams.map(t=><button key={t.Id} className={`side-item ${page==='team'&&activeTeam===t.Id?'on':''}`} onClick={()=>openTeam(t.Id)}><Users size={14}/><span className="side-title">{t.Title}</span><ProviderChip p={{kind:'team',label:'Team',detail:'Agent team'}}/>{t.Running&&<WorkingGlyph size={13} paused={t.Paused}/>}</button>)}
       {pinnedRows.length>0&&<><div className="side-section">{fb('pinned','Pinned')}<span>Pinned</span></div>{!folded('pinned')&&pinnedRows.map(r=>threadRow(r,false))}</>}
+      {!q&&recent.length>0&&<><div className="side-section">{fb('recent','Recent')}<span>Recent</span></div>{!folded('recent')&&recent.map(r=>threadRow(r,false))}</>}
       <div className="side-section">{fb('projects','Projects')}<span>Projects</span><span className="side-actions"><button aria-label="Re-scan Codex and Claude Code history" title="Re-scan Codex and Claude Code history" onClick={()=>reloadHistory(true)}><RefreshCw size={12} className={historyLoading?'spin':''}/></button><button aria-label="Add project" title="Add a project folder" onClick={()=>setAdding(a=>!a)}><Plus size={13}/></button></span></div>
       {adding&&!folded('projects')&&<div className="side-add"><input aria-label="Project folder" autoFocus placeholder="Folder path, e.g. C:\code\my-app" value={newPath} onChange={e=>setNewPath(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')submit();if(e.key==='Escape')setAdding(false);}}/><div>{!isRemote&&<Button size="small" variant="quiet" leadingIcon={<FolderPlus size={14}/>} onClick={browse}>Browse…</Button>}<Button size="small" variant="primary" disabled={!newPath.trim()} onClick={submit}>Add</Button></div></div>}
       {!folded('projects')&&!shownProjects.length&&!adding&&<p className="side-empty">{historyLoading?'Reading your Codex and Claude Code projects…':'Add a folder with + to organise chats by project.'}</p>}
@@ -99,7 +102,7 @@ export default function Sidebar({page,go,version,onGuide,teams,activeTeam,openTe
     </div>
     <div className="side-foot">
       <div className="side-icons"><AnalyticsButton/><Tip label="Settings" shortcut="Ctrl ,"><Button variant="quiet" size="small" aria-label="Settings" className={page==='settings'?'active':''} onClick={()=>go('settings')}><Settings size={15}/></Button></Tip><Tip label="Services"><Button variant="quiet" size="small" aria-label="Services" onClick={()=>go('services')}><Plug size={15}/></Button></Tip><Tip label="Guide and shortcuts"><Button variant="quiet" size="small" aria-label="Guide" onClick={onGuide}><BookOpen size={15}/></Button></Tip></div>
-      <div className="version">v{version}</div>
+      <UpdatePill/><div className="version">v{version}</div>
     </div>
     <Dialog open={!!renameFor} onOpenChange={o=>{if(!o)setRenameFor(null);}}><DialogContent aria-describedby={undefined}><DialogTitle>Rename chat</DialogTitle><DialogDescription>Give it a name you will recognise.</DialogDescription>
       <input className="hinput rename-input" autoFocus value={renameFor?.title??''} onChange={e=>setRenameFor(r=>r?{...r,title:e.target.value}:r)} onKeyDown={e=>{if(e.key==='Enter'&&renameFor){rename(renameFor.id,renameFor.title);setRenameFor(null);}}} aria-label="Chat name"/>

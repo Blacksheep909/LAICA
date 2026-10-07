@@ -23,7 +23,7 @@ Under the install folder, in `harness\` (survives upgrades and uninstalls):
 | `trash\` | chats you closed, kept 14 days so you can restore them |
 | `teams.json`, `teamruns.json` | your teams and one record per finished team run (vendors, models, times, tokens, estimated cost) |
 | `usage.json`, `analytics.json` | token counters and the cached summary of your Codex and Claude logs (counts only, no message text) |
-| `prices.json`, `handoff.json`, `coauthor.json`, `agents.json`, `tasks.json` | your settings |
+| `prices.json`, `handoff.json`, `coauthor.json`, `updates.json`, `agents.json`, `tasks.json` | your settings |
 | `hooks\` | the small git hooks used for the co-author trailer |
 
 API keys you enter for API models under Settings > Services are encrypted with Windows DPAPI for your user account before they are written to disk. Remote access, if you turn it on, stores a salted password hash.
@@ -39,9 +39,10 @@ To delete everything LAICA stored, close it and delete the `harness` folder and 
 - **Plugin installs** call winget or npm, which download from their registries.
 - **Channels** (optional) post to Telegram, Slack and similar services when you configure them.
 - **Remote access** is off by default. When on, it listens on localhost, or on your local network if you choose that, and requires a password. Nothing is exposed to the internet by LAICA.
+- **Update checks.** Every few hours (and when you click Check now) LAICA asks `api.github.com` for the latest release of this repository. It sends no identifiers beyond a `LAICA-updater` user agent. Clicking Update downloads the installer from the same repository's releases and checks its SHA-256 before running it. Turn the checks off in Settings > Agents > Updates. The MCP servers you installed fetch their own updates from npm or PyPI when they start, as they would for any `npx`/`uvx` server.
 - **Git.** Only the git commands you or an agent run. LAICA does not push anything by itself.
 
-LAICA contacts no other host. The interface is loaded from local files under a Content-Security-Policy that blocks remote scripts and connections.
+LAICA's only own network request is the update check below. The interface is loaded from local files under a Content-Security-Policy that blocks remote scripts and connections.
 
 ## Co-author trailer
 

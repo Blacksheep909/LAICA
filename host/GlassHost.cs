@@ -40,7 +40,7 @@ namespace Laica.GlassWorkspace {
         public GlassHost(string dataDir,string assetDir,string page,bool preview=false) {
             appDir=dataDir;assets=assetDir;initialPage=page;
             string home=Environment.GetEnvironmentVariable("CODEX_HOME");if(String.IsNullOrWhiteSpace(home))home=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),".codex");
-            backend=new WorkspaceBackend(appDir,home);remote=new RemoteServer(backend,appDir,assets);
+            backend=new WorkspaceBackend(appDir,home);if(!preview)backend.Harness.StartUpdateChecks();remote=new RemoteServer(backend,appDir,assets);
             Text=preview?"LAICA · Desktop preview":"LAICA · Lightweight AI Harness";StartPosition=FormStartPosition.Manual;var workspace=Screen.FromPoint(Cursor.Position).WorkingArea;ClientSize=new Size(Math.Max(900,Math.Min(1420,workspace.Width-80)),Math.Max(650,Math.Min(870,workspace.Height-100)));MinimumSize=new Size(900,650);Location=new Point(workspace.Left+(workspace.Width-Width)/2,workspace.Top+(workspace.Height-Height)/2);BackColor=Color.FromArgb(3,2,8);AutoScaleMode=AutoScaleMode.Dpi;
             string icon=Path.Combine(assets,"LAICA.ico");if(File.Exists(icon))Icon=new Icon(icon);
             dictation=new HostDictation((text,final)=>{try{BeginInvoke(new Action(()=>Post(new{Type="dictation",Text=text,Final=final})));}catch(Exception){}});web.Dock=DockStyle.Fill;web.DefaultBackgroundColor=Color.Transparent;Controls.Add(web);

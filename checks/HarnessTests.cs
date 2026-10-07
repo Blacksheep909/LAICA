@@ -830,6 +830,36 @@ public static class HarnessTests
                     Check(!commitAs("five").Contains("LAICA"), "co-author: the global switch turns it off everywhere");
                 }
             }            {
+                Check(HarnessManager.StalePackage("npx", new[] { "-y", "@modelcontextprotocol/server-memory" }) == "@modelcontextprotocol/server-memory", "updates: an unversioned npx package is found");
+                Check(HarnessManager.StalePackage("npx", new[] { "-y", "@playwright/mcp@latest" }) == null && HarnessManager.StalePackage("npx", new[] { "-y", "pkg@1.2.3" }) == null, "updates: packages already on latest or pinned on purpose are left alone");
+                Check(HarnessManager.StalePackage("uvx", new[] { "mcp-server-fetch" }) == "mcp-server-fetch" && HarnessManager.StalePackage("cmd", new[] { "/c", "npx", "-y", "context7-mcp" }) == "context7-mcp", "updates: uvx servers and servers started through cmd are found");
+                Check(HarnessManager.StalePackage("node", new[] { "server.js" }) == null && HarnessManager.StalePackage("uvx", new[] { "--from", "x", "y" }) == null, "updates: other launchers are never touched");
+                Check(HarnessManager.LatestCommand("npx -y @upstash/context7-mcp") == "npx -y @upstash/context7-mcp@latest" && HarnessManager.LatestCommand("uvx mcp-server-git --repository C:\\a") == "uvx mcp-server-git@latest --repository C:\\a", "updates: new installs ask for the latest version");
+                string ucl = Path.Combine(root, "upd-claude"), ucx = Path.Combine(root, "upd-codex"); Directory.CreateDirectory(ucl); Directory.CreateDirectory(ucx);
+                File.WriteAllText(Path.Combine(ucl, ".claude.json"), "{\"numStartups\":3,\"mcpServers\":{\"memory\":{\"type\":\"stdio\",\"command\":\"npx\",\"args\":[\"-y\",\"@modelcontextprotocol/server-memory\"],\"env\":{}},\"pinned\":{\"command\":\"npx\",\"args\":[\"-y\",\"foo@2.0.0\"]}}}");
+                File.WriteAllText(Path.Combine(ucx, "config.toml"), "model = \"x\"\n\n[mcp_servers.fetch]\ncommand = \"uvx\"\nargs = [\"mcp-server-fetch\"]\n\n[mcp_servers.other]\ncommand = \"node\"\nargs = [\"a.js\"]\n");
+                string uc0 = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR"), ux0 = Environment.GetEnvironmentVariable("CODEX_HOME");
+                Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", ucl); Environment.SetEnvironmentVariable("CODEX_HOME", ucx);
+                try
+                {
+                    using (var m = new HarnessManager(Path.Combine(root, "data-upd")))
+                    {
+                        m.UpdateHttp = url => url.Contains("SHA256SUMS") ? "" : "{\"tag_name\":\"v99.0.0\",\"html_url\":\"https://github.com/Blacksheep909/LAICA/releases/tag/v99.0.0\",\"body\":\"notes\",\"assets\":[{\"name\":\"LAICA-Setup-99.0.0.exe\",\"browser_download_url\":\"https://github.com/Blacksheep909/LAICA/releases/download/v99.0.0/LAICA-Setup-99.0.0.exe\"},{\"name\":\"SHA256SUMS-99.0.0.txt\",\"browser_download_url\":\"https://github.com/Blacksheep909/LAICA/releases/download/v99.0.0/SHA256SUMS-99.0.0.txt\"}]}";
+                        var info = (Dictionary<string, object>)m.CheckUpdates(true);
+                        Check((bool)info["Available"] && (string)info["Latest"] == "99.0.0", "updates: a newer GitHub release is reported");
+                        Check(File.ReadAllText(Path.Combine(ucl, ".claude.json")).Contains("\"@modelcontextprotocol/server-memory@latest\"") && File.ReadAllText(Path.Combine(ucl, ".claude.json")).Contains("foo@2.0.0") && File.ReadAllText(Path.Combine(ucl, ".claude.json")).Contains("\"numStartups\":3"), "updates: Claude Code's MCP servers move to latest and nothing else changes");
+                        string toml = File.ReadAllText(Path.Combine(ucx, "config.toml"));
+                        Check(toml.Contains("args = [\"mcp-server-fetch@latest\"]") && toml.Contains("args = [\"a.js\"]") && toml.Contains("model = \"x\""), "updates: Codex's MCP servers move to latest and nothing else changes");
+                        Check(File.Exists(Path.Combine(ucl, ".claude.json.laica-backup")) && File.Exists(Path.Combine(ucx, "config.toml.laica-backup")), "updates: the original configs are backed up first");
+                        m.UpdateHttp = url => "{\"tag_name\":\"v0.0.1\",\"assets\":[]}";
+                        Check(!(bool)((Dictionary<string, object>)m.CheckUpdates(true))["Available"], "updates: an older release is not offered");
+                        m.UpdatesSet(new Dictionary<string, object> { { "Auto", false } }); Check(!(bool)((Dictionary<string, object>)m.UpdatesGet())["Auto"], "updates: automatic checking can be switched off");
+                        bool blocked = false; try { m.UpdateInstall(); } catch (InvalidOperationException) { blocked = true; }
+                        Check(blocked, "updates: installing is refused outside the installed app");
+                    }
+                }
+                finally { Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", uc0); Environment.SetEnvironmentVariable("CODEX_HOME", ux0); }
+            }            {
                 string fakeExe = System.Reflection.Assembly.GetExecutingAssembly().Location; string hroot = Path.Combine(root, "data-handoff");
                 Func<HarnessManager, string, string, string> agent = (hm, hname, hargs) => { hm.SaveAgent(new Dictionary<string, object> { { "Name", hname }, { "Command", fakeExe }, { "Args", hargs } }); return hm.Harnesses().First(h => h.Name == hname).Id; };
                 Func<HarnessManager, string, string, string, string> team = (m, title, leaderId, memberId) => (string)((Dictionary<string, object>)m.SaveTeam(new Dictionary<string, object> { { "Title", title }, { "Cwd", work }, { "Leader", new Dictionary<string, object> { { "Harness", leaderId } } }, { "Members", new object[] { new Dictionary<string, object> { { "Name", "Ann" }, { "Harness", memberId } }, new Dictionary<string, object> { { "Name", "bob" }, { "Harness", memberId } } } } }))["Id"];

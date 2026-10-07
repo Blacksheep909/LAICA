@@ -389,3 +389,8 @@ details[open]>summary>.step-chev{transform:rotate(90deg)}
 .sidebar .side-section .side-fold{width:18px;height:18px;margin-left:-4px;border-radius:6px;color:var(--ink-2);opacity:.8;transition:opacity .15s,background .15s}
 .sidebar .side-section:hover .side-fold,.sidebar .side-section .side-fold:focus-visible{opacity:1}
 .sidebar .side-section .side-fold:hover{background:rgba(255,255,255,.09);color:#fff}
+
+/* updates */
+.update-pill{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:2px 8px 6px;padding:6px 8px 6px 10px;border-radius:12px;background:rgba(181,166,255,.14);color:var(--ink);font-size:12px}
+.update-pill span{flex:1;min-width:0}.update-pill button{border:0;border-radius:99px;padding:3px 10px;background:var(--accent);color:#14102b;font:inherit;font-weight:600;cursor:pointer}.update-pill button:disabled{opacity:.6}.update-pill .bad{width:100%;color:#ff9a9a}
+.update-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap}.update-row small{display:block;color:var(--ink-3);margin-top:2px}.update-actions{display:flex;align-items:center;gap:8px}

@@ -3,6 +3,16 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.18.0]
+
+### Added
+- **Recent** section in the sidebar: the six most recently active chats from every project, shown again in their projects like Codex does.
+- **Updates.** LAICA checks GitHub for a newer release every few hours and shows an Update pill in the sidebar footer. Clicking it downloads the installer, verifies its SHA-256 against the release's sums file, installs over the current folder and restarts. Nothing installs without a click. Settings > Agents > Updates has a switch to turn automatic checks off and a Check now button.
+- **MCP servers stay current.** Installed npx and uvx MCP servers (Claude Code and Codex) are set to fetch their latest version every time they launch (pkg@latest), once a day and on Check now; servers pinned to a version on purpose are left alone and the config files are backed up first. New installs from the plugin library use @latest.
+
+### Fixed
+- Chats are now ordered by their real last activity, so a LAICA chat no longer sits above newer Codex or Claude history.
+
 ## [0.17.3]
 
 ### Changed

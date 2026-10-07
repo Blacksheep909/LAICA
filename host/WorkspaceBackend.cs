@@ -119,6 +119,10 @@ namespace Laica
             case "teamAnalytics": result = Harness.TeamAnalytics(Text(payload,"Range")); break;
             case "coauthorGet": result = Harness.CoAuthorGet(); break;
             case "coauthorSet": result = Harness.CoAuthorSet(payload); break;
+            case "updatesGet": result = Harness.UpdatesGet(); break;
+            case "updatesSet": result = Harness.UpdatesSet(payload); break;
+            case "updatesCheck": result = Harness.CheckUpdates(true); break;
+            case "updateInstall": result = Harness.UpdateInstall(); break;
             case "pricesGet": result = Harness.PricesGet(); break;
             case "pricesSet": result = Harness.PricesSet(payload); break;
             case "analytics":result = Harness.Analytics(Text(payload,"Range"), Text(payload,"Vendor")); break;
