@@ -75,6 +75,9 @@ $glassNotices=Join-Path $glassOutput 'licenses'
 New-Item -ItemType Directory -Force $glassNotices | Out-Null
 Copy-Item -LiteralPath (Join-Path $glassSdk 'LICENSE.txt') -Destination (Join-Path $glassNotices 'WebView2.txt') -Force
 foreach($glassPackage in @('open-glass-ui','react','react-dom','lucide-react')){Copy-Item -LiteralPath (Join-Path $glassFrontend "node_modules/$glassPackage/LICENSE") -Destination (Join-Path $glassNotices "$glassPackage.txt") -Force}
+Copy-Item -Path (Join-Path $PSScriptRoot 'licenses/*') -Destination $glassNotices -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'THIRD_PARTY_NOTICES.md') -Destination $glassOutput -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'LICENSE') -Destination $glassOutput -Force
 if(Test-Path -LiteralPath (Join-Path $glassOutput 'BackendTests.exe')){Remove-Item -LiteralPath (Join-Path $glassOutput 'BackendTests.exe') -Force}
 $glassBytes=(Get-ChildItem -LiteralPath $glassOutput -File -Recurse | Measure-Object -Property Length -Sum).Sum
 if($glassBytes -gt 10000000){throw "Program payload exceeds 10 MB: $glassBytes"}
