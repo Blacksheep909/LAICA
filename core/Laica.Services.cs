@@ -29,6 +29,7 @@ namespace Laica
         public const string Compatible = "compatible";
         public const string Ollama = "ollama";
         public const string LMStudio = "lmstudio";
+        public const string Anthropic = "anthropic";
 
         public static ServiceConnection Create(string provider)
         {
@@ -38,6 +39,7 @@ namespace Laica
             {
                 case Ollama: name = "Ollama local"; url = "http://localhost:11434/v1"; break;
                 case LMStudio: name = "LM Studio local"; url = "http://localhost:1234/v1"; break;
+                case Anthropic: name = "Anthropic"; url = "https://api.anthropic.com/v1"; break;
                 default: name = "Compatible API"; url = "https://api.openai.com/v1"; break;
             }
             return new ServiceConnection { Id = Guid.NewGuid().ToString("N"), Name = name, BaseUrl = url, Provider = provider, KeyEnvironmentVariable = String.Empty, ProtectedKey = String.Empty };
@@ -49,7 +51,8 @@ namespace Laica
             if (String.Equals(provider, Compatible, StringComparison.OrdinalIgnoreCase)) return Compatible;
             if (String.Equals(provider, Ollama, StringComparison.OrdinalIgnoreCase)) return Ollama;
             if (String.Equals(provider, LMStudio, StringComparison.OrdinalIgnoreCase)) return LMStudio;
-            throw new ArgumentException("Provider must be Compatible API, Ollama, or LM Studio.", "provider");
+            if (String.Equals(provider, Anthropic, StringComparison.OrdinalIgnoreCase)) return Anthropic;
+            throw new ArgumentException("Provider must be Compatible API, Anthropic, Ollama, or LM Studio.", "provider");
         }
 
         public static string DisplayName(string provider)
@@ -58,6 +61,7 @@ namespace Laica
             {
                 case Ollama: return "Ollama";
                 case LMStudio: return "LM Studio";
+                case Anthropic: return "Anthropic";
                 default: return "Compatible API";
             }
         }
@@ -115,6 +119,27 @@ namespace Laica
             return models;
         }
 
+        /// <summary>POSTs a JSON body to the service (used by the built-in agent). Same key handling, HTTPS-only and no-redirect rules as every other call.</summary>
+        public static Task<string> PostJsonAsync(ServiceConnection connection, string suffix, string body, CancellationToken token)
+        {
+            ValidateConnection(connection);
+            return Send(connection, "POST", Endpoint(connection, suffix), body, token);
+        }
+
+        /// <summary>Posts one file and some text fields as multipart/form-data (used for speech-to-text).</summary>
+        public static Task<string> PostMultipartAsync(ServiceConnection connection, string suffix, Dictionary<string, string> fields, string fileField, string fileName, string fileContentType, byte[] file, CancellationToken token)
+        {
+            ValidateConnection(connection);
+            string boundary = "----laica" + Guid.NewGuid().ToString("N");
+            using (var ms = new MemoryStream())
+            {
+                Action<string> text = s => { var b = new UTF8Encoding(false).GetBytes(s); ms.Write(b, 0, b.Length); };
+                foreach (var kv in fields) text("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + kv.Key + "\"\r\n\r\n" + kv.Value + "\r\n");
+                text("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fileField + "\"; filename=\"" + fileName.Replace("\"", "") + "\"\r\nContent-Type: " + fileContentType + "\r\n\r\n");
+                ms.Write(file, 0, file.Length); text("\r\n--" + boundary + "--\r\n");
+                return Send(connection, "POST", Endpoint(connection, suffix), null, token, ms.ToArray(), "multipart/form-data; boundary=" + boundary);
+            }
+        }
         public static async Task<string> ExecuteAsync(ServiceConnection connection, AgentNode node, string prompt, CancellationToken token)
         {
             ValidateConnection(connection);
@@ -194,16 +219,16 @@ namespace Laica
             }
         }
 
-        static async Task<string> Send(ServiceConnection c, string method, string url, string body, CancellationToken token)
+        static async Task<string> Send(ServiceConnection c, string method, string url, string body, CancellationToken token, byte[] raw = null, string contentType = null)
         {
             using(var limit=CancellationTokenSource.CreateLinkedTokenSource(token))
             {
                 limit.CancelAfter(TimeoutMilliseconds);
-                try{return await SendCore(c,method,url,body,limit.Token).ConfigureAwait(false);}
+                try{return await SendCore(c,method,url,body,limit.Token,raw,contentType).ConfigureAwait(false);}
                 catch(OperationCanceledException){if(!token.IsCancellationRequested)throw new TimeoutException("Provider request exceeded 15 minutes.");throw;}
             }
         }
-        static async Task<string> SendCore(ServiceConnection c, string method, string url, string body, CancellationToken token)
+        static async Task<string> SendCore(ServiceConnection c, string method, string url, string body, CancellationToken token, byte[] raw = null, string contentType = null)
         {
             token.ThrowIfCancellationRequested();
             ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
@@ -216,11 +241,15 @@ namespace Laica
             request.Accept = "application/json";
             request.UserAgent = "LAICA/1.0";
             var key = GetKey(c);
-            if (!String.IsNullOrEmpty(key)) request.Headers[HttpRequestHeader.Authorization] = "Bearer " + key;
-            if (body != null)
+            if (!String.IsNullOrEmpty(key))
             {
-                var bytes = Encoding.UTF8.GetBytes(body);
-                request.ContentType = "application/json; charset=utf-8";
+                if (ServicePresets.Normalize(c.Provider) == ServicePresets.Anthropic) { request.Headers["x-api-key"] = key; request.Headers["anthropic-version"] = "2023-06-01"; }
+                else request.Headers[HttpRequestHeader.Authorization] = "Bearer " + key;
+            }
+            if (body != null || raw != null)
+            {
+                var bytes = raw ?? Encoding.UTF8.GetBytes(body);
+                request.ContentType = contentType ?? "application/json; charset=utf-8";
                 request.ContentLength = bytes.Length;
                 using (var registration = token.Register(delegate { try { request.Abort(); } catch { } }))
                 {

@@ -167,6 +167,7 @@ namespace Laica
             var ids = new HashSet<string>(StringComparer.Ordinal); foreach (var n in plan.Nodes) if (n == null || String.IsNullOrWhiteSpace(n.Id) || n.Id.StartsWith("$",StringComparison.Ordinal) || !ids.Add(n.Id)) throw new ArgumentException("Every node needs a unique id.");
             AgentNode root = plan.Nodes.SingleOrDefault(n => n.Id == "root");
             if (root == null || root.ParentId != null && root.ParentId != "") throw new ArgumentException("The graph must have one root node with no parent.");
+            if (Connection(root.ConnectionId)=="codex" && (root.Model != "gpt-6.1-sol" || root.Effort != "high")) throw new ArgumentException("The Codex supervisor stays gpt-6.1-sol / high.");
             foreach (var n in plan.Nodes)
             {
                 if (n.Id != "root" && (String.IsNullOrWhiteSpace(n.ParentId) || !ids.Contains(n.ParentId))) throw new ArgumentException("Each worker must reference an existing parent.");
@@ -236,8 +237,15 @@ namespace Laica
         static string Limit(string s,int max) { return s==null?"":s.Length<=max?s:s.Substring(0,max)+"\n[TRUNCATED]"; }
         static string ToPromptLimited(AgentPlan p,int max) { return Limit(GraphPlanHelpers.ToPrompt(p),max); }
 
+                public Func<string,string,string,string,string,CancellationToken,Task<string>> CliRunner;
         async Task<string> Execute(AgentNode node,string prompt,string cli,string cwd,CancellationToken token,string statusId=null)
         {
+            if((node.ConnectionId??"").StartsWith("cli:",StringComparison.Ordinal))
+            {
+                if(CliRunner==null) throw new InvalidOperationException("Agent CLIs are unavailable in this run.");
+                string agent=node.ConnectionId.Substring(4); Say(node.Name+" / "+agent+" / "+node.Model); Status(statusId??node.Id,"running",agent+" - "+node.Model);
+                return Limit(await CliRunner(agent,node.Model,node.Effort,"Role: "+node.Role+". Assigned scope: "+node.Job+". Reply with text only; do not edit files or run commands.\n\n"+prompt,cwd,token).ConfigureAwait(false),node.Id=="root"?MaxRootPlan:MaxParent);
+            }
             if(GraphValidator.Connection(node.ConnectionId)=="codex") return await ExecuteCodex(node,prompt,cli,cwd,token,statusId).ConfigureAwait(false);
             var connection=services.Find(c=>c.Id==node.ConnectionId);
             if(connection==null) throw new InvalidOperationException("Missing service connection for "+node.Name+". Add it under Services.");

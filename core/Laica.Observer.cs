@@ -88,7 +88,7 @@ namespace Laica
         }
         ActivitySnapshot ReadCore(string rootSessionId,List<string> files,bool includeChildren)
         {
-
+                
                 var rootFile = files.FirstOrDefault(f => String.Equals(Text(ReadMetadata(f),"id")??Text(ReadMetadata(f),"session_id"), rootSessionId, StringComparison.OrdinalIgnoreCase) || String.Equals(Path.GetFileNameWithoutExtension(f), rootSessionId, StringComparison.OrdinalIgnoreCase));
                 if (rootFile == null) return new ActivitySnapshot { SessionId=rootSessionId, State="unavailable", Notice=NoticeText };
                 var rootMeta=ReadMetadata(rootFile);

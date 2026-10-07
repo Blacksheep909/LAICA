@@ -1,124 +1,88 @@
-# Getting started with LAICA
+# Getting started
 
-LAICA is a Windows workspace for setting up agent teams and viewing recorded work. This guide walks through building the public source preview, connecting it to Codex, and exploring Activity. The current public build is an unsigned development preview; there is no signed installer download.
+This walks you from nothing to a first chat and a first mixed-vendor team. It takes about ten minutes.
 
-## 1. Prepare Windows and get the source
+## 1. Install LAICA
 
-Use a Windows x64 PC with:
+1. Download `LAICA-Setup-<version>.exe` from the [latest release](https://github.com/Blacksheep909/LAICA/releases/latest).
+2. Run it. If Windows SmartScreen warns about an unrecognised app, that is because the build is not code-signed (see [releases](releases.md)). Choose **More info**, then **Run anyway**.
+3. Setup installs to `%LOCALAPPDATA%\Programs\LAICA`, adds Start menu and desktop shortcuts and opens LAICA.
 
-- Node.js **22.13 or newer**
-- pnpm **11.19.0**
-- The .NET Framework C# compiler at `%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe`
-- Microsoft Edge **WebView2 Runtime**
-- Codex CLI or the Codex app, signed in, if you want to hand work to Codex
+Upgrading is the same: run the newer setup. Your chats, teams and settings are kept. To remove LAICA use *Apps > Installed apps*; your data stays until you delete the `harness` folder inside the install folder.
 
-Install the [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) if it is not already present. Get the source using either option:
+You can also unzip `LAICA-<version>-win-x64.zip` anywhere and run `LAICA.exe`.
 
-- **With Git:** open PowerShell and run the commands below.
-- **Without Git:** open the [repository](https://github.com/Blacksheep909/LAICA), choose **Code → Download ZIP**, then right-click the downloaded ZIP and choose **Extract All**. Open the extracted folder, right-click an empty area and choose **Open in Terminal**.
+## 2. Install and sign in to at least one agent
 
-```powershell
-git clone https://github.com/Blacksheep909/LAICA.git
-cd LAICA
-```
+LAICA runs the agent tools you already have; it does not log in for you.
 
-There is no signed binary download to install.
+| Agent | Install | Sign in |
+| --- | --- | --- |
+| Codex | `npm install -g @openai/codex` | run `codex` once and sign in |
+| Claude Code | see the [Claude Code docs](https://docs.claude.com/en/docs/claude-code) | run `claude` once and sign in |
+| Gemini CLI | `npm install -g @google/gemini-cli` | run `gemini` once and sign in |
 
-Open PowerShell in the source folder. If pnpm is not installed, install the pinned version and build the development preview:
+Open **Plugins** in LAICA to install agent CLIs, runtimes (Node.js, uv) and more with one click. It suggests tools for programs it finds on your PC first.
 
-```powershell
-npm install --global pnpm@11.19.0
-./Build.ps1 -Development
-```
+When LAICA starts it detects installed agents automatically and lists them under **Settings > Agents**. Anything it did not find can be added as a custom agent (a command plus arguments).
 
-The build uses the pinned frontend lockfile and checks the hashes of the vendored WebView2 SDK files. To run the project checks, use:
+## 3. Your first chat
 
-```powershell
-./Test.ps1
-```
+1. Click **New chat** (Ctrl+N).
+2. Pick a project folder with *Work in ...* under the composer, or add a project with the **+** next to *Projects*.
+3. Choose the agent and model from the pill in the composer, then type and press Enter.
 
-When the build finishes, open the app with:
+Things worth knowing right away:
 
-```powershell
-./build/LAICA.exe
-```
+- **+** in the composer adds files, a sketch, Plan mode or a Goal, and lists your MCP servers, skills and suggested plugins. You can also drag files in or paste an image with Ctrl+V.
+- **Ctrl+K** opens the command palette. **Esc** stops the running turn. **Ctrl+Z** undoes the last rename, pin, close or similar action.
+- Your existing Codex and Claude Code conversations appear under their projects automatically. Use the refresh icon next to *Projects* to rescan.
+- The right-hand panel shows the project's files and the **Changes** the agent made, with per-file diffs. Commit from there.
 
-### Optional per-user installation
+## 4. Watch your usage
 
-You can install the unsigned development build into your user profile and create shortcuts:
+The usage button at the bottom right shows each vendor's plan windows (the 5-hour and weekly percentages for Codex, token totals for Claude) and warns before you run out. Set a daily or weekly token budget for any vendor in its popover.
 
-```powershell
-./Install.ps1 -Development
-```
+## 5. Build a mixed-vendor team
 
-The default program folder is `%LOCALAPPDATA%\Programs\LAICA`. You can skip shortcut creation with `-NoShortcuts`. An unsigned preview may be blocked by Smart App Control or other Windows protections. Keep those protections enabled; do not bypass or disable them. If Windows blocks the preview, stop and wait for a trusted signed release.
+1. Click **+** next to *Teams* in the sidebar.
+2. Name the team, choose its working folder and pick the **leader**: the agent that plans the work and reviews the result.
+3. Add teammates. For each, choose any agent and optionally pin a model, for example *Builder* on Claude Sonnet, *Reviewer* on Codex and *Docs* on Gemini. Up to eight teammates.
+4. Turn on **isolation** to give each teammate its own git worktree so they cannot overwrite each other.
+5. Type a goal and press **Run**. The leader splits the goal into tasks, the teammates work in parallel in their own chats, and the leader reviews and writes the final answer.
 
-## 2. Connect the Codex account and select a team
+If a teammate's vendor runs out of usage mid-task, LAICA moves that task to another available agent with a note to continue the work already done.
 
-1. Open **Services** and choose **Codex · Existing account**.
-2. Select **Refresh models** in the lower-left corner. Wait for the model list to finish loading, then choose a model your signed-in Codex account can use and select **Use for team**.
-3. Open **Teams**. Select the supervisor node (the root of the graph) and set its model and reasoning to match the model and reasoning of the Codex chat you plan to use. The example graph is a draft, so review every worker's model, reasoning, role, job, and **Reports to** assignment too. Keep only models and worker tools available in your Codex host.
-4. Select **Save profile** and give the team a name if you want to reuse it. Saving a profile does not activate it.
-5. Select **Use this team** at the top of **Teams**. LAICA marks the selected team for the bridge to provide to Codex.
+## 6. Choose what happens when a vendor runs out
 
-![Teams graph and supervisor settings](images/teams.jpg)
+Open **Settings > Agents > Workflow handoff**:
 
-*Development preview; example data, not a live run.*
+- **Ask me**: the chat shows a banner and you pick where to continue.
+- **A backup team**: work moves to a team that does not rely on the vendor that ran out.
+- **One agent**: a single agent takes over with the full conversation.
 
-![Services and model selection](images/services.jpg)
+Work moves at most twice, so it can never loop.
 
-*Development preview; example data, not a live run.*
+## 7. See which team designs work
 
-## 3. Register the read-only bridge with Codex
+Click the chart icon at the bottom left of the sidebar and open the **Teams** tab. Each team you have run gets a card with its success rate, time and cost per run, how parallel the work was, how much of the cost is the leader, agent swaps and a per-teammate breakdown. Badges mark the most reliable, fastest and cheapest designs once you have two or more teams. Use the range buttons (All, 30d, 7d) to compare recent runs.
 
-These commands require the `codex` CLI to be available in PowerShell. Register the bridge from the default installation folder:
+The cost is an **estimate at API list prices**. If you are on a flat subscription you pay that instead, so read it as "the compute you got". Edit the price table on the **Prices** tab to match your provider.
 
-```powershell
-codex mcp add laica -- "$env:LOCALAPPDATA\Programs\LAICA\LAICA.Bridge.exe"
-codex mcp list
-```
+## 8. LAICA as a co-author
 
-If you are running directly from the source folder, run this command from that folder instead:
+Commits that agents make through LAICA get a `Co-authored-by: LAICA <email>` line next to the agent's own. Configure it in **Settings > Agents > Commits**: switch it off globally, off per project, or set the email.
 
-```powershell
-codex mcp add laica -- "$PWD\build\LAICA.Bridge.exe"
-```
+GitHub only shows an avatar and links a co-author when the email belongs to a real account. Options:
 
-For a custom install folder, substitute its full path. If `codex` is not recognised, use the [official MCP configuration instructions](https://learn.chatgpt.com/docs/extend/mcp?surface=cli) to register that executable as a stdio server. The bridge is a stdio MCP server; you do not need to start it yourself. It provides read-only `get_team` and `get_activity` tools and does not edit Codex configuration or start models.
+1. **A dedicated bot account** (for example `laica-bot`). Use its noreply address, `ID+laica-bot@users.noreply.github.com`; the numeric ID is in `https://api.github.com/users/laica-bot`.
+2. **A GitHub App** you register for LAICA. Its bot noreply address is `ID+app-slug[bot]@users.noreply.github.com`.
+3. **A secondary account you own.**
+4. **No email** (the default placeholder): commits are credited to "LAICA" by name only, with no avatar or profile link.
 
-Close and reopen Codex so it loads the new MCP server, then start a **fresh chat**. Ask Codex: **“Use my LAICA team for this task: [describe the task].”** The current chat's supervisor model and reasoning must match the LAICA root. Codex remains responsible for running the task and returning its answer in that chat.
+## Troubleshooting
 
-If the model list is empty, make sure Codex is signed in, select **Refresh models** again, and confirm that the chosen model is available to your account. If LAICA reports the Codex delegation mode as **Unavailable** or **unknown**, Codex's `[agents] enabled` setting could not be read. The **Services → Codex integration** section in LAICA is a read-only status display. Change delegation in Codex's own settings or configuration if needed, restart Codex yourself, and use a fresh chat. LAICA reads that setting; it does not change it.
-
-## 4. Explore Activity
-
-Choose **Activity** after Codex has started the task. **Work overview** groups recent recorded work by chat and shows the supervisor with up to three recently observed workers. Select an agent to inspect its assignment, recent action, and files. **Recorded logs** lets you filter by agent or work type, search recorded steps, and expand a step to see the command, purpose, output, and outcome when those details were captured.
-
-![Activity work overview and recorded logs](images/activity.jpg)
-
-*Development preview; example data, not a live run.*
-
-Activity is based on local Codex records. It can appear after a delay, and a missing command, output, or exit status means Codex did not expose that detail in the record. “No recent update” means the log has been quiet; it does not prove a worker has stopped. If there is no activity, choose the relevant chat from the **All chats** dropdown, allow time for the automatic update, and check that Codex has recorded work locally. Activity can observe those records independently of the bridge or team selection. If you use a custom `CODEX_HOME`, LAICA must read the same directory as Codex. You can also reopen **Activity**.
-
-![Recorded logs with an expanded command and its result](images/recorded-logs.jpg)
-
-*Development preview; example data, not a live run.*
-
-## 5. Run a team against a local model API (optional)
-
-This is a separate route from the Codex handoff. Start an OpenAI-compatible API server in Ollama or LM Studio, then in **Services** add a connection using the base URL shown by that app. Common local defaults are `http://127.0.0.1:11434/v1` for Ollama and `http://127.0.0.1:1234/v1` for LM Studio; check the app if you changed its port. Save the connection, select **Refresh models**, choose a discovered model, and select **Use for team**. Return to **Teams**, enter a task, and choose **Run team**. The reviewed answer appears in **Activity → Local runs**.
-
-Local API calls may use HTTP only for loopback addresses. A remote API must use HTTPS. LAICA sends the task and agent text context to the selected API service; this adapter gives local models no Codex browser, shell, or computer-use tools, and does not operate your computer or edit project files.
-
-## Graph shortcuts
-
-The graph's **Guide & shortcuts** panel also lists these controls:
-
-- Drag a node to arrange it; use the mouse wheel to zoom.
-- Pan with the middle mouse button, or hold **Space** and drag.
-- Hold **Shift** and click to select several nodes. Hold **Shift** and drag from a socket to connect a wire.
-- Pull a wire from either socket and release over empty space to disconnect it. Press **Esc** to cancel a gesture.
-- Use **Ctrl + right-drag** to cut wires, **Ctrl + Z** to undo, **Ctrl + Y** to redo, and **Delete** to remove a worker or selected wire.
-- Open **Graph tools → Find** to search for a node. Graph tools also contains arrange, selection, and duplication actions.
-
-See the [main README](../README.md) for privacy and data-storage details, or [report an issue](https://github.com/Blacksheep909/LAICA/issues) with a concrete trigger and expected result. Remove private paths, commands, and conversation text before sharing logs.
+- **An agent is missing.** Check it runs in a terminal (`codex --version`), then restart LAICA. PATH changes need a restart.
+- **A blank window.** Install or repair the [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/).
+- **Dictation does not work.** Dictation uses Windows speech recognition; check *Settings > Time & language > Speech*.
+- **Something looks wrong after an upgrade.** Previous settings are untouched; delete the `harness\analytics.json` cache to force a clean re-index of usage.

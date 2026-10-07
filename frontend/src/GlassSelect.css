@@ -1,0 +1,30 @@
+/* Frosted-glass dropdowns: one look for every menu in LAICA. */
+.gs-field{display:flex;flex-direction:column;gap:7px;min-width:0;position:relative}
+.gs-label-top{font-size:11px;color:#c5d0df}
+.gs-trigger{display:flex;align-items:center;gap:8px;width:100%;height:38px;padding:0 12px;border-radius:12px;border:1px solid #e7daff24;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.025));color:#f2f0fa;font-size:12.5px;text-align:left;cursor:pointer;box-shadow:inset 0 1px 0 #ffffff14;transition:border-color .15s,background .15s}
+.gs-trigger:hover:not(:disabled){border-color:#e7daff44;background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.04))}
+.gs-trigger:focus-visible,.gs-trigger[aria-expanded=true]{outline:none;border-color:#b3a5f7;box-shadow:0 0 0 3px #b3a5f733,inset 0 1px 0 #ffffff14}
+.gs-trigger:disabled{opacity:.5;cursor:default}
+.gs-value{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gs-value.is-placeholder{color:#8f89a3}
+.gs-caret{flex-shrink:0;color:#9a94ad;transition:transform .15s}.gs-trigger[aria-expanded=true] .gs-caret{transform:rotate(180deg)}
+.gs-icon{display:inline-grid;place-items:center;flex-shrink:0;width:20px;height:20px;border-radius:6px;font-size:11px;font-weight:600;background:rgba(255,255,255,.1);color:#e9e2ff}
+.gs-pill{width:auto;display:inline-flex}.gs-pill .gs-trigger{height:32px;border-radius:99px;padding:0 10px 0 12px;border-color:#ffffff1c;background:rgba(255,255,255,.06);font-size:12px;width:auto;max-width:260px}
+
+.gs-pop{position:fixed!important;z-index:10000;display:flex;flex-direction:column;box-sizing:border-box;padding:6px;border-radius:18px!important;border:1px solid #e7daff2b!important;box-shadow:inset 0 1px 0 #ffffff24,0 28px 70px #000b,0 2px 10px #0006!important;overflow:hidden;animation:gs-in .12s ease-out;transform-origin:top left}
+@keyframes gs-in{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
+.gs-inner{display:flex;flex-direction:column;min-height:0}
+.gs-search{display:flex;align-items:center;gap:8px;height:34px;margin:2px 2px 6px;padding:0 10px;border-radius:11px;background:rgba(255,255,255,.07);border:1px solid #ffffff14;color:#9a94ad}
+.gs-search input{flex:1;min-width:0;background:transparent;border:0;outline:none;color:#f2f0fa;font-size:12.5px}
+.gs-list{overflow-y:auto;padding:2px;scrollbar-width:thin;scrollbar-color:#6b6485 transparent}
+.gs-group{padding:10px 10px 4px;font-size:11px;letter-spacing:.2px;color:#8f89a3}
+.gs-item{display:flex;align-items:center;gap:10px;min-height:34px;padding:6px 10px;border-radius:11px;color:#eee9fb;font-size:12.5px;cursor:pointer;user-select:none}
+.gs-item.is-active{background:rgba(190,170,255,.16)}
+.gs-item.is-selected .gs-label{color:#fff;font-weight:600}
+.gs-item.is-disabled{opacity:.45;cursor:default}
+.gs-text{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.gs-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-desc{color:#8f89a3;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.gs-check{flex-shrink:0;color:#c5b7ff}
+.gs-empty{padding:14px 12px;font-size:12px;color:#8f89a3}
+.gs-footer{margin-top:4px;padding:8px 6px 4px;border-top:1px solid #ffffff12;font-size:11.5px;color:#8f89a3}
+@media(prefers-reduced-motion:reduce){.gs-pop{animation:none}}

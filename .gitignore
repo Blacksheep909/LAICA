@@ -1,28 +1,29 @@
-# Generated program and dependency files
+# Generated program, packages and dependencies
 build/
+dist/
+obj/
 frontend/node_modules/
 frontend/dist/
+checks/*.exe
 checks/bin/
-.laica-*/
-*.log
-*.tmp
-*.exe
 *.pdb
-*.zip
+*.tmp
+*.log
 
-# User state and credentials must never be committed
+# User state, credentials and usage data must never be committed
 .env
 .env.*
 !.env.example
-active-team.json
+harness/
+analytics.json
+teamruns.json
+usage.json
+sessions/
+backups/
 profiles.json
 services.json
 harness-mode.json
 workspace-preferences.json
-followed-chat.txt
-plans/
-sessions/
-backups/
 *.pfx
 *.p12
 *.key
@@ -31,7 +32,6 @@ backups/
 *.sqlite
 auth.json
 .codex/
-*-result.json
 .DS_Store
 Thumbs.db
 .vscode/

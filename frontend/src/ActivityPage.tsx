@@ -1,5 +1,6 @@
 import {useEffect,useMemo,useState} from 'react';
-import {Button,Glass,SegmentedControl,Select,useToast} from 'open-glass-ui';
+import {Button,Glass,SegmentedControl,useToast} from 'open-glass-ui';
+import {Select} from './GlassSelect';
 import {Activity as ActivityIcon,ArrowUpRight,Check,ChevronRight,Clock,Copy,Download,FileCode2,GitBranch,Globe,Layers,Search,Terminal,Workflow,X} from 'lucide-react';
 import {isDesktop,request} from './bridge';
 import type {Activity,ActivityAgent,ActivityEvent,Session,TeamSummary,WorkspaceState} from './types';
@@ -33,7 +34,7 @@ export default function ActivityPage({state,runAction}:Props){
    <div className="fleet-heading"><div><h2>Your chat teams</h2><span>Recent chats · one supervisor and up to three workers</span></div><div className="all-chat-picker">{sessions.length>0&&<Select label="All chats" value={session} options={sessions.map(s=>({value:s.Id,label:`${s.Title||'Untitled chat'}${s.Project?' · '+s.Project:''}`}))} onChange={e=>choose(e.target.value)}/>}</div></div>
    {overviewError&&<p role="alert" className="error-text">Could not refresh teams: {overviewError}</p>}
    <div className="fleet" aria-label="Recent chat teams">{teams.map(t=><button type="button" key={t.Id} className={`fleet-card ${session===t.Id?'selected':''}`} onClick={()=>choose(t.Id)}><span className="fleet-project"><Layers size={13}/>{t.Project||'Chat'}</span><strong>{t.Title||'Untitled chat'}</strong><span className="fleet-task">{t.Task||'No task recorded'}</span><span className="fleet-state"><span className={`work-dot ${t.State}`}/>{stateLabel(t.State)}</span><small>{t.Action||timeAgo(t.ObservedUtc)}</small></button>)}</div>
-
+   
    {error&&<p role="alert" className="error-text">Updates paused: {error}. The last recorded work remains below.</p>}
    {!snapshot?<div className="empty-state compact"><Workflow size={25}/><h2>{loading?'Reading chat records…':session?'Reading this team’s work…':isDesktop?'No chat teams found yet':'Open the desktop app to follow your teams'}</h2><p>{session?'Commands and outcomes will appear when they are recorded.':'Open a Codex chat, then return here.'}</p></div>:<>
     <div className="mission-heading"><div><span className="eyebrow">{snapshot.Project||'CODEX'} · {timeAgo(snapshot.UpdatedUtc)}</span><h2>{task}</h2></div><SegmentedControl aria-label="Team activity view" items={[{value:'work',label:'Work overview'},{value:'logs',label:'Recorded logs'}]} value={view} onValueChange={setView}/></div>

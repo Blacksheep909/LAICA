@@ -29,6 +29,8 @@ namespace Laica
         DateTime overviewReadUtc = DateTime.MinValue;
         object overview;
         public event Action<object> Changed;
+        public readonly HarnessManager Harness;
+        public readonly ChannelManager Channels;
         public string WorkingDirectory { get { lock (gate) return workingDirectory; } set { ChooseWorkingDirectory(new Dictionary<string,object>{{"Path",value}}); } }
 
         public WorkspaceBackend(string appDir, string codexHome)
@@ -36,6 +38,9 @@ namespace Laica
             if (String.IsNullOrWhiteSpace(appDir)) throw new ArgumentException("Application directory is required.", "appDir");
             if (String.IsNullOrWhiteSpace(codexHome)) throw new ArgumentException("Codex home directory is required.", "codexHome");
             this.appDir = Path.GetFullPath(appDir); this.codexHome = Path.GetFullPath(codexHome);
+            Harness = new HarnessManager(this.appDir, () => { lock (gate) return services.Select(CloneService).ToArray(); });
+            Channels = new ChannelManager(Harness, this.appDir); Harness.Completed += Channels.Notify;
+            Harness.WorkflowRunner = RunWorkflowAsync;
             workingDirectory = Environment.CurrentDirectory;
             observer = new CodexActivityObserver(this.codexHome);
             plan = GraphPlanHelpers.CreateStarter();
@@ -49,7 +54,7 @@ namespace Laica
                 {"Services", services.Select(ServiceDto).ToArray()}, {"Profiles", profiles.Profiles.Select(ProfileDto).ToArray()},
                 {"SelectedProfileId", profiles.SelectedId}, {"Mode", mode}, {"SnapToGrid", snapToGrid},
                 {"Busy", busy}, {"Refreshing", refreshing}, {"Answer", answer}, {"Status", status},
-                {"Version", "0.7.0"}, {"WorkingDirectory", workingDirectory},
+                {"Version", AppVersion.Value}, {"WorkingDirectory", workingDirectory},
                 {"RunEvents", runEvents.Select(EventDto).ToArray()}, {"NodeStates", new Dictionary<string,string>(nodeStates)}
             };
         }
@@ -78,6 +83,80 @@ namespace Laica
                     case "sessions": result = observer.ListSessions().Select(SessionDto).ToArray(); break;
                     case "activity": result = ActivityDto(observer.Read(Text(payload,"Id"))); break;
                     case "teamOverview": result = TeamOverview(); break;
+                    case "harnesses": result = Harness.Harnesses(); break;
+                    case "harnessList": result = Harness.List(); break;
+                    case "harnessCreate": result = Harness.Create(Text(payload,"Harness"), Text(payload,"Cwd") ?? workingDirectory, Text(payload,"Mode"), Text(payload,"Rules"), Text(payload,"AssistantId"), Text(payload,"Title"), Text(payload,"Isolate") == "True", Text(payload,"ServiceId"), Text(payload,"Model"), Text(payload,"Effort")); break;
+                    case "channelStatus": result = Channels.Status(); break;
+                    case "channelSaveTelegram": result = Channels.SaveTelegram(Text(payload,"Enabled") == "True", Text(payload,"Token"), Text(payload,"Harness"), Text(payload,"Cwd"), Text(payload,"Mode"), Text(payload,"ServiceId"), Text(payload,"Model")); break;
+                    case "channelPairCode": result = Channels.NewPairCode(); break;
+                    case "channelUnpair": Channels.Unpair(Text(payload,"ChatId")); result = true; break;
+                    case "webhookSave": result = Channels.SaveWebhook(Text(payload,"Id"), Text(payload,"Name"), Text(payload,"Kind"), Text(payload,"Url")); break;
+                    case "webhookDelete": Channels.DeleteWebhook(Text(payload,"Id")); result = true; break;
+                    case "webhookTest": Channels.TestWebhook(Text(payload,"Id")); result = true; break;
+                    case "mcpAdd": Harness.McpAdd(Text(payload,"Target"), Text(payload,"Name"), Text(payload,"Command"), Text(payload,"Url"), Text(payload,"Env")); result = true; break;
+                    case "mcpRemove": Harness.McpRemove(Text(payload,"Target"), Text(payload,"Name")); result = true; break;
+                    case "skillRead": result = Harness.SkillRead(Text(payload,"Target"), Text(payload,"Name")); break;
+                    case "skillSave": Harness.SkillSave(Text(payload,"Target"), Text(payload,"Name"), Text(payload,"Description"), Text(payload,"Body")); result = true; break;
+                    case "skillDelete": Harness.SkillDelete(Text(payload,"Target"), Text(payload,"Name")); result = true; break;
+                    case "historyList": return Task.Run<object>(() => Harness.ImportList(Text(payload,"Refresh") == "True"));
+                    case "codexProjects": return Task.Run<object>(() => Harness.CodexProjects());
+                    case "historyOpen": result = Harness.ImportOpen(Text(payload,"Source"), Text(payload,"ExternalId"), Text(payload,"Cwd") ?? workingDirectory); break;
+                    case "teamList": result = Harness.Teams(); break;
+                    case "teamSave": result = Harness.SaveTeam(payload); break;
+                    case "teamDelete": Harness.DeleteTeam(Text(payload,"Id")); result = true; break;
+                    case "teamRun": Harness.RunTeam(Text(payload,"Id"), Text(payload,"Goal")); result = true; break;
+                    case "teamStop": Harness.StopTeam(Text(payload,"Id")); result = true; break;
+                    case "harnessApprove": Harness.Approve(Text(payload,"Id"), Text(payload,"RequestId"), Text(payload,"Allow") == "True", Text(payload,"Always") == "True"); result = true; break;
+                    case "gitInfo": result = Harness.GitInfo(Text(payload,"Cwd") ?? workingDirectory); break;
+                    case "harnessChanges": result = Harness.Changes(Text(payload,"Id")); break;
+                    case "harnessDiff": result = Harness.Diff(Text(payload,"Id"), Text(payload,"Path")); break;
+                    case "harnessCommit": result = Harness.Commit(Text(payload,"Id"), Text(payload,"Message")); break;
+                    case "harnessMerge": result = Harness.Merge(Text(payload,"Id")); break;
+                    case "harnessRemoveWorktree": Harness.RemoveWorktree(Text(payload,"Id"), Text(payload,"DeleteBranch") == "True"); result = true; break;
+                    case "handoffGet": result = Harness.HandoffGet(); break;
+            case "handoffSet": result = Harness.HandoffSet(payload); break;
+            case "teamHandoff": result = Harness.HandoffTeam(Text(payload,"Id"), payload.ContainsKey("Choice")&&payload["Choice"] is Dictionary<string,object> ? (Dictionary<string,object>)payload["Choice"] : null); break;
+            case "teamAnalytics": result = Harness.TeamAnalytics(Text(payload,"Range")); break;
+            case "coauthorGet": result = Harness.CoAuthorGet(); break;
+            case "coauthorSet": result = Harness.CoAuthorSet(payload); break;
+            case "pricesGet": result = Harness.PricesGet(); break;
+            case "pricesSet": result = Harness.PricesSet(payload); break;
+            case "analytics":result = Harness.Analytics(Text(payload,"Range"), Text(payload,"Vendor")); break;
+            case "pluginLibrary": result = Harness.PluginLibrary(); break;
+            case "pluginInstall": result = Harness.PluginInstall(Text(payload,"Id"), payload.ContainsKey("Targets")&&payload["Targets"] is System.Collections.IEnumerable ? ((System.Collections.IEnumerable)payload["Targets"]).Cast<object>().Select(Convert.ToString).ToArray() : new string[0], payload.ContainsKey("Values")&&payload["Values"] is Dictionary<string,object> ? ((Dictionary<string,object>)payload["Values"]).ToDictionary(kv=>kv.Key, kv=>Convert.ToString(kv.Value)) : new Dictionary<string,string>()); break;
+            case "pluginRemove": result = Harness.PluginRemove(Text(payload,"Id"), Text(payload,"Target")); break;
+            case "attachStage": result = Harness.AttachStage(Text(payload,"Id"), Text(payload,"Cwd"), payload.ContainsKey("Paths")&&payload["Paths"] is System.Collections.IEnumerable ? ((System.Collections.IEnumerable)payload["Paths"]).Cast<object>().Select(Convert.ToString).ToArray() : new string[0]); break;
+            case "attachSave": result = Harness.AttachSave(Text(payload,"Id"), Text(payload,"Cwd"), Text(payload,"Name"), Text(payload,"Data"), Text(payload,"Target"), payload.ContainsKey("Append")&&Convert.ToBoolean(payload["Append"])); break;
+            case "speechStatus": result = Harness.SpeechStatus(); break;
+            case "transcribe": result = Harness.Transcribe(Text(payload,"Data"), Text(payload,"Mime"), Text(payload,"ServiceId"), Text(payload,"Language")); break;
+            case "harnessExport": result = Harness.ExportMarkdown(Text(payload,"Id")); break;
+            case "harnessRestore": result = Harness.RestoreClosed(Text(payload,"Id")); break;
+            case "harnessPause": Harness.Pause(Text(payload,"Id")); result = true; break;
+            case "harnessResume": Harness.Resume(Text(payload,"Id")); result = true; break;
+            case "teamPause": result = Harness.PauseTeam(Text(payload,"Id")); break;
+            case "teamResume": result = Harness.ResumeTeam(Text(payload,"Id")); break;
+            case "usageGet": result = Harness.Usage(); break;
+            case "usageBudget": result = Harness.SetUsageBudget(Text(payload,"Key"), payload.ContainsKey("Tokens")&&payload["Tokens"]!=null?Convert.ToInt64(payload["Tokens"]):-1L, payload.ContainsKey("Weekly")&&payload["Weekly"]!=null?Convert.ToInt64(payload["Weekly"]):-1L); break;
+            case "usageClear": result = Harness.ClearUsageLimit(Text(payload,"Key")); break;
+            case "harnessContinue": result = Harness.ContinueElsewhere(Text(payload,"Id"), Text(payload,"Harness"), Text(payload,"ServiceId"), Text(payload,"Model")); break;
+            case "harnessSend": Harness.Send(Text(payload,"Id"), Text(payload,"Prompt")); result = true; break;
+                    case "harnessStop": Harness.Stop(Text(payload,"Id")); result = true; break;
+                    case "harnessClose": Harness.Close(Text(payload,"Id")); result = true; break;
+                    case "harnessRename": Harness.Rename(Text(payload,"Id"), Text(payload,"Title")); result = true; break;
+                    case "harnessFiles": result = Harness.Files(Text(payload,"Id"), Text(payload,"Path")); break;
+                    case "harnessReadFile": result = Harness.ReadFile(Text(payload,"Id"), Text(payload,"Path")); break;
+                    case "harnessWriteFile": Harness.WriteFile(Text(payload,"Id"), Text(payload,"Path"), Text(payload,"Text")); result = true; break;
+                    case "agentList": result = Harness.Agents(); break;
+                    case "agentSave": result = Harness.SaveAgent(payload); break;
+                    case "agentDelete": Harness.DeleteAgent(Text(payload,"Id")); result = true; break;
+                    case "taskList": result = Harness.Tasks(); break;
+                    case "taskSave": result = Harness.SaveTask(payload); break;
+                    case "taskDelete": Harness.DeleteTask(Text(payload,"Id")); result = true; break;
+                    case "taskRun": Harness.RunTask(Text(payload,"Id")); result = true; break;
+                    case "harnessTools": result = Harness.Tools(); break;
+                    case "storeGet": result = Harness.StoreGet(Text(payload,"Name")); break;
+                    case "storeSet": Harness.StoreSet(Text(payload,"Name"), payload.ContainsKey("Value") ? payload["Value"] : null); result = true; break;
+                    case "harnessHistory": result = Harness.History(Text(payload,"Id")); break;
                     case "run": result = StartRun(); break;
                     case "stop": result = StopRun(); break;
                     case "importPlan": result = ImportPlan(payload); break;
@@ -97,6 +176,7 @@ namespace Laica
             Publish(); var found=new List<ModelInfo>(); var problems=new List<string>(); string cli=ModelCatalog.FindCodex();
             if(cli!=null) try { found.AddRange(await ModelCatalog.LoadAsync(cli,workingDirectory,CancellationToken.None).ConfigureAwait(false)); } catch(Exception ex) { problems.Add("Codex: "+ex.Message); }
             else problems.Add("Codex CLI unavailable.");
+            try { found.AddRange(Harness.CliModels()); } catch(Exception ex) { problems.Add("Agents: "+ex.Message); }
             List<ServiceConnection> copy; lock(gate) copy=services.Select(CloneService).ToList();
             foreach(var c in copy) try { using(var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(20))) found.AddRange(await ApiServices.LoadModelsAsync(c,timeout.Token).ConfigureAwait(false)); } catch(Exception ex) { problems.Add(c.Name+": "+ex.Message); }
             lock(gate) { models=found; refreshing=false; status=problems.Count==0?"Model choices refreshed.":"Some services unavailable. "+String.Join(" / ",problems); }
@@ -153,6 +233,7 @@ namespace Laica
             EnsureNotBusy();
             AgentPlan next=p.ContainsKey("Plan")?ReadPlan(p["Plan"]):ProfileLibrary.Copy(plan);ValidateStructure(next);
             if(next.Nodes.Any(n=>GraphValidator.Connection(n.ConnectionId)!="codex"))throw new ArgumentException("Activated teams must use Codex for every agent.");
+            var root=next.Nodes.Single(n=>n.Id=="root");if(root.Model!="gpt-6.1-sol"||root.Effort!="high")throw new ArgumentException("The supervisor must be Codex gpt-6.1-sol / high.");
             GraphValidator.Validate(next,models,false);next.Goal="";string snapshot=json.Serialize(next);EnsurePlanSize(snapshot);AtomicSave(Path.Combine(appDir,"active-team.json"),snapshot);lock(gate){status="Team activated.";}return State();
         }
         object SaveService(Dictionary<string,object> p)
@@ -175,17 +256,34 @@ namespace Laica
         object ApplyService(Dictionary<string,object> p)
         {
             EnsureNotBusy();string id=Text(p,"Id"), modelId=Text(p,"ModelId");var model=models.FirstOrDefault(m=>m.Id==modelId&&m.ConnectionId==id);if(model==null)throw new ArgumentException("Model is unavailable for this service.");var next=ProfileLibrary.Copy(plan);
-            if(model.Efforts==null||model.Efforts.Count==0)throw new ArgumentException("The selected model does not report a supported reasoning effort.");
-            foreach(var n in next.Nodes){n.ConnectionId=id;n.Model=model.Id;if(!model.Efforts.Contains(n.Effort))n.Effort=model.Efforts.Contains("default")?"default":model.Efforts.Contains("medium")?"medium":model.Efforts[0];}
+            ModelInfo codexRoot=null;
+            if(id=="codex") {codexRoot=models.FirstOrDefault(m=>m.ConnectionId=="codex"&&m.Id=="gpt-6.1-sol");if(codexRoot==null||codexRoot.Efforts==null||!codexRoot.Efforts.Contains("high"))throw new ArgumentException("Codex gpt-6.1-sol / high is unavailable.");}
+            foreach(var n in next.Nodes){if(n.Id=="root"&&id=="codex"){n.ConnectionId="codex";n.Model="gpt-6.1-sol";n.Effort="high";continue;}n.ConnectionId=id;n.Model=model.Id;n.Effort=model.Efforts.Contains(id=="codex"?"medium":"default")?(id=="codex"?"medium":"default"):model.Efforts.FirstOrDefault();if(String.IsNullOrEmpty(n.Effort))throw new ArgumentException("The selected model does not support an effort.");}
             ValidateStructure(next);GraphValidator.Validate(next,models,false);string contents=json.Serialize(next);EnsurePlanSize(contents);AtomicSave(LastPlanPath,contents);lock(gate){plan=next;status="Model applied to the team.";}return State();
         }
         object StartRun()
         {
             AgentPlan snapshot;List<ModelInfo> catalog;List<ServiceConnection> connections;string cwd;bool solo;CancellationToken token;
             lock(gate){if(busy)throw new InvalidOperationException("A run is already active.");if(refreshing)throw new InvalidOperationException("Wait for the model catalog to finish refreshing.");ValidateStructure(plan);var root=plan.Nodes.Single(n=>n.Id=="root");if(GraphValidator.Connection(root.ConnectionId)=="codex")throw new InvalidOperationException("LAICA harness runs require a local service supervisor. Activate Codex teams for native Codex handoff.");GraphValidator.Validate(plan,models,mode=="solo");if(plan.Goal==null||plan.Goal.Trim().Length==0)throw new ArgumentException("Enter a goal before starting the run.");busy=true;answer="";runEvents.Clear();nodeStates.Clear();runToken=new CancellationTokenSource();token=runToken.Token;snapshot=ProfileLibrary.Copy(plan);catalog=models.ToList();connections=services.Select(CloneService).ToList();cwd=workingDirectory;solo=mode=="solo";status="Run started.";AddRunEvent("run","started","Run started.");}
-            var runner=new GraphRunner();runner.NodeStatus+=(id,state,detail)=>{lock(gate){nodeStates[id]=state;AddRunStateEvent(id,state,detail,snapshot);}Publish();};runner.Message+=message=>{lock(gate)AddRunMessage(message,snapshot);Publish();};
+            var runner=new GraphRunner();runner.CliRunner=(agent,model,effort,prompt,folder,ct)=>Harness.RunOnceAsync(agent,model,effort,prompt,folder,ct);runner.NodeStatus+=(id,state,detail)=>{lock(gate){nodeStates[id]=state;AddRunStateEvent(id,state,detail,snapshot);}Publish();};runner.Message+=message=>{lock(gate)AddRunMessage(message,snapshot);Publish();};
             Task.Run(async()=>{try{string cli=ModelCatalog.FindCodex();string output=await runner.RunAsync(snapshot,catalog,cli,cwd,solo,connections,token).ConfigureAwait(false);lock(gate){answer=output;status="Run completed.";AddRunEvent("run","completed","Run completed successfully.");}}catch(OperationCanceledException){lock(gate){status=disposed?"Run cancelled because the workspace closed.":"Run stopped.";AddRunEvent("run","cancelled",status);}}catch(Exception ex){lock(gate){status="Run failed: "+ex.Message;AddRunEvent("run","error",status);}}finally{lock(gate){busy=false;if(runToken!=null){runToken.Dispose();runToken=null;}}Publish();}});
             Publish();return State();
+        }
+        /// <summary>Runs a saved Workflow-designer team for a chat message and returns its reviewed answer.</summary>
+        Task<string> RunWorkflowAsync(string profileId, string goal, string folder, CancellationToken token, Action<string> progress)
+        {
+            AgentPlan runPlan; List<ModelInfo> catalog; List<ServiceConnection> connections; bool solo;
+            lock(gate)
+            {
+                var profile=profiles.Profiles.FirstOrDefault(x=>x.Id==profileId); if(profile==null) throw new ArgumentException("That workflow team no longer exists.");
+                runPlan=ProfileLibrary.Copy(profile.Plan); runPlan.Goal=goal; solo=profile.Mode=="solo"; catalog=models.ToList(); connections=services.Select(CloneService).ToList();
+            }
+            ValidateStructure(runPlan); GraphValidator.Validate(runPlan,catalog,solo);
+            var runner=new GraphRunner(); runner.CliRunner=(agent,model,effort,prompt,dir,ct)=>Harness.RunOnceAsync(agent,model,effort,prompt,dir,ct);
+            Func<string,string> Label=id=>{var n=runPlan.Nodes.FirstOrDefault(x=>x.Id==id);return n!=null?n.Name:id=="$input"?"Input":id=="$review"?"Review":id=="$output"?"Output":id;};
+            runner.NodeStatus+=(id,state,detail)=>progress(Label(id)+" — "+state+(String.IsNullOrEmpty(detail)?"":" ("+detail+")"));
+            runner.Message+=m=>progress(m);
+            return runner.RunAsync(runPlan,catalog,ModelCatalog.FindCodex(),folder,solo,connections,token);
         }
         object StopRun(){lock(gate){if(runToken!=null){status="Stopping this LAICA run…";AddRunEvent("run","stopping","Stop requested; cancelling LAICA jobs.");runToken.Cancel();}}Publish();return State();}
         object ImportPlan(Dictionary<string,object> p){EnsureNotBusy();var next=ReadPlan(Value(p,"Plan"));ValidateStructure(next);string contents=json.Serialize(next);EnsurePlanSize(contents);AtomicSave(LastPlanPath,contents);lock(gate){plan=next;status="Plan imported.";}return State();}
@@ -212,7 +310,7 @@ namespace Laica
         void EnsureNotBusy(){lock(gate)if(busy||refreshing)throw new InvalidOperationException("Finish the current LAICA operation before changing workspace state.");}
         void EnsurePlanSize(string data){if(Encoding.UTF8.GetByteCount(data)>4*1024*1024)throw new InvalidOperationException("Plan exceeds 4 MB.");}
         string ReadFileOrNull(string path){return File.Exists(path)?File.ReadAllText(path):null;}
-        void PruneModels(){models.RemoveAll(m=>m.ConnectionId!="codex"&&!services.Any(s=>s.Id==m.ConnectionId));}
+        void PruneModels(){models.RemoveAll(m=>m.ConnectionId!="codex"&&!(m.ConnectionId??"").StartsWith("cli:")&&!services.Any(s=>s.Id==m.ConnectionId));}
         void SaveServiceList(List<ServiceConnection> next){string contents=json.Serialize(next);if(Encoding.UTF8.GetByteCount(contents)>1024*1024)throw new InvalidOperationException("Service store exceeds 1 MB.");AtomicSave(Path.Combine(appDir,"services.json"),contents);}
         string LastPlanPath{get{return Path.Combine(appDir,"plans","last-plan-v05.json");}}
         bool IsDirty(){var selected=profiles.Selected;return selected==null||json.Serialize(plan)!=json.Serialize(selected.Plan)||mode!=selected.Mode||snapToGrid!=selected.SnapToGrid;}
@@ -269,6 +367,6 @@ namespace Laica
         static ServiceConnection CloneService(ServiceConnection c){return new ServiceConnection{Id=c.Id,Name=c.Name,BaseUrl=c.BaseUrl,Provider=c.Provider,KeyEnvironmentVariable=c.KeyEnvironmentVariable,ProtectedKey=c.ProtectedKey};}
         static ProfileLibrary CloneProfiles(ProfileLibrary p){var clone=new JavaScriptSerializer{MaxJsonLength=4*1024*1024}.Deserialize<ProfileLibrary>(p.Serialize());return clone;}
         void AtomicSave(string path,string contents){string full=Path.GetFullPath(path);if(invalidStores.Contains(full))throw new InvalidOperationException("This settings file is invalid and was preserved; repair or remove it before saving.");Directory.CreateDirectory(Path.GetDirectoryName(full));string tmp=full+"."+Guid.NewGuid().ToString("N")+".tmp";try{File.WriteAllText(tmp,contents,new UTF8Encoding(false));if(File.Exists(full))File.Replace(tmp,full,null);else File.Move(tmp,full);}finally{if(File.Exists(tmp))File.Delete(tmp);}}
-        public void Dispose(){lock(gate){if(disposed)return;disposed=true;if(runToken!=null)runToken.Cancel();}observer.Dispose();}
+        public void Dispose(){lock(gate){if(disposed)return;disposed=true;if(runToken!=null)runToken.Cancel();}observer.Dispose();Channels.Dispose();Harness.Dispose();}
     }
 }

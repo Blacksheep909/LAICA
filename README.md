@@ -1,149 +1,95 @@
-<img src="docs/images/laica-dog.png" alt="LAICA dog icon" width="104">
+<p align="center">
+  <img src="docs/images/laica-dog.png" alt="LAICA" width="112">
+</p>
 
-# LAICA
+<h1 align="center">LAICA</h1>
 
-**Light Weight AI Container for Agents**
+<p align="center"><b>One desktop app for all your coding agents.</b><br>
+Run Codex, Claude Code, Gemini and API models side by side, build teams that mix them, and see what each team really costs.</p>
 
-A Windows workspace for arranging agent teams and following their work. Built by **Charlie Frater**.
+<p align="center">
+  <a href="https://github.com/Blacksheep909/LAICA/releases/latest"><b>Download for Windows</b></a> ·
+  <a href="docs/getting-started.md">Getting started</a> ·
+  <a href="docs/features.md">Features</a> ·
+  <a href="CHANGELOG.md">Changelog</a>
+</p>
 
-LAICA brings the team graph, model choices, assignments and recorded activity into one place. The aim is simple: make it clear who is working on a task, what they have done, and what needs attention. The interface uses smoked glass, restrained purple accents and a space backdrop, while keeping commands and results readable.
+<p align="center"><img src="docs/images/home.jpg" alt="The LAICA home screen with the sidebar of teams and projects" width="900"></p>
 
-**Status: 0.7.0 source preview.** The source is public and can be built locally. There is no trusted signed Windows release available yet. Unsigned local builds may be blocked by Smart App Control. Keep Windows security enabled; signing is still part of the release work.
+LAICA is a Windows desktop app built around one idea: the agent CLIs you already use (Codex, Claude Code, Gemini CLI and others) are better together than apart. It gives them one calm place to live, keeps your chats and projects in sync with the tools themselves, and lets you design **teams** of agents from different vendors and then measure which designs actually work.
 
-**[Start here: step-by-step setup guide](docs/getting-started.md)** — get the source, build the app, select a team, connect Codex and read recorded work.
+It runs your own installed tools with your own logins. Nothing is proxied through a LAICA server, because there isn't one.
+
+## What you can do
+
+- **Chat with any agent.** Codex, Claude Code, Gemini, anything you add as a custom CLI, or an API model through your own key. Your existing Codex and Claude Code history shows up automatically, with the same project folders and thread titles.
+- **Build mixed-vendor teams.** A leader plans, teammates work in parallel (each in its own chat and optionally its own git worktree), the leader reviews. Every member can be a different vendor and model.
+- **Never get stuck on a usage limit.** When a vendor runs out, LAICA can hand the chat or the whole team's work to a backup team or another agent, with everything done so far carried over.
+- **Know what it costs.** Analytics shows tokens, an API-equivalent cost estimate, and a **Teams** tab that compares your team designs: success rate, time per run, cost per run, how parallel the work really was, leader overhead and which teammate costs what.
+- **See what happened.** Activity is written in plain sentences, grouped like "Ran 2 commands, edited 3 files", with per-file diffs and a turn summary.
+- **Stay in control.** Pause and resume running work, queue messages, undo with Ctrl+Z, drag in files, paste images, dictate by voice, export chats as Markdown.
+- **Extend it.** A plugin library with one-click install of MCP servers, skills and agent CLIs, suggested first for the programs found on your PC.
+- **Give credit.** Commits made by agents through LAICA carry a `Co-authored-by: LAICA` trailer next to the agent's own credit. On by default, off per project if you like.
 
 ## Screenshots
 
-Captured from the 0.7.0 frontend development preview. Activity uses example records; no live agents or private chats are shown.
+<table>
+<tr>
+<td width="50%"><img src="docs/images/chat.jpg" alt="A chat with per-file changed cards and a turn summary"><br><sub><b>Chat</b> with files-changed cards and a turn summary</sub></td>
+<td width="50%"><img src="docs/images/teams.jpg" alt="A team run with tasks, a switched agent and the final result"><br><sub><b>Teams</b>: Claude, Codex and Gemini on one team, with a seamless agent swap</sub></td>
+</tr>
+<tr>
+<td><img src="docs/images/analytics-teams.jpg" alt="Team analytics"><br><sub><b>Team analytics</b>: which design is most reliable, fastest and cheapest</sub></td>
+<td><img src="docs/images/analytics-charts.jpg" alt="Analytics charts"><br><sub><b>Analytics</b>: tokens, estimated cost and activity over time</sub></td>
+</tr>
+<tr>
+<td><img src="docs/images/plugins.jpg" alt="The plugin library"><br><sub><b>Plugin library</b> with suggestions for what is installed on your PC</sub></td>
+<td><img src="docs/images/settings-agents.jpg" alt="Settings: workflow handoff and co-author"><br><sub><b>Settings</b>: workflow handoff and LAICA as a co-author</sub></td>
+</tr>
+</table>
 
-**Teams — arrange the crew and inspect each agent's assignment.**
+*All screenshots use invented demo data.*
 
-![LAICA Teams graph](docs/images/teams.jpg)
+## Install
 
-**Activity — see recent work across chats and inspect the team.**
+1. Download **`LAICA-Setup-<version>.exe`** from the [latest release](https://github.com/Blacksheep909/LAICA/releases/latest) and run it. It installs for your user only (no administrator rights).
+2. Windows may show a SmartScreen warning because **the builds are not code-signed**. Choose *More info* then *Run anyway* if you trust this repository. You can verify the download against `SHA256SUMS-<version>.txt` on the release page, or build it yourself.
+3. Install at least one agent CLI, for example [Codex](https://github.com/openai/codex) or [Claude Code](https://docs.claude.com/en/docs/claude-code), and sign in to it as you normally would. LAICA finds it automatically.
 
-![LAICA Activity work overview](docs/images/activity.jpg)
+Prefer a zip? `LAICA-<version>-win-x64.zip` is the same program without the installer: unzip anywhere and run `LAICA.exe`.
 
-<details>
-<summary>Recorded commands and model connections</summary>
+**Requirements:** Windows 10 or 11 (64-bit) with the Microsoft Edge WebView2 Runtime (already present on Windows 11 and current Windows 10). Git is needed for worktrees, diffs and commits.
 
-**Recorded logs — expand a step to see its command, purpose and result.**
+A step-by-step walkthrough is in [docs/getting-started.md](docs/getting-started.md).
 
-![LAICA recorded logs](docs/images/recorded-logs.jpg)
+## Build from source
 
-**Services — choose Codex or an OpenAI-compatible model connection.**
-
-![LAICA Services](docs/images/services.jpg)
-
-</details>
-
-## What it does
-
-- **Teams:** edit a node graph with one supervisor, worker assignments, reporting lines, model and reasoning choices. Save and switch team profiles.
-- **Graph editing:** move nodes, pan and zoom, frame a selection, search, duplicate, undo and redo. Pull a wire from either socket and release on empty space to disconnect it.
-- **Codex handoff:** select a team in LAICA, then ask Codex to use it. A small, read-only MCP bridge supplies the selected configuration. The task and final answer stay in your Codex chat.
-- **Local services:** connect an OpenAI-compatible API, including loopback servers exposed by Ollama or LM Studio and remote HTTPS services. Run a text-based team and read its reviewed answer in LAICA.
-- **Activity:** browse chat teams, see the supervisor and three recent workers, and inspect commands, files, browser/computer actions and handoffs when those actions are recorded.
-- **Recorded logs:** filter by agent or type of work, search commands and results, and expand a step for the recorded command, purpose, output and outcome.
-
-The Activity overview displays up to four recent agent cards. Earlier agent threads remain available in logs. This presentation limit does not delete history or prevent a Codex host from creating more threads over a chat's lifetime. Reuse existing workers where possible; the selected team asks for at most three concurrent workers.
-
-LAICA groups agents in a workspace. Execution, file access and sandbox permissions come from the host running the agents. It does not grant additional computer access.
-
-## Build and run
-
-The desktop host currently supports **Windows x64**. You need:
-
-- Node.js **22.13 or newer**, and pnpm **11.19.0**.
-- The Windows .NET Framework C# compiler at `%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe`.
-- Microsoft's [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
-- An installed, signed-in Codex CLI/app for Codex integration, or a running local API service for local teams.
-
-From PowerShell:
+You need Windows, the .NET Framework 4 compiler that ships with Windows (`csc.exe`), Node.js 22 or newer and pnpm 11.
 
 ```powershell
-git clone https://github.com/Blacksheep909/LAICA.git
-cd LAICA
-npm install --global pnpm@11.19.0
-./Build.ps1 -Development
-./Test.ps1
-./build/LAICA.exe
+./Build.ps1 -Development    # compiles the app and the checks into build/
+./Test.ps1                  # runs every check
+./tools/Package.ps1         # makes dist/LAICA-<version>-win-x64.zip and LAICA-Setup-<version>.exe
 ```
 
-The build uses the pinned frontend lockfile and the three vendored WebView2 SDK files. SDK hashes are checked before compilation. Generated files go under `build/`, `frontend/dist/` and `checks/bin/`; they are ignored by Git.
+More in [docs/releases.md](docs/releases.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
-If Node or pnpm is outside PATH, pass `-NodePath` and `-PnpmPath` to `Build.ps1`. `PnpmPath` can point to `pnpm.cmd` or the package's JavaScript entry point.
+## Privacy
 
-To install an explicitly unsigned local build with Desktop and Start menu shortcuts:
+LAICA keeps everything on your computer. It has no accounts, no telemetry and no server. It reads the local history files of Codex and Claude Code to show your chats and usage, and never reads their login tokens. See [docs/privacy.md](docs/privacy.md) for exactly what is read, what is stored and what leaves your machine.
 
-```powershell
-./Install.ps1 -Development
-```
+## Documentation
 
-The per-user program location is `%LOCALAPPDATA%\Programs\LAICA`. The executable has the stable name **LAICA.exe**; the version is recorded in its file metadata and in the app. Installation never edits Codex configuration or restarts Codex. Workspace data stays separate from program files.
+| | |
+| --- | --- |
+| [Getting started](docs/getting-started.md) | Install, connect your agents, first chat, first team |
+| [Features](docs/features.md) | Everything LAICA does, by area |
+| [Architecture](docs/architecture.md) | How the app is put together |
+| [Privacy](docs/privacy.md) | What is read, stored and sent |
+| [Releases](docs/releases.md) | Building, packaging and publishing |
+| [Contributing](CONTRIBUTING.md) | How to help |
+| [Third-party notices](THIRD_PARTY_NOTICES.md) | Licences of the software LAICA includes |
 
-The installer checks the payload against its hash manifest. Updates make a verified recovery backup and remove obsolete files recorded by the previous installation. Files outside that managed inventory are preserved. Close the installed app and its bridge before updating.
+## License
 
-## Connect Codex
-
-1. Build or install LAICA, then open it.
-2. Under **Services**, refresh models. Choose models and reasoning settings actually available to your account. The starter graph is a draft, and its example model IDs may need changing.
-3. In **Teams**, edit the supervisor and workers, save a profile if wanted, and choose **Use this team**.
-4. Register `LAICA.Bridge.exe` as a stdio MCP server. For the default installation:
-
-```powershell
-codex mcp add laica -- "$env:LOCALAPPDATA\Programs\LAICA\LAICA.Bridge.exe"
-codex mcp list
-```
-
-5. Reopen Codex as needed to load the MCP server, start a chat, and ask: **“Use my LAICA team for this task: …”**
-
-The supervisor model and reasoning setting must match the active Codex chat. Worker models and delegation tools must also be available to that host. LAICA reports the requested team; the host remains responsible for applying it. Configure Codex's own delegation setting in Codex, then restart it manually and use a fresh chat when required.
-
-The bridge exposes only `get_team` and `get_activity`. See the [official MCP configuration documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli) for stdio server options. Custom `LAICA_HOME` and `CODEX_HOME` values must be consistent in the GUI and bridge processes.
-
-## Run a local team
-
-1. Start your model application's OpenAI-compatible API server.
-2. In **Services**, add its loopback base URL and refresh the model list.
-3. Apply a discovered model to the team, then refine each agent's model and job in the inspector.
-4. Enter a task in the Input stage and choose **Run team**.
-5. Follow the result under **Activity → Local runs**. Stop cancels the current run.
-
-Runs started in LAICA send text context to the chosen API. HTTP is allowed only for loopback addresses; remote services require HTTPS. They do not give those models browser or computer-use tools. The adapter uses compatible model-list and chat-completions endpoints; compatibility with every server/version has not been established.
-
-## Reading activity
-
-The work overview and recorded logs use the same retained evidence. A command is shown when its text is available; a purpose is shown only when explicitly recorded. Missing exit status, output or command text is labelled rather than guessed. New activity is polled, so the view can arrive a little after the action.
-
-“No recent update” means the recorded log has been quiet for over a minute. It does not prove an agent has stopped. The observer retains a bounded history, and some tools or record formats may not expose enough detail for a useful description.
-
-Browser development previews contain clearly labelled example activity. Those examples are excluded from the compiled desktop UI.
-
-## Data and privacy
-
-Profiles, selected teams and local service settings are stored in `%LOCALAPPDATA%\LAICA\workspace`. Set `LAICA_HOME` to override that directory. `--data-dir` is available for explicit test workspaces; use the same override for the GUI and bridge.
-
-Activity reads local Codex records under `CODEX_HOME`, defaulting to `%USERPROFILE%\.codex`. LAICA has no analytics endpoint or background upload of those records. Obvious credential patterns are redacted in retained event details, but logs can still contain private commands, file paths and conversation content. Review anything you export or post in an issue.
-
-Local service keys are protected with Windows DPAPI for the current user. A configured API service receives the task context needed for a run. Choose a loopback service for local processing, and check its own forwarding behavior. See [Privacy and data flow](docs/privacy.md) for the exact boundaries.
-
-## Development and contributions
-
-```powershell
-cd frontend
-pnpm install --frozen-lockfile --ignore-scripts
-pnpm dev
-```
-
-The browser preview is for frontend work. The desktop app is required to test saved profiles, the C# backend and real activity records. See [Architecture](docs/architecture.md), [Contributing](CONTRIBUTING.md) and [Release signing](docs/releases.md).
-
-Tests cover backend persistence, local API contracts, cancellation/recovery, graph connections and cycles, observer event parsing, privacy filters, MCP bridge behavior and signing rejection. Local API tests use controlled loopback fixtures; they are not a test of every live model service.
-
-Useful next work includes wider native interaction testing, more record-format coverage, account/model compatibility, an accessible installer, and a trusted signed Windows release. Please report a concrete trigger, expected result and actual result, with sensitive details removed.
-
-## License and credits
-
-LAICA is released under the [MIT License](LICENSE), copyright **Charlie Frater**. The interface uses [Open Glass UI](https://github.com/moekoelueker/open-glass-ui). Other dependencies and their notices are listed in [Third-party notices](THIRD_PARTY_NOTICES.md).
-
-LAICA is an independent project. OpenAI, Microsoft and the local model providers do not maintain or endorse it.
+LAICA's own code, documentation and images are released into the public domain under [The Unlicense](LICENSE). Do whatever you like with them. Third-party components keep their own licences, listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

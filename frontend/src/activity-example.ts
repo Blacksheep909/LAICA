@@ -21,7 +21,7 @@ agents.forEach(a=>a.RecentEvents=events.filter(e=>e.AgentId===a.Id));
 export const exampleActivity:Activity={SessionId:'example-chat',Project:'LAICA',Task:'Make agent work clear: preserve commands, outcomes and a readable team overview.',State:'running',Notice:'Example data',UpdatedUtc:at(3),Agents:agents,Events:events};
 export const exampleTeams:TeamSummary[]=[
  {Id:'example-chat',Title:'Activity and graph improvements',Project:'LAICA',Task:'Show recorded agent work and command outcomes.',State:'running',Action:'Reviewing event fixtures',UpdatedUtc:at(3),ObservedUtc:at(3),RecentWorkers:2},
- {Id:'example-export',Title:'Export validation',Project:'Sample workspace',Task:'Check exported team settings survive reimport.',State:'complete',Action:'Export checks finished',UpdatedUtc:at(640),ObservedUtc:at(640),RecentWorkers:0},
+ {Id:'example-robot',Title:'Walking mode transitions',Project:'robot-arm',Task:'Check stand → careful → trot transitions.',State:'complete',Action:'Transition checks finished',UpdatedUtc:at(640),ObservedUtc:at(640),RecentWorkers:0},
  {Id:'example-service',Title:'Local service connection',Project:'LAICA',Task:'Inspect the model discovery response.',State:'idle',Action:'Waiting for the next task',UpdatedUtc:at(990),ObservedUtc:at(990),RecentWorkers:0},
 ];
 export const exampleActivities:Record<string,Activity>={

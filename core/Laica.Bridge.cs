@@ -7,8 +7,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 
-[assembly:System.Reflection.AssemblyFileVersion("0.7.0.0")]
-[assembly:System.Reflection.AssemblyProduct("LAICA" )]
 namespace Laica
 {
     // A small, read-only MCP stdio bridge. It never starts a model or modifies Codex settings.
@@ -24,7 +22,7 @@ namespace Laica
         {
             try
             {
-                appDir = DataDirectory(args);
+                appDir = AppDomain.CurrentDomain.BaseDirectory;
                 Console.InputEncoding = new UTF8Encoding(false, true);
                 Console.OutputEncoding = new UTF8Encoding(false);
                 string line; bool oversized;
@@ -70,7 +68,7 @@ namespace Laica
                 WriteResult(id, new Dictionary<string, object> {
                     { "protocolVersion", version },
                     { "capabilities", new Dictionary<string, object> { { "tools", new Dictionary<string, object>() } } },
-                    { "serverInfo", new Dictionary<string, object> { { "name", "LAICA" }, { "version", "0.7.0" } } },
+                    { "serverInfo", new Dictionary<string, object> { { "name", "LAICA" }, { "version", "0.5" } } },
                     { "instructions", NativeInstructions }
                 }); return;
             }
@@ -79,20 +77,7 @@ namespace Laica
             throw new BridgeException(-32601, "Method not found.");
         }
 
-        const string NativeInstructions = "LAICA selects the team. Codex is the task UI; the current supervisor owns consequential reasoning, planning, and final review. The selected team's root model and effort must match the active Codex chat. If they differ, ask the user to choose the matching model and effort in Codex; never start a duplicate supervisor or change global Codex configuration. Use the user task entered in Codex. Check each selected worker model and effort against actual native tool availability and report unavailable models. Delegate each worker its exact selected model, effort, role, and bounded job. Use a fixed named subagent role only when it matches the selected model and effort; otherwise use a general worker in a fresh or narrow context and specify the selected model and effort explicitly so a fixed role setting cannot override them. In effective multi mode, schedule dependencies and include parent results in dependent worker jobs; use at most three concurrent workers. Workers return results, evidence, uncertainty, and consequential decisions to the supervisor for review, without private chain-of-thought; do not retry automatically at high or allow worker nesting. API-service nodes are unsupported by this native adapter and require an adapter; never substitute a Codex worker. Effective solo mode suppresses all service workers; native Codex solo mode disables native delegation. If either mode is unknown, do not spawn workers until both modes are known. Codex settings are read-only.";
-
-        static string DataDirectory(string[] args)
-        {
-            if (args != null) for (int i = 0; i < args.Length; i++)
-            {
-                if (args[i] == "--data-dir")
-                {
-                    if (i + 1 >= args.Length || String.IsNullOrWhiteSpace(args[i + 1])) throw new ArgumentException("--data-dir requires a directory path.");
-                    return Path.GetFullPath(args[i + 1]);
-                }
-            }
-            return DataPaths.DataDirectory();
-        }
+        const string NativeInstructions = "LAICA selects the team. Codex is the task UI; the current supervisor owns consequential reasoning, planning, and final review. The selected team's root model and effort must match the active Codex chat. If they differ, ask the user to choose the matching model and effort in Codex; never start a duplicate supervisor or change global Codex configuration. Use the user task entered in Codex. Check each selected worker model and effort against actual native tool availability and report unavailable models. Delegate each worker its exact selected model, effort, role, and bounded job. Use a fixed named subagent role only when it matches the selected model and effort (for example gpt-6-luna/medium); otherwise use a general worker in a fresh or narrow context and specify the selected model and effort explicitly so a fixed role setting cannot override them. In effective multi mode, schedule dependencies and include parent results in dependent worker jobs; use at most three concurrent workers. Workers return results, evidence, uncertainty, and consequential decisions to the supervisor for review, without private chain-of-thought; do not retry automatically at high or allow worker nesting. API-service nodes are unsupported by this native adapter and require an adapter; never substitute a Codex worker. Effective solo mode suppresses all service workers; native Codex solo mode disables native delegation. If either mode is unknown, do not spawn workers until both modes are known. Codex settings are read-only.";
 
         static object[] ToolDefinitions()
         {

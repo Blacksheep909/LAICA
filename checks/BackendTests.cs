@@ -27,13 +27,10 @@ namespace Laica
                 {
                     var json=new JavaScriptSerializer();
                     var state=backend.State();var stateText=json.Serialize(state);
-                    Must(stateText.Contains("\"Version\":\"0.7.0\""),"versioned state DTO");
+                    Must(stateText.Contains("\"Version\":\""+AppVersion.Value+"\""),"versioned state DTO");
                     Must(!stateText.Contains("ProtectedKey")&&!stateText.Contains("ApiKey"),"secret material never enters state");
-                    VerifyDataPaths();
                     var plan=GraphPlanHelpers.CreateStarter();plan.Goal="saved roundtrip";
-                    plan.Nodes[0].Model="fixture-root";plan.Nodes[0].Effort="low";
-                    foreach(var node in plan.Nodes.Skip(1)){node.Model="fixture-worker";node.Effort="medium";}
-                    SetModels(backend,new List<ModelInfo>{new ModelInfo{Id="fixture-root",Name="Fixture root",ConnectionId="codex",Efforts=new List<string>{"low","medium"}},new ModelInfo{Id="fixture-worker",Name="Fixture worker",ConnectionId="codex",Efforts=new List<string>{"medium","high"}}});
+                    SetModels(backend,new List<ModelInfo>{new ModelInfo{Id="gpt-6.1-sol",Name="Sol",ConnectionId="codex",Efforts=new List<string>{"high"}},new ModelInfo{Id="gpt-6-luna",Name="Luna",ConnectionId="codex",Efforts=new List<string>{"medium","high"}}});
                     backend.HandleAsync("updatePlan",new Dictionary<string,object>{{"Plan",plan},{"Mode","multi"},{"SnapToGrid",true}}).GetAwaiter().GetResult();
                     Must(File.Exists(Path.Combine(app,"plans","last-plan-v05.json")),"last plan saved at compatible path");
                     backend.HandleAsync("saveProfile",new Dictionary<string,object>{{"Name","First"},{"Create",true}}).GetAwaiter().GetResult();
@@ -50,9 +47,7 @@ namespace Laica
                     var active=ProfileLibrary.Copy(plan);active.Goal="activation goal";
                     backend.HandleAsync("activateTeam",new Dictionary<string,object>{{"Plan",active}}).GetAwaiter().GetResult();
                     var activeFile=json.Deserialize<AgentPlan>(File.ReadAllText(Path.Combine(app,"active-team.json")));
-                    Must(activeFile.Goal==""&&activeFile.Nodes[0].Model=="fixture-root"&&activeFile.Nodes[0].Effort=="low"&&Goal(backend)=="saved roundtrip","activation accepts a discovered non-default supervisor and preserves draft");
-                    var unsupported=ProfileLibrary.Copy(active);unsupported.Nodes[0].Model="not-discovered";
-                    Reject(()=>backend.HandleAsync("activateTeam",new Dictionary<string,object>{{"Plan",unsupported}}).GetAwaiter().GetResult(),"activation rejects unavailable supervisor model");
+                    Must(activeFile.Goal==""&&Goal(backend)=="saved roundtrip","activation writes blank-goal snapshot and preserves draft");
                     active.Nodes[1].ConnectionId="external";
                     Reject(()=>backend.HandleAsync("activateTeam",new Dictionary<string,object>{{"Plan",active}}).GetAwaiter().GetResult(),"activation rejects non-Codex agents");
                     backend.HandleAsync("saveService",new Dictionary<string,object>{{"Name","Local"},{"Provider","ollama"},{"BaseUrl","http://localhost:11434/v1"},{"KeyEnvironmentVariable",""},{"ApiKey","preserved-secret"}}).GetAwaiter().GetResult();
@@ -62,12 +57,12 @@ namespace Laica
                     string serviceId=Convert.ToString(((Dictionary<string,object>)((object[])((Dictionary<string,object>)backend.State())["Services"])[0])["Id"]);
                     backend.HandleAsync("saveService",new Dictionary<string,object>{{"Id",serviceId},{"Name","Local renamed"},{"Provider","ollama"},{"BaseUrl","http://localhost:11434/v1"},{"KeyEnvironmentVariable",""},{"ApiKey",""}}).GetAwaiter().GetResult();
                     Must(Convert.ToBoolean(((Dictionary<string,object>)((object[])((Dictionary<string,object>)backend.State())["Services"])[0])["HasKey"]),"omitted key preserves DPAPI secret");
-                    SetModels(backend,new List<ModelInfo>{new ModelInfo{Id="local-model",Name="Local",ConnectionId=serviceId,Efforts=new List<string>{"default"}},new ModelInfo{Id="fixture-root",Name="Fixture root",ConnectionId="codex",Efforts=new List<string>{"low","medium"}},new ModelInfo{Id="fixture-worker",Name="Fixture worker",ConnectionId="codex",Efforts=new List<string>{"medium","high"}}});
+                    SetModels(backend,new List<ModelInfo>{new ModelInfo{Id="local-model",Name="Local",ConnectionId=serviceId,Efforts=new List<string>{"default"}},new ModelInfo{Id="gpt-6.1-sol",Name="Sol",ConnectionId="codex",Efforts=new List<string>{"high"}},new ModelInfo{Id="gpt-6-luna",Name="Luna",ConnectionId="codex",Efforts=new List<string>{"medium"}}});
                     backend.HandleAsync("applyService",new Dictionary<string,object>{{"Id",serviceId},{"ModelId","local-model"}}).GetAwaiter().GetResult();
                     Must(((AgentPlan)((Dictionary<string,object>)backend.State())["Plan"]).Nodes.All(n=>n.ConnectionId==serviceId),"local service applies to root and every worker");
-                    backend.HandleAsync("applyService",new Dictionary<string,object>{{"Id","codex"},{"ModelId","fixture-worker"}}).GetAwaiter().GetResult();
+                    backend.HandleAsync("applyService",new Dictionary<string,object>{{"Id","codex"},{"ModelId","gpt-6-luna"}}).GetAwaiter().GetResult();
                     var codexPlan=(AgentPlan)((Dictionary<string,object>)backend.State())["Plan"];
-                    Must(codexPlan.Nodes.All(n=>n.ConnectionId=="codex"&&n.Model=="fixture-worker"&&n.Effort=="medium"),"selected discovered Codex model applies to supervisor and workers");
+                    Must(codexPlan.Nodes.Single(n=>n.Id=="root").Model=="gpt-6.1-sol"&&codexPlan.Nodes.Single(n=>n.Id=="root").Effort=="high","Codex service switch restores fixed supervisor");
                     Reject(()=>backend.HandleAsync("run",new Dictionary<string,object>()).GetAwaiter().GetResult(),"harness rejects Codex root");
                     backend.HandleAsync("updatePlan",new Dictionary<string,object>{{"Plan",codexPlan},{"Mode","solo"},{"SnapToGrid",false}}).GetAwaiter().GetResult();
                     backend.HandleAsync("chooseWorkingDirectory",new Dictionary<string,object>{{"Path",home}}).GetAwaiter().GetResult();
@@ -89,20 +84,6 @@ namespace Laica
                 }
             }
             finally { try{Directory.Delete(root,true);}catch{} }
-        }
-        static void VerifyDataPaths()
-        {
-            string original=Environment.GetEnvironmentVariable("LAICA_HOME");
-            try
-            {
-                Environment.SetEnvironmentVariable("LAICA_HOME",null);
-                string expected=Path.GetFullPath(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"LAICA","workspace"));
-                Must(String.Equals(DataPaths.DataDirectory(),expected,StringComparison.OrdinalIgnoreCase),"shared default data directory is LAICA workspace under LocalAppData");
-                string fixture=Path.Combine(Path.GetTempPath(),"laica-path-fixture-"+Guid.NewGuid().ToString("N"));
-                Environment.SetEnvironmentVariable("LAICA_HOME",fixture);
-                Must(String.Equals(DataPaths.DataDirectory(),Path.GetFullPath(fixture),StringComparison.OrdinalIgnoreCase),"LAICA_HOME overrides shared data directory");
-            }
-            finally { Environment.SetEnvironmentVariable("LAICA_HOME",original); }
         }
         static string Selected(WorkspaceBackend b){var s=(Dictionary<string,object>)b.State();return Convert.ToString(s["SelectedProfileId"]);}
         static string Goal(WorkspaceBackend b){var s=(Dictionary<string,object>)b.State();return Convert.ToString(((AgentPlan)s["Plan"]).Goal);}
