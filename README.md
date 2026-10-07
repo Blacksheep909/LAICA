@@ -27,6 +27,7 @@ It runs your own installed tools with your own logins. Nothing is proxied throug
 - **Never get stuck on a usage limit.** When a vendor runs out, LAICA can hand the chat or the whole team's work to a backup team or another agent, with everything done so far carried over.
 - **Know what it costs.** Analytics shows tokens, an API-equivalent cost estimate (priced from Anthropic's, OpenAI's and Google's own pricing pages, re-checked every time LAICA starts), and a **Teams** tab that compares your team designs: success rate, time per run, cost per run, how parallel the work really was, leader overhead and which teammate costs what.
 - **See what happened.** Activity is written in plain sentences, grouped like "Ran 2 commands, edited 3 files", with per-file diffs, a turn summary and thumbnails of the screenshots and images the agent saw or made (click for full size).
+- **Watch agents work.** A Screen tab shows what an agent sees when it uses a browser, and optional **LAICA computer use** lets Claude Code and Codex use your screen, mouse and keyboard with a slim lavender outline around the screen. Press Esc to stop them at once.
 - **Stay in control.** Pause and resume running work, queue messages, undo with Ctrl+Z, drag in files, paste images, dictate by voice, export chats as Markdown.
 - **Extend it.** A plugin library with one-click install of MCP servers, skills and agent CLIs, suggested first for the programs found on your PC.
 - **Give credit.** Commits made by agents through LAICA carry a `Co-authored-by: LAICA` trailer next to the agent's own credit. On by default, off per project if you like.
@@ -48,7 +49,7 @@ It runs your own installed tools with your own logins. Nothing is proxied throug
 </tr>
 <tr>
 <td><img src="docs/images/plugins.jpg" alt="The plugin library"><br><sub><b>Plugin library</b> with suggestions for what is installed on your PC</sub></td>
-<td><img src="docs/images/analytics-prices.jpg" alt="Verified prices"><br><sub><b>Verified prices</b>, read from each vendor's own pricing page</sub></td>
+<td><img src="docs/images/screen-tab.jpg" alt="The Screen tab"><br><sub><b>Screen tab</b>: what the agent sees, with the lavender live frame</sub></td>
 </tr>
 </table>
 

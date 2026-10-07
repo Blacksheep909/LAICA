@@ -39,7 +39,7 @@ namespace Laica
         /// <summary>Starts the background checks. Called by the desktop app only (never by tests).</summary>
         public void StartUpdateChecks()
         {
-            if (updTimer != null) return;
+            if (updTimer != null) return; StartComputerWatch();
             updTimer = new Timer(_ => { try { if (Convert.ToBoolean(UpdateState()["Auto"])) { CheckUpdates(false); } } catch (Exception) { } }, null, 25000, 6 * 3600 * 1000);
             new Thread(() => { try { Thread.Sleep(4000); if (Convert.ToBoolean(UpdateState()["Auto"])) VerifyPrices(); } catch (Exception) { } }) { IsBackground = true, Name = "price-check" }.Start();
         }

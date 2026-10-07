@@ -879,6 +879,44 @@ public static class HarnessTests
                     var again = (Dictionary<string, object>)m.PricesGet(); Check(((object[])again["Official"]).Length >= 4 && (string)again["VerifiedUtc"] != "", "prices: the last verified table is remembered across restarts");
                 }
             }            {
+                using (var m = new HarnessManager(Path.Combine(root, "data-computer")))
+                {
+                    var g0 = (Dictionary<string, object>)m.ComputerGet(); Check(!(bool)g0["Enabled"] && !(bool)g0["Stopped"], "computer use: it is off until the user switches it on");
+                    var g1 = (Dictionary<string, object>)m.ComputerSet(new Dictionary<string, object> { { "Enabled", true }, { "Install", false } }); Check((bool)g1["Enabled"] && !(bool)g1["Stopped"], "computer use: switching it on works");
+                    string gate = Path.Combine(root, "data-computer", "harness", "computer-use.json"); string txt = File.ReadAllText(gate); File.WriteAllText(gate, txt.Replace("\"StoppedEpoch\":0", "").TrimEnd('}') + ",\"StoppedEpoch\":1}");
+                    Check((bool)((Dictionary<string, object>)m.ComputerGet())["Stopped"], "computer use: an Esc press recorded by the server shows as stopped");
+                    var g2 = (Dictionary<string, object>)m.ComputerSet(new Dictionary<string, object> { { "Enabled", true }, { "Install", false } }); Check(!(bool)g2["Stopped"], "computer use: switching it on again clears the stop");
+                    var g3 = (Dictionary<string, object>)m.ComputerSet(new Dictionary<string, object> { { "Enabled", false }, { "Install", false } }); Check(!(bool)g3["Enabled"], "computer use: switching it off works");
+                }
+            }            {
+                string cexe = Path.Combine(Directory.GetCurrentDirectory(), "build", "LAICA.Computer.exe");
+                if (!File.Exists(cexe)) Console.WriteLine("SKIP computer use: LAICA.Computer.exe has not been built");
+                else
+                {
+                    string cdir = Path.Combine(root, "computer-data"); Directory.CreateDirectory(cdir);
+                    Func<string[], string[]> rpc = lines =>
+                    {
+                        var psi = new System.Diagnostics.ProcessStartInfo { FileName = cexe, UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true };
+                        psi.EnvironmentVariables["LAICA_COMPUTER_DATA"] = cdir; psi.EnvironmentVariables["LAICA_COMPUTER_NOUI"] = "1";
+                        using (var p = System.Diagnostics.Process.Start(psi)) { foreach (string l in lines) p.StandardInput.WriteLine(l); p.StandardInput.Close(); string o = p.StandardOutput.ReadToEnd(); p.WaitForExit(15000); return o.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries); }
+                    };
+                    string init = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{},\"clientInfo\":{\"name\":\"t\",\"version\":\"1\"}}}", notified = "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}", list = "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}";
+                    Func<string, string, string> call = (id, body) => "{\"jsonrpc\":\"2.0\",\"id\":" + id + ",\"method\":\"tools/call\",\"params\":" + body + "}";
+                    var first = rpc(new[] { init, notified, list, call("3", "{\"name\":\"screenshot\",\"arguments\":{}}"), "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"nope\"}" });
+                    Check(first.Length == 4 && first[0].Contains("laica-computer") && first[0].Contains("\"protocolVersion\":\"2024-11-05\""), "computer use: the server introduces itself and notifications get no reply");
+                    Check(new[] { "screenshot", "click", "type", "key", "scroll", "drag" }.All(n => first[1].Contains("\"name\":\"" + n + "\"")), "computer use: the tools an agent needs are listed");
+                    Check(first[2].Contains("\"isError\":true") && first[2].Contains("switched off"), "computer use: every action is refused until the user switches it on in LAICA");
+                    Check(first[3].Contains("-32601"), "computer use: unknown methods are answered with an error");
+                    File.WriteAllText(Path.Combine(cdir, "computer-use.json"), "{\"Enabled\":true,\"Epoch\":1,\"StoppedEpoch\":0}");
+                    var on = rpc(new[] { init, call("2", "{\"name\":\"screen_info\",\"arguments\":{}}"), call("3", "{\"name\":\"key\",\"arguments\":{\"keys\":\"escape\"}}"), call("4", "{\"name\":\"key\",\"arguments\":{\"keys\":\"alt+f4\"}}"), call("5", "{\"name\":\"type\",\"arguments\":{\"text\":\"" + new string('x', 4100) + "\"}}") });
+                    Check(on[1].Contains("\"isError\":false") && on[1].Contains("Screenshot space"), "computer use: once switched on the screen can be described");
+                    Check(on[2].Contains("reserved") && on[3].Contains("reserved"), "computer use: Esc, the Windows key and Alt+F4 are reserved for the user");
+                    Check(on[4].Contains("too much text"), "computer use: huge typing requests are refused");
+                    File.WriteAllText(Path.Combine(cdir, "computer-use.json"), "{\"Enabled\":true,\"Epoch\":1,\"StoppedEpoch\":1}");
+                    var stopped = rpc(new[] { init, call("2", "{\"name\":\"click\",\"arguments\":{\"x\":5,\"y\":5}}") });
+                    Check(stopped[1].Contains("pressed Esc"), "computer use: after Esc the agent is blocked until computer use is switched on again");
+                }
+            }            {
                 var roots = HarnessManager.ClaudeRoamingRoots();
                 Check(roots.Length >= 1 && roots[0].EndsWith("Claude"), "claude: the normal AppData folder is searched first");
                 string pk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Packages");

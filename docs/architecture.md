@@ -53,6 +53,10 @@ Pausing suspends the process tree (`NtSuspendProcess`); stopping kills it.
 - `PlanUsage.cs` reads Codex's `rate_limits` records (5-hour and weekly percentages) and Claude's token totals from their local logs. It does not call any vendor API and reads no credentials.
 - `Analytics.cs` scans `~/.codex/sessions/**/rollout-*.jsonl` and `~/.claude/projects/*/*.jsonl` in the background, summarises each file (per day, per model, per hour, tools), caches the summary in `harness\analytics.json` and only re-reads files whose size or timestamp changed. Costs are computed from the per-day, per-model token split and an editable price table (`prices.json`).
 
+## Computer use
+
+`core/Laica.Computer.cs` builds `LAICA.Computer.exe`, a stdio MCP server (JSON-RPC, one message per line) with tools for screenshots, mouse and keyboard. It reads `harness\computer-use.json` before every call: `Enabled` (set by the Settings switch), `Epoch` (raised each time the user switches it on) and `StoppedEpoch` (set to `Epoch` when the user presses Esc, which blocks the agent until the next switch-on). While it acts it shows a click-through, always-on-top layered window with a lavender outline (excluded from screen capture) and listens for a real Esc key press with a low-level keyboard hook (presses it injected itself are ignored). The desktop app watches the file and stops any busy chat that was using the server when an Esc is recorded.
+
 ## Co-author hook
 
 `CoAuthor.cs` writes small shell hooks into `harness\hooks`. When LAICA starts an agent in a git repository that does not set its own `core.hooksPath`, it passes `GIT_CONFIG_COUNT/KEY/VALUE` so git uses that folder, and `LAICA_COAUTHOR` with the trailer value. The `commit-msg` hook first runs the repository's own hook of the same name, then adds the trailer with `git interpret-trailers --if-exists addIfDifferent`, so existing vendor trailers are kept and nothing is duplicated.

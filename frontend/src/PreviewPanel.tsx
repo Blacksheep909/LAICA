@@ -1,9 +1,10 @@
-import {useCallback,useEffect,useMemo,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {Button,IconButton,useToast} from 'open-glass-ui';
 import {Folder,File as FileIcon,ChevronRight,ChevronDown,RefreshCw,Save,X,Pencil,Eye} from 'lucide-react';
 import {request} from './bridge';
 import {Markdown} from './markdown';
 import ChangesPanel from './ChangesPanel';
+import ScreenPanel,{useScreenActivity} from './ScreenPanel';
 
 interface Entry { Name:string; Path:string; Dir:boolean; Size:number }
 interface Sheet { Name:string; Rows:string[][]; Truncated:boolean }
@@ -54,7 +55,10 @@ function Viewer({doc,path,draft,setDraft,editing}:{doc:Doc;path:string;draft:str
 
 export default function PreviewPanel({sessionId,refreshKey,onClose}:{sessionId:string;refreshKey:number;onClose:()=>void}){
   const {toast}=useToast();
-  const [open,setOpen]=useState<Set<string>>(new Set()),[tabs,setTabs]=useState<Tab[]>([]),[current,setCurrent]=useState<string|null>(null),[version,setVersion]=useState(0),[editing,setEditing]=useState(false),[view,setView]=useState<'files'|'changes'>('files');
+  const [open,setOpen]=useState<Set<string>>(new Set()),[tabs,setTabs]=useState<Tab[]>([]),[current,setCurrent]=useState<string|null>(null),[version,setVersion]=useState(0),[editing,setEditing]=useState(false),[view,setView]=useState<'files'|'changes'|'screen'>('files');
+  const screen=useScreenActivity(sessionId);const shown=useRef(false);
+  useEffect(()=>{shown.current=false;},[sessionId]);
+  useEffect(()=>{if(screen.live&&!shown.current){shown.current=true;setView('screen');}},[screen.live]);
   useEffect(()=>{const on=()=>setView('changes');window.addEventListener('laica-open-changes',on);return()=>window.removeEventListener('laica-open-changes',on);},[]);
   useEffect(()=>{setTabs([]);setCurrent(null);setOpen(new Set());setEditing(false);},[sessionId]);
   useEffect(()=>{setVersion(v=>v+1);},[refreshKey]);
@@ -67,8 +71,8 @@ export default function PreviewPanel({sessionId,refreshKey,onClose}:{sessionId:s
   const save=async()=>{if(!tab||tab.draft===null)return;try{await request('harnessWriteFile',{Id:sessionId,Path:tab.path,Text:tab.draft});setTabs(t=>t.map(x=>x.path===tab.path?{...x,doc:{...x.doc!,Text:tab.draft!},draft:null}:x));toast({title:'Saved'});}catch(e){toast({title:'Could not save',description:(e as Error).message,duration:6000});}};
   const canEdit=tab?.doc?.Kind==='text';
   return <aside className="pv">
-    <div className="pv-head"><div className="pv-switch" role="tablist"><button role="tab" aria-selected={view==='files'} className={view==='files'?'on':''} onClick={()=>setView('files')}>Files</button><button role="tab" aria-selected={view==='changes'} className={view==='changes'?'on':''} onClick={()=>setView('changes')}>Changes</button></div><div><IconButton size="small" variant="quiet" aria-label="Refresh files" onClick={()=>setVersion(v=>v+1)}><RefreshCw size={14}/></IconButton><IconButton size="small" variant="quiet" aria-label="Hide panel" onClick={onClose}><X size={14}/></IconButton></div></div>
-    {view==='changes'?<ChangesPanel sessionId={sessionId} refreshKey={refreshKey}/>:<>
+    <div className="pv-head"><div className="pv-switch" role="tablist"><button role="tab" aria-selected={view==='files'} className={view==='files'?'on':''} onClick={()=>setView('files')}>Files</button><button role="tab" aria-selected={view==='changes'} className={view==='changes'?'on':''} onClick={()=>setView('changes')}>Changes</button>{screen.any&&<button role="tab" aria-selected={view==='screen'} className={(view==='screen'?'on':'')+(screen.live?' is-live':'')} onClick={()=>setView('screen')}>{screen.live&&<i className="live-dot"/>}Screen</button>}</div><div><IconButton size="small" variant="quiet" aria-label="Refresh files" onClick={()=>setVersion(v=>v+1)}><RefreshCw size={14}/></IconButton><IconButton size="small" variant="quiet" aria-label="Hide panel" onClick={onClose}><X size={14}/></IconButton></div></div>
+    {view==='screen'?<ScreenPanel sessionId={sessionId}/>:view==='changes'?<ChangesPanel sessionId={sessionId} refreshKey={refreshKey}/>:<>
     <div className="pv-tree"><Tree id={sessionId} path="" depth={0} open={open} toggle={toggle} pick={pick} active={current} version={version}/></div>
     {tabs.length>0&&<div className="pv-tabs">{tabs.map(t=><button key={t.path} className={`pv-tab ${t.path===current?'on':''}`} onClick={()=>{setCurrent(t.path);setEditing(false);}}><span>{t.path.split('\\').pop()}{t.draft!==null?' •':''}</span><i role="button" aria-label="Close tab" onClick={e=>{e.stopPropagation();closeTab(t.path);}}><X size={11}/></i></button>)}</div>}
     {tab&&<div className="pv-body">

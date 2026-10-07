@@ -60,6 +60,11 @@ The index is read once in the background, cached on disk and only re-read for lo
 - **Remote access** (off by default) serves the same interface to a browser on your network behind a password, over Server-Sent Events.
 - A read-only **Codex bridge** (`LAICA.Bridge.exe`, an MCP server) lets Codex read LAICA's observed work.
 
+## Computer use and the Screen tab
+
+- **Screen tab.** When an agent uses a browser (Playwright, Chrome DevTools or other browser tools) or LAICA computer use, the panel on the right of the chat gets a **Screen** tab. It shows the latest picture the agent saw, in a slim lavender frame while it is live, a Stop button and the steps it took (opened a page, clicked, typed, scrolled). It opens by itself when an agent starts working in a browser.
+- **LAICA computer use.** A small MCP server (`LAICA.Computer.exe`) that lets Claude Code and Codex take screenshots of your main screen and use the mouse and keyboard. **Off by default**: switch it on under Settings > Agents > Computer use, which also registers it with the agents you have installed. While an agent is acting a slim lavender outline is drawn around your screen, and **pressing Esc stops it at once**; the agents using it are stopped and it stays blocked until you switch it on again. Esc, the Windows key and Alt+F4 can never be pressed by an agent. Only the main screen is shown and controlled.
+
 ## Pictures and prices
 
 - **Pictures.** Screenshots and images an agent sees or makes (Claude tool results, MCP image content, Codex image items) are stored with the chat and shown as thumbnails on the activity line. Click one for a full-size viewer (arrows to move, Esc to close).

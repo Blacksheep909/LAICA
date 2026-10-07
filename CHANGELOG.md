@@ -3,6 +3,19 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.20.1]
+
+### Changed
+- Usage levels refresh much more often: every 20 seconds (was every minute), whenever you return to the window, right after a chat finishes and again 4 seconds later (when Codex has written its new limits).
+
+## [0.20.0]
+
+### Added
+- **LAICA computer use.** A new MCP server, `LAICA.Computer.exe`, lets Claude Code and Codex look at your main screen (screenshots) and use the mouse and keyboard (click, double-click, right-click, drag, scroll, type, key presses). It is **off until you switch it on** in Settings > Agents > Computer use, which also sets it up for the agents you have installed. While an agent is acting, a slim lavender outline is drawn around your screen with a small "LAICA is using your computer · Esc to stop" label. **Pressing Esc stops it immediately**: the agents using it are stopped and every further action is refused until you switch computer use on again. Esc, the Windows key and Alt+F4 can never be pressed by an agent, and the outline is excluded from the screenshots the agent receives.
+- **Screen tab.** The panel on the right of a chat gets a Screen tab whenever an agent has used a browser (Playwright, Chrome DevTools or other browser tools) or LAICA computer use: the latest picture it saw in a slim lavender frame while it is live, a Stop button and the list of steps it took. It opens by itself when an agent starts working in a browser.
+
+### Changed
+- The selected page in the sidebar uses the same soft lavender fill as New chat instead of an outlined glass pill.
 ## [0.19.3]
 
 ### Changed

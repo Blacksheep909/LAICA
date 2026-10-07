@@ -120,6 +120,8 @@ namespace Laica
             case "coauthorGet": result = Harness.CoAuthorGet(); break;
             case "coauthorSet": result = Harness.CoAuthorSet(payload); break;
             case "harnessConfigure": result = Harness.Configure(Text(payload,"Id"), payload.ContainsKey("Mode") ? Text(payload,"Mode") : null, payload.ContainsKey("Model") ? Text(payload,"Model") : null, payload.ContainsKey("Effort") ? Text(payload,"Effort") : null); break;
+            case "computerGet": result = Harness.ComputerGet(); break;
+            case "computerSet": result = Harness.ComputerSet(payload); break;
             case "imageGet": result = Harness.ImageGet(Text(payload,"Id"), Text(payload,"File")); break;
             case "updatesGet": result = Harness.UpdatesGet(); break;
             case "updatesSet": result = Harness.UpdatesSet(payload); break;

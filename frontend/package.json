@@ -1,6 +1,6 @@
 {
   "name": "laica-glass-workspace",
-  "version": "0.19.3",
+  "version": "0.20.1",
   "private": true,
   "type": "module",
   "scripts": {
