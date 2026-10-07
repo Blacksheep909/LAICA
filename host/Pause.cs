@@ -134,5 +134,22 @@ namespace Laica
             foreach (string sid in ids.Distinct()) { try { Resume(sid); } catch (Exception) { } }
             Raise(); return TeamDto(t);
         }
-    }
+    
+        /// <summary>Changes a chat's permissions, model or reasoning effort. It applies from the next message, because each turn starts the agent afresh.</summary>
+        public object Configure(string id, string mode, string model, string effort)
+        {
+            Session s; lock (gate) s = Get(id); var info = Harnesses().FirstOrDefault(h => h.Id == s.Harness);
+            if (!String.IsNullOrEmpty(mode)) { if (info == null || !info.Modes.Contains(mode)) throw new ArgumentException("That permission level isn't available for this agent."); lock (gate) s.Mode = mode; }
+            if (model != null)
+            {
+                if (model != "" && model != "default" && !System.Text.RegularExpressions.Regex.IsMatch(model, @"^[A-Za-z0-9._\-]{1,80}$")) throw new ArgumentException("That model name isn't valid.");
+                lock (gate) s.Model = (model == "" || model == "default") ? null : model;
+            }
+            if (effort != null)
+            {
+                string e = effort == "" || effort == "default" ? "" : ValidEffort(effort); if (e == null) throw new ArgumentException("That reasoning level isn't valid.");
+                lock (gate) s.Effort = e == "" ? null : e;
+            }
+            SaveSession(s); Raise(); lock (gate) return Dto(s);
+        }}
 }

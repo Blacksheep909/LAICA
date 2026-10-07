@@ -3,6 +3,14 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.19.1]
+
+### Added
+- **An open chat now has the same controls as the new-chat screen.** Under the message box there are pills for the model, the reasoning level and the permissions of that chat. Changing one applies from your next message (new command `harnessConfigure`, with checks).
+
+### Changed
+- The open chat is one centred column: the header, the messages and the message box line up (the messages used to sit on the left while the message box was centred). The message box is a card with the toolbar underneath, like the home screen.
+- The in-app guide describes how LAICA works today.
 ## [0.19.0]
 
 ### Added

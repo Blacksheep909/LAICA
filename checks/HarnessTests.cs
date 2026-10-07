@@ -845,6 +845,15 @@ public static class HarnessTests
                     Check(m.SaveImagesForTest(imgSid, notPicture).Length == 0, "images: data that is not a png, jpeg, gif or webp picture is ignored");
                     bool badName = false; try { m.ImageGet(imgSid, "..\\..\\x.png"); } catch (ArgumentException) { badName = true; } Check(badName, "images: file names are checked, so a path cannot escape the chat's folder");
                     Check(m.SaveImagesForTest(imgSid, "just text").Length == 0 && m.SaveImagesForTest(imgSid, null).Length == 0, "images: plain text results have no pictures");
+                    var cfg = (Dictionary<string, object>)m.Configure(imgSid, "default", "opus", "high");
+                    Check((string)cfg["Mode"] == "default" && (string)cfg["Model"] == "opus" && (string)cfg["Effort"] == "high", "chat settings: permissions, model and reasoning can be changed in an open chat");
+                    var cfg2 = (Dictionary<string, object>)m.Configure(imgSid, null, "default", "");
+                    Check((string)cfg2["Mode"] == "default" && cfg2["Model"] == null && cfg2["Effort"] == null, "chat settings: choosing the default clears the model and effort, and leaves permissions alone");
+                    bool badMode = false, badEffort = false, badModel = false;
+                    try { m.Configure(imgSid, "danger-full-access", null, null); } catch (ArgumentException) { badMode = true; }
+                    try { m.Configure(imgSid, null, null, "ludicrous"); } catch (ArgumentException) { badEffort = true; }
+                    try { m.Configure(imgSid, null, "bad name;rm", null); } catch (ArgumentException) { badModel = true; }
+                    Check(badMode && badEffort && badModel, "chat settings: values the agent doesn't support are refused");
                 }
             }            {
                 string anth = "<td>Claude Opus 5.5</td><td>For long-running work</td><td>$4</td><td>/ MTok</td><td>$20</td><td>/ MTok</td><td>$5</td><td>/ MTok</td><td>$8</td><td>/ MTok</td><td>$0.20</td><td>/ MTok</td><td>Claude Haiku 4.5</td><td>$1</td><td>/ MTok</td><td>$5</td><td>/ MTok</td><td>$1.25</td><td>/ MTok</td><td>$2</td><td>/ MTok</td><td>$0.10</td><td>/ MTok</td>";

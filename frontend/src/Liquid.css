@@ -473,3 +473,17 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .price-src.ok{background:rgba(88,214,141,.14);color:#8fe3b3}.price-src.bad{background:rgba(255,154,154,.14);color:#ff9a9a}
 .price-official{margin:6px 0 12px}.price-official summary{cursor:pointer;font-size:12.5px;color:var(--ink-2);padding:4px 0}
 .price-official table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px}.price-official th{text-align:left;color:var(--ink-3);font-weight:500;padding:3px 4px}.price-official td{padding:3px 4px;color:var(--ink-2);border-top:1px solid var(--hair)}
+
+/* the open chat: one centred column for the header, the messages and the composer; the composer has the same toolbar as the new-chat screen */
+.harness-stream{--col:840px;--pad:max(22px,calc((100% - var(--col))/2))}
+.harness-meta{left:var(--pad)!important;right:var(--pad)!important}
+.harness-log{padding-left:var(--pad)!important;padding-right:var(--pad)!important;padding-top:84px!important;padding-bottom:200px!important}
+.harness-stream>.harness-compose{left:var(--pad)!important;right:var(--pad)!important}
+.hmsg{max-width:100%!important}
+.hmsg.user{max-width:86%!important}
+.harness-compose{flex-direction:column!important;align-items:stretch!important;gap:4px!important;padding:8px 12px 10px!important}
+.harness-compose .compose-field textarea{width:100%;min-height:46px;max-height:200px}
+.harness-compose .compose-bar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.harness-compose .compose-left,.harness-compose .compose-right{display:flex;align-items:center;gap:6px;min-width:0}
+.harness-compose .compose-left{flex-wrap:wrap}
+.to-bottom{left:50%!important;right:auto!important;transform:translateX(-50%)}
