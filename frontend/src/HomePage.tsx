@@ -14,7 +14,7 @@ import type {Assistant} from './assistants-data';
 import type {Service,Model,Profile} from './types';
 
 import {useClaudeModels} from './ClaudeModels';
-import {PartnerPills,usePartnerOptions,splitPartner,rulesPatch} from './TagTeam';
+import {PartnerPicker,usePartnerOptions,splitPartner,rulesPatch} from './TagTeam';
 import type {PairRules} from './TagTeam';
 const PICK_KEY='laica-last-pick';
 const badge=(t:string)=><span>{t.slice(0,1).toUpperCase()}</span>;
@@ -22,7 +22,7 @@ const badge=(t:string)=><span>{t.slice(0,1).toUpperCase()}</span>;
 export default function HomePage({workingDirectory,onOpened,onOpenTeam,services,models,profiles}:{workingDirectory:string;onOpened:()=>void;onOpenTeam:(id:string)=>void;services:Service[];models:Model[];profiles:Profile[]}){
   const {toast}=useToast();
   const {harnesses,assistants,sessions,teams,project,create,send,savedProjects,history,addProject,codexProjects}=useHarness();const claudeList=useClaudeModels();
-  const [pick,setPick]=useState(()=>{try{return localStorage.getItem(PICK_KEY)??'';}catch{return '';}}),[mode,setMode]=useState(''),[cwd,setCwd]=useState(()=>{try{return localStorage.getItem('laica-last-cwd')||workingDirectory;}catch{return workingDirectory;}}),[prompt,setPrompt]=useState(''),[assistant,setAssistant]=useState<Assistant|null>(null),[isolate,setIsolate]=useState(false),[repo,setRepo]=useState<{IsRepo:boolean;Exists?:boolean;Branch?:string;Dirty?:number}|null>(null),[editFolder,setEditFolder]=useState(false),[busy,setBusy]=useState(false),[effort,setEffort]=useState(''),[partner,setPartner]=useState(''),[pairRules,setPairRules]=useState<PairRules>('both');
+  const [pick,setPick]=useState(()=>{try{return localStorage.getItem(PICK_KEY)??'';}catch{return '';}}),[mode,setMode]=useState(''),[cwd,setCwd]=useState(()=>{try{return localStorage.getItem('laica-last-cwd')||workingDirectory;}catch{return workingDirectory;}}),[prompt,setPrompt]=useState(''),[assistant,setAssistant]=useState<Assistant|null>(null),[isolate,setIsolate]=useState(false),[repo,setRepo]=useState<{IsRepo:boolean;Exists?:boolean;Branch?:string;Dirty?:number}|null>(null),[editFolder,setEditFolder]=useState(false),[busy,setBusy]=useState(false),[effort,setEffort]=useState(''),[partner,setPartner]=useState(''),[partnerEffort,setPartnerEffort]=useState(''),[pairRules,setPairRules]=useState<PairRules>('both');
   const box=useRef<HTMLTextAreaElement>(null);
   useEffect(()=>{setCwd(c=>c||workingDirectory);},[workingDirectory]);
   useEffect(()=>{if(project)setCwd(project);},[project]);
@@ -78,7 +78,7 @@ export default function HomePage({workingDirectory,onOpened,onOpenTeam,services,
       let s;
       if(kind==='w')s=await create({Harness:'workflow',Cwd:cwd,ServiceId:parts[1],Model:current.label,Title:current.label});
       else if(harnessId==='laica')s=await create({Harness:'laica',Cwd:cwd,Mode:mode||undefined,Assistant:assistant??undefined,Isolate:isolate,ServiceId:parts[2],Model:parts.slice(3).join(':')});
-      else {const model=parts.slice(2).join(':');s=await create({Harness:harnessId,Cwd:cwd,Mode:mode||info?.DefaultMode,Assistant:assistant??undefined,Isolate:isolate,Model:model==='default'?undefined:model,Effort:effort||undefined});if(partner&&harnessId!=='laica'){const pp=splitPartner(partner);try{await request('pairSet',{Id:s.Id,Mode:'automatic',PartnerHarness:pp.harness,PartnerModel:pp.model||'default',...rulesPatch(pairRules)});}catch(e){toast({title:'Tag-team not set up',description:(e as Error).message,duration:7000});}}}
+      else {const model=parts.slice(2).join(':');s=await create({Harness:harnessId,Cwd:cwd,Mode:mode||info?.DefaultMode,Assistant:assistant??undefined,Isolate:isolate,Model:model==='default'?undefined:model,Effort:effort||undefined});if(partner&&harnessId!=='laica'){const pp=splitPartner(partner);try{await request('pairSet',{Id:s.Id,Mode:'automatic',PartnerHarness:pp.harness,PartnerModel:pp.model||'default',PartnerEffort:partnerEffort||'default',...rulesPatch(pairRules)});}catch(e){toast({title:'Tag-team not set up',description:(e as Error).message,duration:7000});}}}
       await send(s.Id,full);files.clear();setFlags(noFlags);try{localStorage.setItem('laica-last-cwd',cwd);}catch{/* storage unavailable */}setPrompt('');setAssistant(null);onOpened();
     }catch(e){toast({title:'Could not start',description:(e as Error).message,duration:8000});}finally{setBusy(false);}
   };
@@ -100,7 +100,7 @@ export default function HomePage({workingDirectory,onOpened,onOpenTeam,services,
             <Select variant="pill" aria-label="Model or team" value={current?.value??''} options={options} onChange={e=>choose(e.target.value)} searchable menuWidth={360} placeholder="Choose a model" triggerLabel={triggerLabel} emptyText="No agents or teams found yet." footer={<>Add API keys under <b>Services</b> and design teams in the <b>Workflow designer</b>.</>}/>
             {levels.length>0&&<Select variant="pill" aria-label="Reasoning effort" value={effort} options={[{value:'',label:'Default',description:'Let the model decide'},...levels.map(l=>({value:l,label:effortLabel[l]}))]} onChange={e=>setEffort(e.target.value)} triggerLabel={'Effort · '+(effort?effortLabel[effort]:'Default')} menuWidth={220}/>}
             {modes.length>0&&<Select variant="pill" aria-label="Permissions" value={mode||defaultMode} options={modes.map(m=>({value:m,label:modeLabel[m]??m}))} onChange={e=>setMode(e.target.value)}/>}
-            {kind==='m'&&harnessId!=='laica'&&partnerOptions.length>0&&<PartnerPills options={partnerOptions} value={partnerValue} onPick={setPartner} rules={pairRules} onRules={setPairRules}/>}
+            {kind==='m'&&harnessId!=='laica'&&partnerOptions.length>0&&<PartnerPicker options={partnerOptions} models={models} value={partnerValue} onPick={setPartner} effort={partnerEffort} onEffort={setPartnerEffort} rules={pairRules} onRules={setPairRules}/>}
           </div>
           <div className="composer-right"><MicButton onText={text=>setPrompt(d=>d+(d&&!/\s$/.test(d)?' ':'')+text)}/><SendButton label="Start chat" disabled={!current||(!prompt.trim()&&!files.items.length&&!flags.plan&&!flags.goal)||busy||(kind!=='t'&&(!cwd||repo?.Exists===false))} onSend={start}/></div>
         </div>

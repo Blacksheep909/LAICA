@@ -19,7 +19,7 @@ namespace Laica
     {
         sealed class PairState
         {
-            public string Mode = "", PHarness = "", PService = "", PModel = "", PMode = "", AutoSwitch = "", SwitchBack = "";
+            public string Mode = "", PHarness = "", PService = "", PModel = "", PEffort = "", PMode = "", AutoSwitch = "", SwitchBack = "";
             public string ChildId = "", Active = "primary", Halted = "", Pending = "", LogId = "", Note = "";
             public long SeenA, SeenB, DeliverSeq; public bool RanA, RanB, Switching, PendingUnfinished;
             public DateTime LastSwitch, WaitUntil; public List<DateTime> Times = new List<DateTime>(); public List<string> Stamps = new List<string>();
@@ -82,7 +82,7 @@ namespace Laica
                 if (pick == null) return null; h = pick.Id; svc = ""; model = "";
             }
             var info = all.First(x => x.Id == h); string mode = root.Pair.PMode != "" && info.Modes.Contains(root.Pair.PMode) ? root.Pair.PMode : info.DefaultMode;
-            return new Dictionary<string, object> { { "Harness", h }, { "ServiceId", svc ?? "" }, { "Model", model ?? "" }, { "Mode", mode } };
+            return new Dictionary<string, object> { { "Harness", h }, { "ServiceId", svc ?? "" }, { "Model", model ?? "" }, { "Effort", root.Pair.PEffort }, { "Mode", mode } };
         }
         string SideKey(Session root, bool partner) { if (!partner) return VendorKey(root); var sp = PartnerSpec(root); return sp == null ? "" : KeyOfSpec(sp); }
         string ActiveKey(Session root) { return SideKey(root, root.Pair.Active == "partner"); }
@@ -94,7 +94,7 @@ namespace Laica
         {
             lock (gate) { if (root.Child != null) return root.Child; }
             var sp = PartnerSpec(root); if (sp == null) throw new InvalidOperationException("Choose a partner agent first: there is no second agent installed.");
-            var c = new Session { Id = Guid.NewGuid().ToString("N"), Harness = Str(sp, "Harness"), Cwd = root.Cwd, Mode = Str(sp, "Mode"), Title = "Tag-team partner", Rules = root.Rules, AssistantId = root.AssistantId, ServiceId = Str(sp, "ServiceId") == "" ? null : Str(sp, "ServiceId"), Model = Str(sp, "Model") == "" ? null : Str(sp, "Model"), Parent = root, ParentId = root.Id };
+            var c = new Session { Id = Guid.NewGuid().ToString("N"), Harness = Str(sp, "Harness"), Cwd = root.Cwd, Mode = Str(sp, "Mode"), Title = "Tag-team partner", Rules = root.Rules, AssistantId = root.AssistantId, ServiceId = Str(sp, "ServiceId") == "" ? null : Str(sp, "ServiceId"), Model = Str(sp, "Model") == "" ? null : Str(sp, "Model"), Effort = ValidEffort(Str(sp, "Effort")), Parent = root, ParentId = root.Id };
             lock (gate) { sessions[c.Id] = c; root.Child = c; root.Pair.ChildId = c.Id; }
             SaveSession(c); return c;
         }
@@ -470,7 +470,7 @@ namespace Laica
         {
             string key = SideKey(root, partner); if (key == "") return new Dictionary<string, object> { { "Key", "" }, { "Name", "" } };
             DateTime reset = ResetOf(key); bool limited = IsLimited(key); Session s = partner ? root.Child : root; var sp = partner ? PartnerSpec(root) : null;
-            return new Dictionary<string, object> { { "Key", key }, { "Name", VendorName(key) }, { "Model", partner ? (sp != null ? Str(sp, "Model") : "") : (root.Model ?? "") }, { "Percent", PairPercent(key) }, { "Limited", limited }, { "ResetsUtc", reset == DateTime.MinValue ? "" : reset.ToString("o") }, { "Mode", partner ? (sp != null ? Str(sp, "Mode") : "") : root.Mode }, { "Writable", partner ? (sp != null && Str(sp, "Mode") != "plan" && Str(sp, "Mode") != "read-only") : (root.Mode != "plan" && root.Mode != "read-only") }, { "Ran", partner ? root.Pair.RanB : root.Pair.RanA }, { "Busy", s != null && s.Busy } };
+            return new Dictionary<string, object> { { "Key", key }, { "Name", VendorName(key) }, { "Model", partner ? (sp != null ? Str(sp, "Model") : "") : (root.Model ?? "") }, { "Effort", partner ? root.Pair.PEffort : (root.Effort ?? "") }, { "Percent", PairPercent(key) }, { "Limited", limited }, { "ResetsUtc", reset == DateTime.MinValue ? "" : reset.ToString("o") }, { "Mode", partner ? (sp != null ? Str(sp, "Mode") : "") : root.Mode }, { "Writable", partner ? (sp != null && Str(sp, "Mode") != "plan" && Str(sp, "Mode") != "read-only") : (root.Mode != "plan" && root.Mode != "read-only") }, { "Ran", partner ? root.Pair.RanB : root.Pair.RanA }, { "Busy", s != null && s.Busy } };
         }
 
         public object PairInfo(string id)
@@ -510,6 +510,12 @@ namespace Laica
                 if (pm != "" && !Regex.IsMatch(pm, @"^[A-Za-z0-9._\-]{1,80}$")) throw new ArgumentException("That model name isn't valid.");
                 lock (gate) { root.Pair.PModel = pm; if (root.Child != null && !root.Child.Busy) root.Child.Model = pm == "" ? null : pm; }
             }
+            if (d.ContainsKey("PartnerEffort"))
+            {
+                string pe = Str(d, "PartnerEffort"); if (pe == "default") pe = "";
+                if (pe != "" && ValidEffort(pe) == null) throw new ArgumentException("That reasoning level isn't valid.");
+                lock (gate) { root.Pair.PEffort = pe; if (root.Child != null && !root.Child.Busy) root.Child.Effort = pe == "" ? null : pe; }
+            }
             if (d.ContainsKey("PartnerMode")) lock (gate) root.Pair.PMode = Str(d, "PartnerMode");
             if (d.ContainsKey("AutoSwitch")) lock (gate) root.Pair.AutoSwitch = Str(d, "AutoSwitch") == "" ? "" : (Str(d, "AutoSwitch") == "True" ? "True" : "False");
             if (d.ContainsKey("SwitchBack")) lock (gate) root.Pair.SwitchBack = Str(d, "SwitchBack") == "" ? "" : (Str(d, "SwitchBack") == "True" ? "True" : "False");
@@ -521,14 +527,14 @@ namespace Laica
         // ---------- saving the pair ----------
         Dictionary<string, object> PairToDict(PairState p)
         {
-            return new Dictionary<string, object> { { "Mode", p.Mode }, { "PHarness", p.PHarness }, { "PService", p.PService }, { "PModel", p.PModel }, { "PMode", p.PMode }, { "AutoSwitch", p.AutoSwitch }, { "SwitchBack", p.SwitchBack }, { "ChildId", p.ChildId }, { "Active", p.Active }, { "Halted", p.Halted }, { "Pending", p.Pending }, { "PendingUnfinished", p.PendingUnfinished }, { "Note", p.Note },
+            return new Dictionary<string, object> { { "Mode", p.Mode }, { "PHarness", p.PHarness }, { "PService", p.PService }, { "PModel", p.PModel }, { "PEffort", p.PEffort }, { "PMode", p.PMode }, { "AutoSwitch", p.AutoSwitch }, { "SwitchBack", p.SwitchBack }, { "ChildId", p.ChildId }, { "Active", p.Active }, { "Halted", p.Halted }, { "Pending", p.Pending }, { "PendingUnfinished", p.PendingUnfinished }, { "Note", p.Note },
                 { "SeenA", p.SeenA }, { "SeenB", p.SeenB }, { "RanA", p.RanA }, { "RanB", p.RanB }, { "LastSwitch", p.LastSwitch == DateTime.MinValue ? "" : p.LastSwitch.ToString("o") }, { "WaitUntil", p.WaitUntil == DateTime.MinValue ? "" : p.WaitUntil.ToString("o") },
                 { "Times", p.Times.Select(t => t.ToString("o")).ToArray() }, { "Stamps", p.Stamps.ToArray() }, { "DeliverRequest", p.DeliverRequest }, { "DeliverReason", p.DeliverReason }, { "DeliverUnfinished", p.DeliverUnfinished }, { "DeliverSeq", p.DeliverSeq } };
         }
         PairState PairFromDict(Dictionary<string, object> d)
         {
             var p = new PairState(); if (d == null) return p;
-            p.Mode = Str(d, "Mode"); p.PHarness = Str(d, "PHarness"); p.PService = Str(d, "PService"); p.PModel = Str(d, "PModel"); p.PMode = Str(d, "PMode"); p.AutoSwitch = Str(d, "AutoSwitch"); p.SwitchBack = Str(d, "SwitchBack"); p.ChildId = Str(d, "ChildId");
+            p.Mode = Str(d, "Mode"); p.PHarness = Str(d, "PHarness"); p.PService = Str(d, "PService"); p.PModel = Str(d, "PModel"); p.PEffort = Str(d, "PEffort"); p.PMode = Str(d, "PMode"); p.AutoSwitch = Str(d, "AutoSwitch"); p.SwitchBack = Str(d, "SwitchBack"); p.ChildId = Str(d, "ChildId");
             p.Active = Str(d, "Active") == "partner" ? "partner" : "primary"; p.Halted = Str(d, "Halted"); p.Pending = Str(d, "Pending"); p.PendingUnfinished = Str(d, "PendingUnfinished") == "True"; p.Note = Str(d, "Note");
             p.SeenA = Num(d, "SeenA"); p.SeenB = Num(d, "SeenB"); p.RanA = Str(d, "RanA") == "True"; p.RanB = Str(d, "RanB") == "True"; p.DeliverRequest = Str(d, "DeliverRequest"); p.DeliverReason = Str(d, "DeliverReason"); p.DeliverUnfinished = Str(d, "DeliverUnfinished") == "True"; p.DeliverSeq = Num(d, "DeliverSeq");
             DateTime t; if (DateTime.TryParse(Str(d, "LastSwitch"), null, DateTimeStyles.RoundtripKind, out t)) p.LastSwitch = t; if (DateTime.TryParse(Str(d, "WaitUntil"), null, DateTimeStyles.RoundtripKind, out t)) p.WaitUntil = t;

@@ -3,6 +3,11 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.21.2]
+
+### Changed
+- **Tag-team is one tidy control.** The two extra pills became a single **Tag-team** pill that opens a small panel with the partner (any model of any other agent), the partner's **reasoning effort**, and when to switch. The same panel is on the new-chat screen and in open chats. The header chip no longer repeats the agent name and mode beside it.
+- **History says what happened.** Imported Codex conversations no longer show lines like "Used exec". Codex's script steps are unpacked into the real commands, the pictures it looked at (with the picture itself), file edits as per-file changes with their diffs, helper-agent calls with their task and target, and plan updates. Tested against real Codex history: commands, hundreds of images and edits now appear. Claude Code history shows its pictures and commands too.
 ## [0.21.1]
 
 ### Changed

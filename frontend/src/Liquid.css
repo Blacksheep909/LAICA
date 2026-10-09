@@ -557,3 +557,15 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .handoff-panel .hp-head{display:flex;align-items:center;gap:8px}.handoff-panel .hp-head small{color:var(--ink-3)}
 .handoff-panel .hp-managed{margin:0;max-height:46vh;overflow:auto;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);font-size:11.5px;line-height:1.5;white-space:pre-wrap}
 .handoff-panel .hp-pinned{display:flex;flex-direction:column;gap:6px;font-size:12px}.handoff-panel .hp-pinned small{color:var(--ink-3)}
+
+/* tag-team picker: one pill, one small panel */
+.tt-picker{position:relative;display:inline-flex}
+.tt-pill{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border:0;border-radius:999px;font-size:13px;color:var(--ink-2);background:rgba(255,255,255,.06);cursor:pointer;white-space:nowrap}
+.tt-pill:hover{background:rgba(255,255,255,.1)}.tt-pill.on{color:var(--ink);background:linear-gradient(180deg,rgba(179,165,247,.26),rgba(150,130,235,.14))}
+.tt-pill svg{color:var(--accent)}
+.tt-panel{position:absolute;z-index:60;bottom:calc(100% + 10px);left:0;width:340px;max-width:86vw;display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:16px;background:var(--panel-solid,#241f33);box-shadow:0 14px 44px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.07)}
+.tt-panel .tt-help{margin:0;font-size:12px;line-height:1.45;color:var(--ink-3)}
+
+.harness-meta .tt-chip~.hsub{display:none}
+.harness-meta .tt-chip{flex:none}
+

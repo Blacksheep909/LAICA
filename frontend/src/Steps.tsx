@@ -43,8 +43,8 @@ const s=(v:unknown)=>typeof v==='string'?v:'';
 
 function kindOf(tool:string):Kind{
   const t=tool.toLowerCase();
-  if(/^(bash|powershell|shell|command|run)/.test(t)||t==='shell')return 'cmd';
-  if(/^(read|ls|view|notebookread)/.test(t))return 'read';
+  if(/^(bash|powershell|shell|command|run|exec)/.test(t)||/(^|[._])exec(_command)?$/.test(t))return 'cmd';
+  if(/^(read|ls|view|notebookread)/.test(t)||/view_image/.test(t))return 'read';
   if(/(edit|write|patch|file change|multiedit|notebookedit)/.test(t))return 'edit';
   if(/^(grep|glob|search|find|toolsearch)/.test(t))return 'search';
   if(/(web|fetch|browser|navigate)/.test(t))return 'web';
@@ -53,7 +53,7 @@ function kindOf(tool:string):Kind{
 
 export function stepOf(e:HEvent):Step{
   const tool=e.Text||'tool';const kind=kindOf(tool);const j=parse(e.Detail);const raw=j?'':(e.Detail??'');
-  const desc=s(j?.description),cmd=s(j?.command)||(kind==='cmd'?raw:''),file=s(j?.file_path)||s(j?.path)||s(j?.notebook_path)||(kind==='read'||kind==='edit'?raw:'');
+  const desc=s(j?.description),cmd=s(j?.command)||s(j?.cmd)||(kind==='cmd'?raw:''),file=s(j?.file_path)||s(j?.path)||s(j?.notebook_path)||(kind==='read'||kind==='edit'?raw:'');
   let title=desc;
   if(!title){
     if(kind==='cmd')title='Ran '+first(cmd||tool,80);
@@ -61,6 +61,15 @@ export function stepOf(e:HEvent):Step{
     else if(kind==='edit')title=(/write/i.test(tool)?'Wrote ':'Edited ')+(base(file)||'files');
     else if(kind==='search')title='Searched '+(s(j?.pattern)?`for “${first(s(j?.pattern),50)}”`:first(raw,50)||'the project');
     else if(kind==='web')title=s(j?.query)?`Searched the web for “${first(s(j?.query),50)}”`:'Fetched '+(()=>{try{return new URL(s(j?.url)||raw).hostname;}catch{return first(raw,40)||'a page';}})();
+    else if(/^update_plan$/i.test(tool))title='Updated the plan';
+    else if(/^(script|js)$/i.test(tool))title='Ran a script';
+    else if(/^view_image$/i.test(tool))title='Looked at '+(base(raw)||'a picture');
+    else if(/^spawn_agent$/i.test(tool))title='Started a helper agent'+(s(j?.task_name)?': '+s(j?.task_name):'');
+    else if(/^(send_message|followup_task)$/i.test(tool))title='Messaged '+(s(j?.target)||'a helper agent');
+    else if(/^(wait_agent|list_agents)$/i.test(tool))title=/wait/.test(tool)?'Waited for the helper agents':'Checked the helper agents';
+    else if(/^request_user_input/i.test(tool))title='Asked you a question';
+    else if(/^sleep$/i.test(tool))title='Waited';
+    else if(/write_stdin|send_input/i.test(tool))title='Sent input to a running command';
     else if(/^skill$/i.test(tool))title='Used the '+(s(j?.skill)||'a')+' skill';
     else if(/^(task|agent)$/i.test(tool))title='Delegated: '+first(s(j?.description)||s(j?.prompt),70);
     else if(tool.includes('.'))title='Used '+tool.split('.').slice(1).join('.')+' ('+tool.split('.')[0]+')';

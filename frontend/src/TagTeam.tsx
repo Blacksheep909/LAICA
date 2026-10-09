@@ -1,15 +1,15 @@
-import {useCallback,useEffect,useMemo,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {Switch,useToast} from 'open-glass-ui';
-import {ArrowRightLeft,Clock,FileText,Save} from 'lucide-react';
+import {ArrowRightLeft,ChevronDown,Clock,FileText,Save} from 'lucide-react';
 import {request,isDesktop} from './bridge';
 import {Select} from './GlassSelect';
 import type {GlassOption} from './GlassSelect';
-import {useHarness} from './harness-store';
+import {useHarness,effortLabel} from './harness-store';
 import type {HSession,HEvent} from './harness-store';
 import {useClaudeModels} from './ClaudeModels';
 import type {Model} from './types';
 
-export interface PairSide { Key:string; Name:string; Model:string; Percent:number; Limited:boolean; ResetsUtc:string; Ran:boolean; Busy:boolean; Mode?:string; Writable?:boolean }
+export interface PairSide { Key:string; Name:string; Model:string; Effort?:string; Percent:number; Limited:boolean; ResetsUtc:string; Ran:boolean; Busy:boolean; Mode?:string; Writable?:boolean }
 export interface PairInfo { Id:string; Mode:'off'|'assisted'|'automatic'; ChatMode:string; Active:'primary'|'partner'; ActiveName:string; Primary:PairSide; Partner:PairSide; HasPartner:boolean; AutoSwitch:boolean; SwitchBack:boolean; Halted:string; WaitUntilUtc:string; Preview:string; EstTokens:number; EstCost:number; Currency:string; HandoffFile:string; LastSwitchUtc:string; Switches:{TimeUtc:string;Text:string;Detail:string}[]; ReturnThreshold:number }
 export interface Continuity { Mode:'off'|'assisted'|'automatic'; PartnerHarness:string; PartnerService:string; PartnerModel:string; AutoSwitch:boolean; SwitchBack:boolean; MinGapMinutes:number; ThrashSwitches:number; ThrashMinutes:number; ReturnThreshold:number; ReturnAtBoundary:boolean; HandoffPath:string; AgentNote:boolean; Harnesses:{Id:string;Name:string}[] }
 
@@ -85,16 +85,24 @@ export const rulesOptions:GlassOption[]=[
 export const rulesPatch=(r:PairRules)=>({AutoSwitch:r==='manual'?'False':'True',SwitchBack:r==='both'?'True':'False'});
 export const rulesOf=(auto:boolean,back:boolean):PairRules=>!auto?'manual':back?'both':'limit';
 
-/** The two pills a chat needs: who the partner is (any model of any other agent) and when the work moves. */
-export function PartnerPills({options,value,onPick,rules,onRules}:{options:GlassOption[];value:string;onPick:(v:string)=>void;rules:PairRules;onRules:(r:PairRules)=>void}){
-  const label=value?options.find(o=>o.value===value)?.label??splitPartner(value).harness:'';
-  return <>
-    <Select variant="pill" aria-label="Tag-team partner" value={value} options={[{value:'',label:'Off',description:'One agent works alone'},...options]} onChange={e=>onPick(e.target.value)} searchable={options.length>9} menuWidth={320}
-      triggerLabel={value?'Tag-team · '+label:'Tag-team · Off'}/>
-    {value&&<Select variant="pill" aria-label="When to switch" value={rules} options={rulesOptions} onChange={e=>onRules(e.target.value as PairRules)} menuWidth={340} triggerLabel={rules==='both'?'On limit · back on reset':rules==='limit'?'On limit only':'Manual only'}/>}
-  </>;
+/** One pill, one small panel: who the partner is, how hard it thinks, and when the work moves. */
+export function PartnerPicker({options,models,value,onPick,effort,onEffort,rules,onRules}:{options:GlassOption[];models:Model[];value:string;onPick:(v:string)=>void;effort:string;onEffort:(e:string)=>void;rules:PairRules;onRules:(r:PairRules)=>void}){
+  const [open,setOpen]=useState(false);const box=useRef<HTMLSpanElement>(null);
+  useEffect(()=>{if(!open)return;const away=(e:PointerEvent)=>{const el=e.target as HTMLElement;if(box.current?.contains(el)||el.closest('.gs-pop,[role=listbox],[role=option]'))return;setOpen(false);};const esc=(e:KeyboardEvent)=>{if(e.key==='Escape')setOpen(false);};document.addEventListener('pointerdown',away);document.addEventListener('keydown',esc);return()=>{document.removeEventListener('pointerdown',away);document.removeEventListener('keydown',esc);};},[open]);
+  const p=value?splitPartner(value):null;
+  const levels=useMemo<string[]>(()=>{if(!p)return [];if(p.harness==='claude')return ['low','medium','high','xhigh','max'];if(p.harness==='codex')return (models.find(m=>m.ConnectionId==='codex'&&m.Id===(p.model||''))?.Efforts??models.find(m=>m.ConnectionId==='codex')?.Efforts??[]).filter(l=>l!=='default'&&effortLabel[l]);return [];},[p?.harness,p?.model,models]); // eslint-disable-line react-hooks/exhaustive-deps
+  const name=value?options.find(o=>o.value===value)?.label??p!.harness:'';
+  const label=value?'Tag-team · '+name+(effort&&levels.includes(effort)?' · '+(effortLabel[effort]??effort):''):'Tag-team · Off';
+  return <span className="tt-picker" ref={box}>
+    <button type="button" className={'tt-pill'+(value?' on':'')} aria-haspopup="dialog" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><ArrowRightLeft size={13}/><span>{label}</span><ChevronDown size={13}/></button>
+    {open&&<div className="tt-panel" role="dialog" aria-label="Tag-team">
+      <p className="tt-help">A second agent takes over when the first runs out of usage, and hands back when it resets.</p>
+      <Select label="Partner" value={value} options={[{value:'',label:'Off',description:'One agent works alone'},...options]} onChange={e=>onPick(e.target.value)} searchable={options.length>9} menuWidth={320}/>
+      {value&&levels.length>0&&<Select label="Reasoning effort" value={levels.includes(effort)?effort:''} options={[{value:'',label:'Default',description:'Let the model decide'},...levels.map(l=>({value:l,label:effortLabel[l]??l}))]} onChange={e=>onEffort(e.target.value)} menuWidth={260}/>}
+      {value&&<Select label="When to switch" value={rules} options={rulesOptions} onChange={e=>onRules(e.target.value as PairRules)} menuWidth={340}/>}
+    </div>}
+  </span>;
 }
-
 /** Composer pills for an open chat. */
 export function TagTeamPills({session,models}:{session:HSession;models:Model[]}){
   const {toast}=useToast();const {reload}=useHarness();
@@ -105,7 +113,7 @@ export function TagTeamPills({session,models}:{session:HSession;models:Model[]})
   const value=on?info!.Partner.Key+':'+(info!.Partner.Model||'default'):'';
   const apply=(patch:Record<string,unknown>)=>request('pairSet',{Id:session.Id,...patch}).then(()=>{void load();void reload();}).catch(e=>toast({title:'Could not change that',description:(e as Error).message,duration:6500}));
   const pick=(v:string)=>{if(!v){void apply({Mode:'assisted'});return;}const p=splitPartner(v);void apply({Mode:'automatic',PartnerHarness:p.harness,PartnerModel:p.model||'default'});};
-  return <PartnerPills options={options} value={value} onPick={pick} rules={rulesOf(info?.AutoSwitch??true,info?.SwitchBack??true)} onRules={r=>void apply(rulesPatch(r))}/>;
+  return <PartnerPicker options={options} models={models} value={value} onPick={pick} effort={info?.Partner.Effort??''} onEffort={e=>void apply({PartnerEffort:e||'default'})} rules={rulesOf(info?.AutoSwitch??true,info?.SwitchBack??true)} onRules={r=>void apply(rulesPatch(r))}/>;
 }
 const num=(v:string,d:number)=>{const n=parseInt(v,10);return Number.isFinite(n)?n:d;};
 

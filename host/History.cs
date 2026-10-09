@@ -282,6 +282,59 @@ namespace Laica
             return list.Count > MaxTranscriptEvents ? list.Skip(list.Count - MaxTranscriptEvents).ToList() : list;
         }
 
+        /// <summary>Turns an apply_patch body ("*** Update File: x" sections with +/- lines) into the change list the chat shows as file cards: [{path,kind,diff}].</summary>
+        static string PatchChanges(JavaScriptSerializer js, string args)
+        {
+            string text = args ?? "";
+            try { if (text.TrimStart().StartsWith("{")) { var d = js.Deserialize<Dictionary<string, object>>(text); text = Str(d, "input") != "" ? Str(d, "input") : Str(d, "patch") != "" ? Str(d, "patch") : Str(d, "diff"); } } catch (Exception) { }
+            if (text.IndexOf("*** ", StringComparison.Ordinal) < 0) return "";
+            var changes = new List<object>(); string path = null, kind = null; var body = new StringBuilder();
+            Action flush = () => { if (path != null) changes.Add(new Dictionary<string, object> { { "path", path }, { "kind", kind }, { "diff", body.ToString().TrimEnd() } }); body.Length = 0; };
+            foreach (string raw in text.Replace("\r\n", "\n").Split('\n'))
+            {
+                var m = System.Text.RegularExpressions.Regex.Match(raw, @"^\*\*\* (Add|Update|Delete) File: (.+)$");
+                if (m.Success) { flush(); kind = m.Groups[1].Value == "Add" ? "add" : m.Groups[1].Value == "Delete" ? "delete" : "update"; path = m.Groups[2].Value.Trim(); continue; }
+                if (raw.StartsWith("*** End Patch") || raw.StartsWith("*** Begin Patch")) continue;
+                if (path != null) body.AppendLine(raw);
+            }
+            flush();
+            return changes.Count == 0 ? "" : js.Serialize(changes);
+        }
+        static readonly System.Text.RegularExpressions.Regex ToolCallRx = new System.Text.RegularExpressions.Regex(@"tools\.([A-Za-z_]+)\(\s*\{", System.Text.RegularExpressions.RegexOptions.Compiled);
+        static readonly System.Text.RegularExpressions.Regex JsStr = new System.Text.RegularExpressions.Regex(@"(""(?:[^""\\]|\\.)*""|'(?:[^'\\]|\\.)*')", System.Text.RegularExpressions.RegexOptions.Compiled);
+        string JsValue(string segment, string key)
+        {
+            var m = System.Text.RegularExpressions.Regex.Match(segment, @"\b" + key + @"\s*:\s*" + JsStr);
+            if (!m.Success) return ""; string lit = m.Groups[1].Value;
+            if (lit[0] == '"') { try { return json.Deserialize<string>(lit); } catch (Exception) { } }
+            return lit.Substring(1, lit.Length - 2).Replace("\\'", "'").Replace("\\n", "\n").Replace("\\\\", "\\");
+        }
+        /// <summary>Modern Codex runs one script per step ("exec"): the real work is the tools.* calls inside it. Show those: the command, the picture it looked at, and so on.</summary>
+        List<Dictionary<string, object>> CodexScriptEvents(Session s, string script, string time)
+        {
+            var list = new List<Dictionary<string, object>>(); var ms = ToolCallRx.Matches(script);
+            for (int i = 0; i < ms.Count; i++)
+            {
+                string tool = ms[i].Groups[1].Value, seg = script.Substring(ms[i].Index, Math.Min(script.Length - ms[i].Index, (i + 1 < ms.Count ? ms[i + 1].Index : script.Length) - ms[i].Index));
+                if (tool == "exec_command" || tool == "shell" || tool == "shell_command") { string c = JsValue(seg, "cmd"); if (c == "") c = JsValue(seg, "command"); if (c != "") list.Add(Ev("tool", "shell", Cap(c, 2000), time)); }
+                else if (tool == "view_image")
+                {
+                    string path = JsValue(seg, "path"); var images = new List<string>();
+                    try { string ext = Path.GetExtension(path).ToLowerInvariant(); if (path != "" && (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".webp") && File.Exists(path) && new FileInfo(path).Length <= 12L * 1024 * 1024) { string n = StoreImage(s, File.ReadAllBytes(path)); if (n != null) images.Add(n); } } catch (Exception) { }
+                    list.Add(WithImages(Ev("tool", "view_image", path, time), images));
+                }
+                else if (tool == "apply_patch") { string ch = PatchChanges(json, JsValue(seg, "patch") != "" ? JsValue(seg, "patch") : JsValue(seg, "input")); list.Add(Ev("tool", ch != "" ? "file change" : "apply_patch", ch != "" ? Cap(ch, 30000) : Cap(seg, 600), time)); }
+                else if (tool == "write_stdin") list.Add(Ev("tool", "write_stdin", Cap(seg, 300), time));
+                else list.Add(Ev("tool", tool, Cap(seg, 600), time));
+            }
+            return list;
+        }
+        /// <summary>Drops the encrypted "message" Codex stores for helper-agent tools, so what is shown is the task and target.</summary>
+        static string CleanToolArgs(JavaScriptSerializer js, string name, string args)
+        {
+            if (name != "spawn_agent" && name != "send_message" && name != "followup_task") return args;
+            try { var d = js.Deserialize<Dictionary<string, object>>(args); string msg = Str(d, "message"); if (msg.StartsWith("gAAAA") || msg.Length > 400) d["message"] = msg.StartsWith("gAAAA") ? "(sent to the helper)" : msg.Substring(0, 400) + "..."; return js.Serialize(d); } catch (Exception) { return args; }
+        }
         static string CodexCommand(JavaScriptSerializer js, string arguments)
         {
             try
@@ -316,8 +369,11 @@ namespace Laica
                 else if (ty == "function_call" || ty == "custom_tool_call")
                 {
                     string name = Str(p, "name") == "" ? "tool" : Str(p, "name"), args = ty == "function_call" ? Str(p, "arguments") : Str(p, "input");
-                    if (name == "shell" || name == "shell_command" || name == "exec_command" || name == "container.exec") { string c = CodexCommand(json, args); if (c != "") { Add(list, Ev("tool", "shell", Cap(c, 2000), time)); open = true; continue; } }
-                    Add(list, Ev("tool", name == "apply_patch" ? "file change" : name, Cap(args, 2000), time)); open = true;
+                    if ((name == "exec" || name == "js") && !args.TrimStart().StartsWith("{")) { var evs = CodexScriptEvents(s, args, time); if (evs.Count > 0) { foreach (var se in evs) Add(list, se); open = true; continue; } Add(list, Ev("tool", "script", Cap(args, 1500), time)); open = true; continue; }
+                    args = CleanToolArgs(json, name, args);
+                    if (name == "shell" || name == "shell_command" || name == "exec_command" || name == "container.exec" || name == "exec" || name == "run_command" || name == "bash") { string c = CodexCommand(json, args); if (c != "") { Add(list, Ev("tool", "shell", Cap(c, 2000), time)); open = true; continue; } }
+                    if (name == "apply_patch" || name == "edit" || name == "patch") { string changes = PatchChanges(json, args); if (changes != "") { Add(list, Ev("tool", "file change", Cap(changes, 30000), time)); open = true; continue; } }
+                    Add(list, Ev("tool", name == "exec" || name == "run_command" || name == "bash" ? "shell" : name, Cap(args, 2000), time)); open = true;
                 }
                 else if (ty == "local_shell_call") { var act = Obj(p, "action"); string c = act != null && act.ContainsKey("command") ? Flatten(act["command"]) : ""; Add(list, Ev("tool", "shell", Cap(c.Replace("\n", " "), 2000), time)); open = true; }
                 else if (ty == "web_search_call") { var act = Obj(p, "action"); Add(list, Ev("tool", "web search", Str(act, "query"), time)); open = true; }

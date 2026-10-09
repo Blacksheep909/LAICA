@@ -140,6 +140,11 @@ public static class TagTeamChecks
             Check(Dicts(m.History(cid)).Any(h => (string)h["Kind"] == "assistant" && h.ContainsKey("By") && (string)h["By"] == idb && ((string)h["Text"]).Contains("B worked")), "tag-team: the partner's work shows in the same chat, tagged with its vendor");
             m.PairConfigure(cid, new Dictionary<string, object> { { "PartnerModel", "opus-test" } });
             Check((string)((Dictionary<string, object>)Info(m, cid)["Partner"])["Model"] == "opus-test", "per-chat partner: the partner's model can be chosen for each chat");
+            m.PairConfigure(cid, new Dictionary<string, object> { { "PartnerEffort", "high" } });
+            Check((string)((Dictionary<string, object>)Info(m, cid)["Partner"])["Effort"] == "high", "per-chat partner: the partner's reasoning effort can be chosen too");
+            bool badEffort = false; try { m.PairConfigure(cid, new Dictionary<string, object> { { "PartnerEffort", "ludicrous" } }); } catch (ArgumentException) { badEffort = true; }
+            Check(badEffort, "per-chat partner: an unknown effort is refused");
+            m.PairConfigure(cid, new Dictionary<string, object> { { "PartnerEffort", "default" } });
             bool badModel = false; try { m.PairConfigure(cid, new Dictionary<string, object> { { "PartnerModel", "x; calc" } }); } catch (ArgumentException) { badModel = true; }
             Check(badModel, "per-chat partner: a model name can't carry extra arguments");
             m.PairConfigure(cid, new Dictionary<string, object> { { "PartnerModel", "default" } });
