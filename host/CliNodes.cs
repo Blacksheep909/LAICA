@@ -32,7 +32,17 @@ namespace Laica
         /// (like API nodes), so Claude Code runs in plan (read-only) mode and nothing is ever approved on the user's behalf.
         /// </summary>
         public Task<string> RunOnceAsync(string harnessId, string model, string prompt, string cwd, CancellationToken token) { return RunOnceAsync(harnessId, model, null, prompt, cwd, token); }
-        public async Task<string> RunOnceAsync(string harnessId, string model, string effort, string prompt, string cwd, CancellationToken token)
+        string CliArguments(HarnessInfo info, string model, string effort, string prompt, string cwd, bool canEdit)
+        {
+            if (info.Custom) return (info.Args ?? "").Replace("{prompt}", Quote(prompt)).Replace("{cwd}", Quote(cwd));
+            if (info.Id == "claude") return "-p --output-format text --permission-mode " + (canEdit ? info.DefaultMode : "plan") + (String.IsNullOrEmpty(model) || model == "default" ? "" : " --model " + model) + (ValidEffort(effort) != null ? " --effort " + ValidEffort(effort) : "");
+            return Arguments(new Session { Harness = info.Id, Mode = info.DefaultMode, Cwd = cwd }, info, prompt);
+        }
+        /// <summary>The command line a designer node would use (used by checks): read-only unless canEdit.</summary>
+        public string CliArgumentPreview(string harnessId, bool canEdit) { var info = Harnesses().First(h => h.Id == harnessId); return CliArguments(info, "", null, "", ".", canEdit); }
+        public Task<string> RunOnceAsync(string harnessId, string model, string effort, string prompt, string cwd, CancellationToken token) { return RunOnceAsync(harnessId, model, effort, prompt, cwd, false, token); }
+        /// <summary>canEdit=false is the read-only reasoning mode (Claude in plan mode). canEdit=true uses the agent's own default permission mode (for Claude, accept-edits): anything beyond that is still refused, never approved for the user.</summary>
+        public async Task<string> RunOnceAsync(string harnessId, string model, string effort, string prompt, string cwd, bool canEdit, CancellationToken token)
         {
             var info = Harnesses().FirstOrDefault(h => h.Id == harnessId && h.Available);
             if (info == null) throw new InvalidOperationException("That agent isn't installed on this computer any more.");
@@ -40,10 +50,7 @@ namespace Laica
             if (!String.IsNullOrEmpty(model) && !Regex.IsMatch(model, @"^[A-Za-z0-9._\-]{1,80}$")) throw new ArgumentException("That model name isn't valid.");
             if (String.IsNullOrEmpty(cwd) || !Directory.Exists(cwd)) cwd = Environment.CurrentDirectory;
             bool inArg = (info.Args ?? "").Contains("{prompt}");
-            string args;
-            if (info.Custom) args = (info.Args ?? "").Replace("{prompt}", Quote(prompt)).Replace("{cwd}", Quote(cwd));
-            else if (info.Id == "claude") args = "-p --output-format text --permission-mode plan" + (String.IsNullOrEmpty(model) || model == "default" ? "" : " --model " + model) + (ValidEffort(effort) != null ? " --effort " + ValidEffort(effort) : "");
-            else args = Arguments(new Session { Harness = info.Id, Mode = info.DefaultMode, Cwd = cwd }, info, prompt);
+            string args = CliArguments(info, model, effort, prompt, cwd, canEdit);
             string exe = ResolveExe(info.Path);
             var psi = new ProcessStartInfo { FileName = exe, Arguments = args, WorkingDirectory = cwd, UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8 };
             if (exe.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase) || exe.EndsWith(".bat", StringComparison.OrdinalIgnoreCase)) { psi.Arguments = "/c \"\"" + exe + "\" " + args + "\""; psi.FileName = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe"; }

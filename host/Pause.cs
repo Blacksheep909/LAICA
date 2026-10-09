@@ -71,7 +71,7 @@ namespace Laica
             Session s; Process p;
             lock (gate)
             {
-                s = Get(id);
+                s = Live(Get(id));
                 if (!s.Busy) throw new InvalidOperationException("This chat isn't working right now.");
                 if (s.Harness == "workflow") throw new InvalidOperationException("A workflow run can't be paused. Stop it instead.");
                 if (s.Paused) return;
@@ -84,7 +84,7 @@ namespace Laica
         public void Resume(string id)
         {
             Session s; Process p;
-            lock (gate) { s = Get(id); if (!s.Paused) return; s.Paused = false; p = s.Proc; }
+            lock (gate) { s = Get(id); if (!s.Paused && s.Child != null && s.Child.Paused) s = s.Child; if (!s.Paused) return; s.Paused = false; p = s.Proc; }
             if (p != null) { try { if (!p.HasExited) SuspendTree(p.Id, false); } catch (Exception) { } }
             s.Go.Set(); Emit(s, "resumed", "Resumed.", null); Raise();
         }

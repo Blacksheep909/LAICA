@@ -1,5 +1,6 @@
 import {HandoffCard} from './Handoff';
 import {CoAuthorCard} from './CoAuthor';
+import {ContinuityCard} from './TagTeam';
 import {UpdatesCard} from './Updates';
 import {ComputerCard} from './ComputerCard';
 import {loadLook,saveLook,DEFAULT_LOOK,ACCENTS,type Look,type GlassKind} from './look';
@@ -31,7 +32,7 @@ export default function SettingsPage({onCss,workingDirectory,services,models,ani
   if(!isDesktop)return <div className="empty-state compact"><h2>Settings need the desktop app</h2></div>;
   return <div className="settings-content page-pad">
     <div className="pv-switch settings-tabs" role="tablist">{tabs.filter(([id])=>!(isRemote&&(id==='remote'))).map(([id,label])=><button key={id} role="tab" aria-selected={tab===id} className={tab===id?'on':''} onClick={()=>setTab(id)}>{label}</button>)}</div>
-    {tab==='agents'&&<><Glass material="regular" className="setting-card"><HandoffCard/></Glass><Glass material="regular" className="setting-card"><CoAuthorCard/></Glass><Glass material="regular" className="setting-card"><UpdatesCard/></Glass><Glass material="regular" className="setting-card"><ComputerCard/></Glass><AgentsTab fail={fail}/></>}
+    {tab==='agents'&&<><Glass material="regular" className="setting-card"><HandoffCard/></Glass><Glass material="regular" className="setting-card"><ContinuityCard/></Glass><Glass material="regular" className="setting-card"><CoAuthorCard/></Glass><Glass material="regular" className="setting-card"><UpdatesCard/></Glass><Glass material="regular" className="setting-card"><ComputerCard/></Glass><AgentsTab fail={fail}/></>}
     {tab==='mcp'&&<McpTab fail={fail}/>}
     {tab==='remote'&&<RemoteTab fail={fail}/>}
     {tab==='channels'&&<ChannelsTab fail={fail} harnesses={harnesses} workingDirectory={workingDirectory} services={services} models={models}/>}

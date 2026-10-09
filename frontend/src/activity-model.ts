@@ -17,7 +17,7 @@ export function workArea(event?:ActivityEvent):WorkArea{
  if(event.Command||/command|exec_command|write_stdin/i.test(tool+' '+kind))return 'terminal';
  if(event.Path||/file_change|edit|read|search/.test(kind)||/apply_patch|view_image/.test(tool))return 'files';
  if(/cua|sky|browser|web__|web\.run|web\.search/i.test(tool))return 'browser';
- if(/spawn_agent|followup_task|send_message|wait_agent|handoff/.test(tool+' '+kind))return 'handoff';
+ if(/spawn_agent|followup_task|send_message|wait_agent|handoff|pairwait/.test(tool+' '+kind)||/^switch$/.test(kind))return 'handoff';
  return 'update';
 }
 export function eventsFor(snapshot:Activity,agentId?:string){
@@ -30,4 +30,16 @@ export function stateLabel(state:string){return ({running:'Working · recorded',
 export function eventTitle(e:ActivityEvent){
  if(e.Command)return `${/failed|error/.test(e.Kind)||e.ExitCode!=null&&e.ExitCode!==0?'Command failed':e.ExitCode!=null||/complete/.test(e.Kind)?'Ran':'Command requested'}: ${e.Command.split(/\r?\n/)[0]}`;
  return e.Text||e.Tool||e.Path||'Recorded step';
+}
+
+/** The switches and waits of a tag-team chat, oldest first, for a timeline: who handed to whom, when and why. */
+export interface SwitchStep { time:string; text:string; wait:boolean; from?:string; to?:string; reason?:string }
+export function switchTimeline(events:{Kind:string;Text:string;Detail?:string|null;TimeUtc:string}[]):SwitchStep[]{
+ const out:SwitchStep[]=[];
+ for(const e of events){
+  if(e.Kind!=='switch'&&e.Kind!=='pairwait')continue;
+  let d:{From?:string;To?:string;Reason?:string}={};try{d=JSON.parse(e.Detail??'{}') as typeof d;}catch{/* wait events carry a time, not json */}
+  out.push({time:e.TimeUtc,text:e.Text,wait:e.Kind==='pairwait',from:d.From,to:d.To,reason:d.Reason});
+ }
+ return out;
 }

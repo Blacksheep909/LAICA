@@ -127,6 +127,7 @@ public static class HarnessTests
         if (args.Length > 0 && args[0] == "--fake-member") return FakeMember();
         if (args.Length > 0 && args[0] == "--fake-limited") return FakeLimited();
         if (args.Length > 0 && args[0] == "--fake-codex") return FakeCodex();
+        if (args.Length > 1 && args[0] == "--fake-tag") return TagTeamChecks.FakeTag(args[1]);
         string root = Path.Combine(Path.GetTempPath(), "laica-harness-test-" + Guid.NewGuid().ToString("N")), work = Path.Combine(root, "work");
         Directory.CreateDirectory(work); File.WriteAllText(Path.Combine(work, "a.txt"), "hello"); Directory.CreateDirectory(Path.Combine(work, "sub"));
         string outside = Path.Combine(root, "secret.txt"); File.WriteAllText(outside, "nope");
@@ -999,6 +1000,7 @@ public static class HarnessTests
                 using (var m = new HarnessManager(hroot))
                     Check((string)((Dictionary<string, object>)m.HandoffGet())["Mode"] == "team", "handoff: the setting survives a restart");
             }
+            failures += TagTeamChecks.Run(root);
             using (var m2 = new HarnessManager(root))
             {
                 var list = Dicts(m2.List());

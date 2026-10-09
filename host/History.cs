@@ -197,14 +197,14 @@ namespace Laica
         public object ImportList(bool refresh)
         {
             var list = LoadHistory(refresh); var open = new Dictionary<string, string>();
-            lock (gate) foreach (var s in sessions.Values) if (!String.IsNullOrEmpty(s.ExternalId)) open[s.Harness + "|" + s.ExternalId] = s.Id;
+            lock (gate) foreach (var s in sessions.Values) if (!String.IsNullOrEmpty(s.ExternalId)) open[s.Harness + "|" + s.ExternalId] = (s.Parent ?? s).Id;
             return list.Select(h => (object)new Dictionary<string, object> { { "Source", h.Source }, { "ExternalId", h.ExternalId }, { "Title", h.Title }, { "Project", h.Project }, { "ProjectName", h.ProjectName }, { "ProjectId", h.ProjectId }, { "UpdatedUtc", h.Updated.ToString("o") }, { "SessionId", open.ContainsKey(h.Source + "|" + h.ExternalId) ? open[h.Source + "|" + h.ExternalId] : "" } }).ToArray();
         }
 
         public object ImportOpen(string source, string externalId, string fallbackCwd)
         {
             if (source != "codex" && source != "claude") throw new ArgumentException("Unknown source.");
-            lock (gate) { var existing = sessions.Values.FirstOrDefault(x => x.Harness == source && x.ExternalId == externalId); if (existing != null) return Dto(existing); }
+            lock (gate) { var existing = sessions.Values.FirstOrDefault(x => x.Harness == source && x.ExternalId == externalId); if (existing != null) return Dto(existing.Parent ?? existing); }
             var entry = LoadHistory(false).FirstOrDefault(h => h.Source == source && h.ExternalId == externalId) ?? LoadHistory(true).FirstOrDefault(h => h.Source == source && h.ExternalId == externalId);
             if (entry == null) throw new ArgumentException("That conversation can't be found any more.");
             var info = Harnesses().FirstOrDefault(h => h.Id == source);

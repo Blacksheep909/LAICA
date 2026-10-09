@@ -16,6 +16,8 @@ namespace Laica
         public string Id, ParentId, Name, Role, Model, Effort, Job;
         public string ConnectionId = "codex";
         public float X, Y;
+        /// <summary>CLI agent nodes only: false (the default) keeps the node read-only; true lets it edit files in the working folder with the agent's normal permission mode.</summary>
+        public bool CanEdit;
     }
     public class AgentPlan
     {
@@ -209,6 +211,7 @@ namespace Laica
         async Task<string> RunCoreAsync(AgentPlan plan, List<ModelInfo> catalog, string cli, string workingDirectory, bool solo, CancellationToken token)
         {
             GraphValidator.Validate(plan,catalog,solo); if(solo) {var soloRoot=plan.Nodes.Single(n=>n.Id=="root");Status("root","running","Sol only");try{var soloAnswer=await Execute(soloRoot,"SOLO mode. Complete this goal yourself using read-only tools if needed. Do not delegate or claim worker involvement. Goal: "+plan.Goal,cli,workingDirectory,token).ConfigureAwait(false);Status("root","done","Complete");Status("$review","done","Supervisor completed the solo answer");return soloAnswer;}catch(OperationCanceledException){Status("root","cancelled","Cancelled");throw;}catch(Exception ex){Status("root","error",ex.Message);throw;}} var output=new Dictionary<string,string>(); var failures=new Dictionary<string,string>();
+            int writers=plan.Nodes.Count(n=>n.CanEdit&&(n.ConnectionId??"").StartsWith("cli:",StringComparison.Ordinal)); if(writers>1) Say("Warning: "+writers+" nodes can edit files in the same folder and no worktree separates them, so their changes can collide. Give each its own scope.");
             var root=plan.Nodes.Single(n=>n.Id=="root"); Status("root","running","Planning");
             string rootPrompt="Goal: "+plan.Goal+"\nPlan nodes and jobs:\n"+ToPromptLimited(plan,MaxRootPlan)+"\nYou are the root coordinator. Produce a concise execution plan. The harness schedules every worker. Do not delegate, spawn agents, or use native multi-agent features.";
             try { output["root"]=await Execute(root,rootPrompt,cli,workingDirectory,token).ConfigureAwait(false); }
@@ -238,12 +241,15 @@ namespace Laica
         static string ToPromptLimited(AgentPlan p,int max) { return Limit(GraphPlanHelpers.ToPrompt(p),max); }
 
                 public Func<string,string,string,string,string,CancellationToken,Task<string>> CliRunner;
+                /// <summary>Same, but told whether the node may edit files. Used for nodes marked CanEdit.</summary>
+                public Func<string,string,string,string,string,bool,CancellationToken,Task<string>> CliRunnerEx;
         async Task<string> Execute(AgentNode node,string prompt,string cli,string cwd,CancellationToken token,string statusId=null)
         {
             if((node.ConnectionId??"").StartsWith("cli:",StringComparison.Ordinal))
             {
                 if(CliRunner==null) throw new InvalidOperationException("Agent CLIs are unavailable in this run.");
                 string agent=node.ConnectionId.Substring(4); Say(node.Name+" / "+agent+" / "+node.Model); Status(statusId??node.Id,"running",agent+" - "+node.Model);
+                if(node.CanEdit&&CliRunnerEx!=null) return Limit(await CliRunnerEx(agent,node.Model,node.Effort,"Role: "+node.Role+". Assigned scope: "+node.Job+". You may edit files in the working folder within your scope; report what you changed.\n\n"+prompt,cwd,true,token).ConfigureAwait(false),node.Id=="root"?MaxRootPlan:MaxParent);
                 return Limit(await CliRunner(agent,node.Model,node.Effort,"Role: "+node.Role+". Assigned scope: "+node.Job+". Reply with text only; do not edit files or run commands.\n\n"+prompt,cwd,token).ConfigureAwait(false),node.Id=="root"?MaxRootPlan:MaxParent);
             }
             if(GraphValidator.Connection(node.ConnectionId)=="codex") return await ExecuteCodex(node,prompt,cli,cwd,token,statusId).ConfigureAwait(false);

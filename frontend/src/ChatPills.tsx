@@ -8,6 +8,7 @@ import type {HSession} from './harness-store';
 import type {Model} from './types';
 
 import {useClaudeModels} from './ClaudeModels';
+import {TagTeamPills} from './TagTeam';
 
 /** Model, reasoning and permission pills for an open chat, the same choices the new-chat screen offers. Changes apply from the next message. */
 export default function ChatPills({session,models}:{session:HSession;models:Model[]}){
@@ -31,5 +32,6 @@ export default function ChatPills({session,models}:{session:HSession;models:Mode
     {modelOptions.length>1&&<Select variant="pill" aria-label="Model" value={modelValue} options={modelOptions} onChange={e=>void apply({Model:e.target.value})} searchable={modelOptions.length>9} menuWidth={300} triggerLabel={modelOptions.find(o=>o.value===modelValue)?.label}/>}
     {levels.length>0&&<Select variant="pill" aria-label="Reasoning effort" value={session.Effort??''} options={[{value:'',label:'Default',description:'Let the model decide'},...levels.map(l=>({value:l,label:effortLabel[l]}))]} onChange={e=>void apply({Effort:e.target.value})} triggerLabel={'Effort · '+(session.Effort?effortLabel[session.Effort]??session.Effort:'Default')} menuWidth={220}/>}
     {modes.length>1&&<Select variant="pill" aria-label="Permissions" value={session.Mode||info?.DefaultMode||''} options={modes.map(m=>({value:m,label:modeLabel[m]??m}))} onChange={e=>void apply({Mode:e.target.value})}/>}
+    <TagTeamPills session={session}/>
   </>;
 }

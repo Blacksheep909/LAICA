@@ -25,6 +25,7 @@ Under the install folder, in `harness\` (survives upgrades and uninstalls):
 | `images\` | pictures the agent saw or made in your chats (screenshots and the like), kept with each chat |
 | `prices-verified.json`, `prices2.json` | the last prices read from the vendors' pages, and any family price you edited |
 | `usage.json`, `analytics.json` | token counters and the cached summary of your Codex and Claude logs (counts only, no message text) |
+| `switches.json` | one record per tag-team switch (time, agents, reason, estimated cost) |
 | `prices.json`, `handoff.json`, `coauthor.json`, `updates.json`, `agents.json`, `tasks.json` | your settings |
 | `hooks\` | the small git hooks used for the co-author trailer |
 
@@ -47,6 +48,10 @@ To delete everything LAICA stored, close it and delete the `harness` folder and 
 - **Git.** Only the git commands you or an agent run. LAICA does not push anything by itself.
 
 LAICA's only own network request is the update check below. The interface is loaded from local files under a Content-Security-Policy that blocks remote scripts and connections.
+
+## Handoff file
+
+Tag-team and assisted chats write HANDOFF.md (and HANDOFF.prev.md) into your project folder. It is built on your computer from the chat and the folder, with API keys, tokens and passwords removed. It is plain text in your project, so it is committed if you commit it: add it to .gitignore if you don't want that.
 
 ## Co-author trailer
 

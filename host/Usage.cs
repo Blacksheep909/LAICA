@@ -54,7 +54,7 @@ namespace Laica
         void MarkLimited(string key, string text)
         {
             DateTime until = DateTime.UtcNow.AddMinutes(30);
-            var m = ResetRx.Match(text ?? "");
+            var m = ResetRx.Match(text ?? ""); bool parsed = m.Success;
             if (m.Success)
             {
                 double n; if (Double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out n))
@@ -63,6 +63,7 @@ namespace Laica
                     until = DateTime.UtcNow.AddMinutes(Math.Max(1, Math.Min(mins + 1, 7 * 1440)));
                 }
             }
+            until = RefineReset(key, text, until, parsed);
             lock (gate) { var u = Use(key); u.Limits++; u.LimitedUntil = until; u.LimitText = (text ?? "").Length > 300 ? text.Substring(0, 300) : (text ?? ""); u.LastUtc = DateTime.UtcNow; SaveUsage(); }
         }
 
@@ -98,8 +99,17 @@ namespace Laica
             string key = VendorKey(s); MarkLimited(key, text);
             Emit(s, "limit", VendorName(key) + " has run out of usage.", key);
             Raise();
-            var chat = s; string exhausted = key;
-            System.Threading.ThreadPool.QueueUserWorkItem(_ => { try { AutoHandoffChat(chat, exhausted); } catch (Exception ex) { try { Emit(chat, "notice", "Automatic handoff failed: " + ex.Message, null); } catch (Exception) { } } });
+            var chat = s; string exhausted = key; var main = s.Parent ?? s;
+            System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    if (ContMode(main) != "off") WriteHandoffFile(main, chat);   // a parked vendor always leaves the project notes up to date
+                    if (ContMode(main) == "automatic" && AutoOn(main) && String.IsNullOrEmpty(main.TeamId)) PairOnLimit(main, chat, exhausted);
+                    else if (chat.Parent == null) AutoHandoffChat(chat, exhausted);
+                }
+                catch (Exception ex) { try { Emit(main, "notice", "Automatic handoff failed: " + ex.Message, null); } catch (Exception) { } }
+            });
         }
 
         public object Usage()

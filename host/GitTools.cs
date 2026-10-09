@@ -82,7 +82,7 @@ namespace Laica
                 try
                 {
                     foreach (string sub in Directory.GetDirectories(d)) { string n = Path.GetFileName(sub); if (SkipDirs.Contains(n, StringComparer.OrdinalIgnoreCase)) continue; if ((File.GetAttributes(sub) & FileAttributes.ReparsePoint) != 0) continue; stack.Push(sub); }
-                    foreach (string f in Directory.GetFiles(d)) { if (map.Count >= limit) break; var fi = new FileInfo(f); map[f.Substring(root.Length).TrimStart('\\', '/')] = fi.Length + ":" + fi.LastWriteTimeUtc.Ticks; }
+                    foreach (string f in Directory.GetFiles(d)) { if (map.Count >= limit) break; if (Path.GetFileName(f).StartsWith("HANDOFF", StringComparison.OrdinalIgnoreCase)) continue; /* LAICA's own project notes are not an outside change */ var fi = new FileInfo(f); map[f.Substring(root.Length).TrimStart('\\', '/')] = fi.Length + ":" + fi.LastWriteTimeUtc.Ticks; }
                 }
                 catch (Exception) { }
             }

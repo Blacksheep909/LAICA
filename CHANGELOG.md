@@ -3,6 +3,22 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.21.0]
+
+### Added
+- **Tag-team continuity.** Two agents from different vendors (for example Codex and Claude Code) can now work one chat in turns. When the one holding the work runs out of usage, LAICA hands it to the other automatically, and hands it back when the first has reset, as many times as it takes, with nothing to click and nothing to re-explain. Each agent keeps its own session and picks it up with its own CLI's resume, so a switch sends only what the incoming agent has not seen: the user's latest request, the other agent's last message, the files changed, the commands run and any file that was being edited when the agent stopped (flagged "verify first"). The first time an agent joins it gets a fuller briefing. If an agent cannot resume its earlier session, LAICA starts it fresh from the project notes.
+- **Handoff written by LAICA, not by a model.** LAICA builds the handoff itself from the chat's event log and the project folder, so it works even when the agent that was working has no usage left to write a summary. Secrets (API keys, tokens, passwords, private keys) are redacted. It works in folders without git (file times are used; LAICA never runs `git init`).
+- **HANDOFF.md.** After every finished turn, and whenever a vendor is parked, LAICA refreshes `HANDOFF.md` in the project folder (path is configurable; the previous copy is kept as `HANDOFF.prev.md`): goal, current stage, what is done, what is in progress, files touched, "verify first" files, recent commands and active constraints, with who updated it and when. Everything below the **Pinned** heading is yours and is never overwritten. The new **Handoff** tab in the workspace panel shows it and lets you edit the Pinned notes.
+- **Continuity modes** (Settings > Agents > Continuity, and a per-chat "Tag-team" pill): *Off*, *Assisted* (the default: keeps HANDOFF.md up to date, you switch by hand) and *Automatic tag-team*. New chats can start as a tag-team from the model picker ("Codex + Claude Code"). Per chat: partner agent, switch automatically on a limit, switch back when reset.
+- **Header chip and Switch now.** A tag-team chat shows who is working and when the other resets ("Claude Code active · Codex resets 3:40 pm"), turning amber past 80% used. Hovering shows exactly what a switch would send, with an estimated size and cost. Switches appear in the chat as a timeline and each one is logged with its estimated cost.
+- **When both agents are out of usage**, the chat pauses, says when it will carry on, and resumes by itself (with a notification) when the first one resets. Messages you type meanwhile are queued.
+- **Loop guard.** Automatic switching is no longer capped at two moves for tag-team chats. Instead it only switches at a safe point (between turns), waits a minimum gap before optional switches (a usage limit is never delayed), and stops and asks if there have been too many switches in a short time with no file changing. All of these numbers are settings. The old two-move cap still applies to single-agent and team handoffs.
+- **Designer nodes can edit.** Agent CLI nodes in the Workflow designer have a Files setting: Read-only (the default, as before) or Can edit, which uses the agent's normal permission mode. A warning appears when two editing nodes share a folder.
+
+### Changed
+- A usage-limit message that names a reset time ("resets 3pm") or a full plan window now sets exactly when the vendor is usable again, instead of a fixed 30 minutes.
+- The "changes while you were away" notice no longer lists LAICA's own HANDOFF files.
+- The four navigation rows and the search box in the sidebar now share one bar style: same height, same lavender hover and selected fill, and no outline.
 ## [0.20.2]
 
 ### Changed

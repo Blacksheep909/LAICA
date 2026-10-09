@@ -19,6 +19,7 @@ namespace Laica
             public string Id, Harness, Cwd, Mode, ExternalId, Title = "New chat", Rules, AssistantId; public Process Proc; public bool Busy, HasSentRules, Paused, HandoffDone; public int HandoffDepth; public readonly System.Threading.ManualResetEventSlim Go = new System.Threading.ManualResetEventSlim(true);
             public string ServiceId, Model, ImageModel, Effort, TeamId; public List<Dictionary<string, object>> Messages = new List<Dictionary<string, object>>(); public System.Threading.CancellationTokenSource Cts;
             public bool Notify, Interactive, Ended; public string TurnPrompt; public readonly object InLock = new object(); public readonly Dictionary<string, Dictionary<string, object>> Pending = new Dictionary<string, Dictionary<string, object>>(); public readonly HashSet<string> AlwaysAllow = new HashSet<string>();
+            public PairState Pair = new PairState(); public Session Parent, Child; public string ParentId; public long Seq; public bool Probe;
             public long TIn, TOut, TCr, TCw; public bool Isolated; public string RepoRoot, Branch, BaseBranch, BaseCommit, WorktreePath, SnapHead; public Dictionary<string, string> Snapshot;
             public readonly List<Dictionary<string, object>> Events = new List<Dictionary<string, object>>();
         }
@@ -42,7 +43,7 @@ namespace Laica
             dir = Path.Combine(dataDir ?? Path.GetTempPath(), "harness");
             try { Directory.CreateDirectory(Path.Combine(dir, "sessions")); } catch (Exception) { }
             tasks = LoadList("tasks.json"); agents = LoadList("agents.json"); teams = LoadList("teams.json");
-            LoadSessions(); LoadUsage(); LoadHandoff(); PurgeTrash();
+            LoadSessions(); LoadUsage(); LoadHandoff(); LinkPairs(); PurgeTrash();
             scheduler = new Timer(_ => Tick(), null, 15000, 15000);
         }
 
@@ -99,11 +100,11 @@ namespace Laica
         // ---------- sessions ----------
         public object List()
         {
-            lock (gate) return sessions.Values.Select(Dto).ToArray();
+            lock (gate) return sessions.Values.Where(x => x.Parent == null).Select(Dto).ToArray();
         }
         static string LastEventTime(Session s) { try { for (int i = s.Events.Count - 1; i >= 0; i--) { string t = Str(s.Events[i], "TimeUtc"); if (t != "") return t; } } catch (Exception) { } return ""; }
         static string LastUserTime(Session s) { try { for (int i = s.Events.Count - 1; i >= 0; i--) if (Str(s.Events[i], "Kind") == "user") return Str(s.Events[i], "TimeUtc"); } catch (Exception) { } return ""; }
-        static Dictionary<string, object> Dto(Session s) { return new Dictionary<string, object> { { "Id", s.Id }, { "Harness", s.Harness }, { "Title", s.Title }, { "Cwd", s.Cwd }, { "Mode", s.Mode }, { "Busy", s.Busy }, { "BusySince", s.Busy ? LastUserTime(s) : "" }, { "UpdatedUtc", LastEventTime(s) }, { "Paused", s.Paused }, { "AssistantId", s.AssistantId }, { "Isolated", s.Isolated }, { "Branch", s.Branch }, { "ServiceId", s.ServiceId }, { "Model", s.Model }, { "Effort", s.Effort }, { "TeamId", s.TeamId }, { "Project", s.Isolated && !String.IsNullOrEmpty(s.RepoRoot) ? s.RepoRoot : s.Cwd } }; }
+        static Dictionary<string, object> Dto(Session s) { return new Dictionary<string, object> { { "Id", s.Id }, { "Harness", s.Harness }, { "Title", s.Title }, { "Cwd", s.Cwd }, { "Mode", s.Mode }, { "Busy", IsBusy(s) }, { "BusySince", IsBusy(s) ? LastUserTime(s) : "" }, { "UpdatedUtc", LastEventTime(s) }, { "Paused", s.Paused || (s.Child != null && s.Child.Paused) }, { "Continuity", s.Pair.Mode }, { "TagTeam", s.Pair.Active == "partner" ? "partner" : (s.Pair.Mode == "automatic" || s.Child != null ? "primary" : "") }, { "Waiting", s.Pair.WaitUntil != DateTime.MinValue }, { "AssistantId", s.AssistantId }, { "Isolated", s.Isolated }, { "Branch", s.Branch }, { "ServiceId", s.ServiceId }, { "Model", s.Model }, { "Effort", s.Effort }, { "TeamId", s.TeamId }, { "Project", s.Isolated && !String.IsNullOrEmpty(s.RepoRoot) ? s.RepoRoot : s.Cwd } }; }
         public object Create(string harness, string cwd, string mode, string rules, string assistantId, string title) { return Create(harness, cwd, mode, rules, assistantId, title, false); }
         public object Create(string harness, string cwd, string mode, string rules, string assistantId, string title, bool isolate) { return Create(harness, cwd, mode, rules, assistantId, title, isolate, null, null); }
         public object Create(string harness, string cwd, string mode, string rules, string assistantId, string title, bool isolate, string serviceId, string model) { return Create(harness, cwd, mode, rules, assistantId, title, isolate, serviceId, model, null); }
@@ -197,7 +198,9 @@ namespace Laica
         public void Rename(string id, string title) { lock (gate) { Get(id).Title = String.IsNullOrWhiteSpace(title) ? "Chat" : title.Trim(); } SaveSession(sessions[id]); Raise(); }
         public void Close(string id)
         {
+            string kidId = null; lock (gate) { Session cs; if (sessions.TryGetValue(id, out cs) && cs.Child != null) kidId = cs.Child.Id; }
             try { Stop(id); } catch (Exception) { }
+            if (kidId != null) { lock (gate) sessions.Remove(kidId); try { File.Delete(Path.Combine(dir, "sessions", Safe(kidId) + ".json")); File.Delete(Path.Combine(dir, "sessions", Safe(kidId) + ".snap.json")); } catch (Exception) { } }
             lock (gate) sessions.Remove(id);
             // closing is undoable: the chat moves to a trash folder for two weeks instead of being deleted
             try
@@ -235,7 +238,8 @@ namespace Laica
         }
         public void Stop(string id)
         {
-            Process p; Session sx; lock (gate) { sx = Get(id); p = sx.Proc; }
+            Process p; Session sx; Session kid; lock (gate) { sx = Get(id); p = sx.Proc; kid = sx.Child; if (sx.Pair.WaitUntil != DateTime.MinValue) { sx.Pair.WaitUntil = DateTime.MinValue; sx.Pair.Pending = ""; } }
+            if (kid != null) { try { Stop(kid.Id); } catch (Exception) { } }
             CancelBuiltin(sx); ClearPause(sx);
             if (p != null) { try { if (!p.HasExited) KillTree(p.Id); } catch (Exception) { } }
         }
@@ -247,17 +251,24 @@ namespace Laica
 
         public void Send(string id, string prompt)
         {
-            if (String.IsNullOrWhiteSpace(prompt)) throw new ArgumentException("Write a message first.");
+            Session top; lock (gate) top = Get(id);
+            if (PairRoutes(top)) { PairSend(top, prompt); return; }
+            SendCore(id, prompt, null, true);
+        }
+        /// <summary>Starts one turn. agentPrompt (when given) is what the agent is told; prompt is what the chat shows. showUser=false when the chat already shows the message.</summary>
+        void SendCore(string id, string prompt, string agentPrompt, bool showUser)
+        {
+            if (String.IsNullOrWhiteSpace(prompt) && String.IsNullOrWhiteSpace(agentPrompt)) throw new ArgumentException("Write a message first.");
             if (prompt.Length > 100000) throw new ArgumentException("Message is too long.");
             Session s;
             lock (gate) { s = Get(id); if (s.Busy) throw new InvalidOperationException("This chat is still working. Stop it or wait."); s.HandoffDone = false; }
             var info = Harnesses().FirstOrDefault(h => h.Id == s.Harness);
             if (info == null || !info.Available) throw new InvalidOperationException((info == null ? "That agent" : info.Name) + " isn't installed on this computer.");
-            string core = prompt;
-            try { if (s.Snapshot != null) { string drift = GitTools.DescribeDrift(s.Snapshot, GitTools.Snapshot(s.Cwd), s.SnapHead, GitTools.Head(s.Cwd), s.Cwd); if (drift != null) { Emit(s, "notice", drift, null); core = drift + "\n\n---\n\n" + prompt; } } } catch (Exception) { }
+            string core = String.IsNullOrEmpty(agentPrompt) ? prompt : agentPrompt;
+            try { if (s.Snapshot != null) { string drift = GitTools.DescribeDrift(s.Snapshot, GitTools.Snapshot(s.Cwd), s.SnapHead, GitTools.Head(s.Cwd), s.Cwd); if (drift != null) { Emit(s, "notice", drift, null); core = drift + "\n\n---\n\n" + core; } } } catch (Exception) { }
             string sent = core;
             if (!String.IsNullOrWhiteSpace(s.Rules) && !s.HasSentRules) { sent = "Follow these standing instructions for this whole conversation:\n" + s.Rules.Trim() + "\n\n---\n\n" + core; }
-            if (s.Harness == "laica") { RunBuiltin(s, info, prompt, sent); return; }
+            if (s.Harness == "laica") { RunBuiltin(s, info, String.IsNullOrEmpty(agentPrompt) ? prompt : agentPrompt, sent); return; }
             if (s.Harness == "workflow") { RunWorkflowChat(s, prompt); return; }
             string exe = ResolveExe(info.Path);
             var psi = new ProcessStartInfo { FileName = exe, WorkingDirectory = s.Cwd, UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8 };
@@ -265,7 +276,7 @@ namespace Laica
             if (exe.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase) || exe.EndsWith(".bat", StringComparison.OrdinalIgnoreCase)) { psi.Arguments = "/c \"\"" + exe + "\" " + psi.Arguments + "\""; psi.FileName = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe"; }
             var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
             lock (gate) { s.Busy = true; s.Ended = false; s.Proc = proc; s.HasSentRules = true; if (s.Title.EndsWith(" chat") || s.Title == "New chat") s.Title = prompt.Length > 40 ? prompt.Substring(0, 40).Replace("\n", " ") + "…" : prompt.Replace("\n", " "); }
-            Emit(s, "user", prompt, null);
+            if (showUser) Emit(s, "user", prompt, null);
             Raise();
             try { proc.Start(); }
             catch (Exception ex) { Finish(s, "Could not start " + info.Name + ": " + ex.Message); return; }
@@ -334,6 +345,7 @@ namespace Laica
             CountTurn(s);
             Emit(s, "done", "", null);
             if (s.Notify) { string last = ""; lock (gate) { for (int i = s.Events.Count - 1; i >= 0; i--) if (Str(s.Events[i], "Kind") == "assistant") { last = Str(s.Events[i], "Text"); break; } } var done = Completed; if (done != null) done("Task finished: " + s.Title, String.IsNullOrEmpty(error) ? last : "Problem: " + error); }
+            PairAfterTurn(s);
             SaveSession(s); Raise();
         }
 
@@ -377,7 +389,7 @@ namespace Laica
         public void Approve(string id, string requestId, bool allow, bool always)
         {
             Session s; Dictionary<string, object> input; string tool = null;
-            lock (gate) { s = Get(id); if (!s.Pending.TryGetValue(requestId, out input)) throw new InvalidOperationException("That request was already answered."); s.Pending.Remove(requestId); }
+            lock (gate) { s = Get(id); if (!s.Pending.ContainsKey(requestId) && s.Child != null && s.Child.Pending.ContainsKey(requestId)) s = s.Child; if (!s.Pending.TryGetValue(requestId, out input)) throw new InvalidOperationException("That request was already answered."); s.Pending.Remove(requestId); }
             object waiter; if (input.TryGetValue("Wait", out waiter)) { if (always && allow) lock (gate) s.AlwaysAllow.Add(Str(input, "Tool")); input["Allow"] = allow; ((ManualResetEventSlim)waiter).Set(); Emit(s, "approval_result", allow ? "allowed" : "denied", requestId); return; }
             if (always && allow) { lock (gate) { var ev = s.Events.LastOrDefault(e => Str(e, "Kind") == "approval" && Str(e, "Detail").Contains(requestId)); if (ev != null) tool = Str(ev, "Text"); if (tool != null) s.AlwaysAllow.Add(tool); } }
             if (input.ContainsKey("RpcId")) RespondCodex(s, input["RpcId"], allow, always); else Respond(s, requestId, input, allow);
@@ -497,9 +509,17 @@ namespace Laica
         {
             var e = new Dictionary<string, object> { { "SessionId", s.Id }, { "Kind", kind }, { "Text", text }, { "Detail", detail }, { "TimeUtc", DateTime.UtcNow.ToString("o") } };
             if (images != null && images.Count > 0) e["Images"] = images.ToArray();
-            lock (gate) { s.Events.Add(e); if (s.Events.Count > 3000) s.Events.RemoveRange(0, 500); }
+            lock (gate) { e["N"] = ++s.Seq; if (s.Parent != null || s.Child != null || s.Pair.Mode != "") e["By"] = VendorKey(s); s.Events.Add(e); if (s.Events.Count > 3000) s.Events.RemoveRange(0, 500); }
             var h = Event; if (h != null) h(e);
+            if (s.Parent != null && kind != "user") MirrorToMain(s, e);
             if (kind == "error") NoteError(s, text);
+        }
+        /// <summary>What the tag-team partner does appears in the main chat as well, tagged with the vendor that did it.</summary>
+        void MirrorToMain(Session child, Dictionary<string, object> e)
+        {
+            var main = child.Parent; var c = new Dictionary<string, object>(e);
+            lock (gate) { c["SessionId"] = main.Id; c["N"] = ++main.Seq; c["By"] = VendorKey(child); main.Events.Add(c); if (main.Events.Count > 3000) main.Events.RemoveRange(0, 500); }
+            var h = Event; if (h != null) h(c);
         }
         void Raise() { var h = Changed; if (h != null) h(); }
 
@@ -513,7 +533,7 @@ namespace Laica
         void SaveSession(Session s)
         {
             Dictionary<string, object> d;
-            lock (gate) d = new Dictionary<string, object> { { "Id", s.Id }, { "Harness", s.Harness }, { "Cwd", s.Cwd }, { "Mode", s.Mode }, { "ExternalId", s.ExternalId }, { "Title", s.Title }, { "Rules", s.Rules }, { "AssistantId", s.AssistantId }, { "HasSentRules", s.HasSentRules }, { "Isolated", s.Isolated }, { "RepoRoot", s.RepoRoot }, { "Branch", s.Branch }, { "BaseBranch", s.BaseBranch }, { "BaseCommit", s.BaseCommit }, { "WorktreePath", s.WorktreePath }, { "ServiceId", s.ServiceId }, { "Model", s.Model }, { "ImageModel", s.ImageModel }, { "Effort", s.Effort }, { "TeamId", s.TeamId }, { "Messages", s.Messages.ToArray() }, { "Events", s.Events.ToArray() } };
+            lock (gate) d = new Dictionary<string, object> { { "Id", s.Id }, { "Harness", s.Harness }, { "Cwd", s.Cwd }, { "Mode", s.Mode }, { "ExternalId", s.ExternalId }, { "Title", s.Title }, { "Rules", s.Rules }, { "AssistantId", s.AssistantId }, { "HasSentRules", s.HasSentRules }, { "Isolated", s.Isolated }, { "RepoRoot", s.RepoRoot }, { "Branch", s.Branch }, { "BaseBranch", s.BaseBranch }, { "BaseCommit", s.BaseCommit }, { "WorktreePath", s.WorktreePath }, { "ServiceId", s.ServiceId }, { "Model", s.Model }, { "ImageModel", s.ImageModel }, { "Effort", s.Effort }, { "TeamId", s.TeamId }, { "ParentId", s.ParentId }, { "Seq", s.Seq }, { "Pair", PairToDict(s.Pair) }, { "Messages", s.Messages.ToArray() }, { "Events", s.Events.ToArray() } };
             try { string p = Path.Combine(dir, "sessions", Safe(s.Id) + ".json"), t = p + ".tmp"; File.WriteAllText(t, json.Serialize(d)); if (File.Exists(p)) File.Delete(p); File.Move(t, p); } catch (Exception) { }
             try { Dictionary<string, string> snap; string head; lock (gate) { snap = s.Snapshot; head = s.SnapHead; } if (snap != null) { string p = Path.Combine(dir, "sessions", Safe(s.Id) + ".snap.json"), t = p + ".tmp"; File.WriteAllText(t, json.Serialize(new Dictionary<string, object> { { "Head", head }, { "Files", snap } })); if (File.Exists(p)) File.Delete(p); File.Move(t, p); } } catch (Exception) { }
         }
@@ -526,7 +546,7 @@ namespace Laica
                     try
                     {
                         var d = json.Deserialize<Dictionary<string, object>>(File.ReadAllText(f));
-                        var s = new Session { Id = Str(d, "Id"), Harness = Str(d, "Harness"), Cwd = Str(d, "Cwd"), Mode = Str(d, "Mode"), ExternalId = Str(d, "ExternalId") == "" ? null : Str(d, "ExternalId"), Title = Str(d, "Title"), Rules = Str(d, "Rules"), AssistantId = Str(d, "AssistantId"), HasSentRules = Str(d, "HasSentRules") == "True", Isolated = Str(d, "Isolated") == "True", RepoRoot = Str(d, "RepoRoot"), Branch = Str(d, "Branch"), BaseBranch = Str(d, "BaseBranch"), BaseCommit = Str(d, "BaseCommit"), WorktreePath = Str(d, "WorktreePath"), ServiceId = Str(d, "ServiceId"), Model = Str(d, "Model"), ImageModel = Str(d, "ImageModel") == "" ? null : Str(d, "ImageModel"), Effort = Str(d, "Effort") == "" ? null : Str(d, "Effort"), TeamId = Str(d, "TeamId") == "" ? null : Str(d, "TeamId") };
+                        var s = new Session { Id = Str(d, "Id"), Harness = Str(d, "Harness"), Cwd = Str(d, "Cwd"), Mode = Str(d, "Mode"), ExternalId = Str(d, "ExternalId") == "" ? null : Str(d, "ExternalId"), Title = Str(d, "Title"), Rules = Str(d, "Rules"), AssistantId = Str(d, "AssistantId"), HasSentRules = Str(d, "HasSentRules") == "True", Isolated = Str(d, "Isolated") == "True", RepoRoot = Str(d, "RepoRoot"), Branch = Str(d, "Branch"), BaseBranch = Str(d, "BaseBranch"), BaseCommit = Str(d, "BaseCommit"), WorktreePath = Str(d, "WorktreePath"), ServiceId = Str(d, "ServiceId"), Model = Str(d, "Model"), ImageModel = Str(d, "ImageModel") == "" ? null : Str(d, "ImageModel"), Effort = Str(d, "Effort") == "" ? null : Str(d, "Effort"), TeamId = Str(d, "TeamId") == "" ? null : Str(d, "TeamId"), ParentId = Str(d, "ParentId"), Seq = Num(d, "Seq"), Pair = PairFromDict(Obj(d, "Pair")) };
                         var msgs = Arr(d, "Messages"); if (msgs != null) foreach (object mo in msgs) { var md = mo as Dictionary<string, object>; if (md != null) s.Messages.Add(md); }
                         if (s.Id == "") continue;
                         var ev = Arr(d, "Events"); if (ev != null) foreach (object o in ev) { var e = o as Dictionary<string, object>; if (e != null) s.Events.Add(e); }
@@ -590,6 +610,7 @@ namespace Laica
                 }
             }
             foreach (var t in due) { try { Execute(t); } catch (Exception) { } }
+            try { PairTick(); } catch (Exception) { }
         }
 
         void Execute(Dictionary<string, object> t)

@@ -147,6 +147,15 @@ namespace Laica
             case "usageGet": result = Harness.Usage(); break;
             case "usageBudget": result = Harness.SetUsageBudget(Text(payload,"Key"), payload.ContainsKey("Tokens")&&payload["Tokens"]!=null?Convert.ToInt64(payload["Tokens"]):-1L, payload.ContainsKey("Weekly")&&payload["Weekly"]!=null?Convert.ToInt64(payload["Weekly"]):-1L); break;
             case "usageClear": result = Harness.ClearUsageLimit(Text(payload,"Key")); break;
+            case "continuityGet": result = Harness.ContinuityGet(); break;
+            case "continuitySet": result = Harness.ContinuitySet(payload); break;
+            case "pairGet": result = Harness.PairInfo(Text(payload,"Id")); break;
+            case "pairSet": result = Harness.PairConfigure(Text(payload,"Id"), payload); break;
+            case "pairSwitch": result = Harness.PairSwitchNow(Text(payload,"Id")); break;
+            case "handoffPreview": result = Harness.HandoffPreview(Text(payload,"Id")); break;
+            case "handoffFileGet": result = Harness.HandoffFileGet(Text(payload,"Cwd")); break;
+            case "handoffFileSet": result = Harness.HandoffFileSet(Text(payload,"Cwd"), Text(payload,"Pinned")); break;
+            case "switchesGet": result = Harness.SwitchesGet(); break;
             case "harnessContinue": result = Harness.ContinueElsewhere(Text(payload,"Id"), Text(payload,"Harness"), Text(payload,"ServiceId"), Text(payload,"Model")); break;
             case "harnessSend": Harness.Send(Text(payload,"Id"), Text(payload,"Prompt")); result = true; break;
                     case "harnessStop": Harness.Stop(Text(payload,"Id")); result = true; break;
@@ -274,7 +283,7 @@ namespace Laica
         {
             AgentPlan snapshot;List<ModelInfo> catalog;List<ServiceConnection> connections;string cwd;bool solo;CancellationToken token;
             lock(gate){if(busy)throw new InvalidOperationException("A run is already active.");if(refreshing)throw new InvalidOperationException("Wait for the model catalog to finish refreshing.");ValidateStructure(plan);var root=plan.Nodes.Single(n=>n.Id=="root");if(GraphValidator.Connection(root.ConnectionId)=="codex")throw new InvalidOperationException("LAICA harness runs require a local service supervisor. Activate Codex teams for native Codex handoff.");GraphValidator.Validate(plan,models,mode=="solo");if(plan.Goal==null||plan.Goal.Trim().Length==0)throw new ArgumentException("Enter a goal before starting the run.");busy=true;answer="";runEvents.Clear();nodeStates.Clear();runToken=new CancellationTokenSource();token=runToken.Token;snapshot=ProfileLibrary.Copy(plan);catalog=models.ToList();connections=services.Select(CloneService).ToList();cwd=workingDirectory;solo=mode=="solo";status="Run started.";AddRunEvent("run","started","Run started.");}
-            var runner=new GraphRunner();runner.CliRunner=(agent,model,effort,prompt,folder,ct)=>Harness.RunOnceAsync(agent,model,effort,prompt,folder,ct);runner.NodeStatus+=(id,state,detail)=>{lock(gate){nodeStates[id]=state;AddRunStateEvent(id,state,detail,snapshot);}Publish();};runner.Message+=message=>{lock(gate)AddRunMessage(message,snapshot);Publish();};
+            var runner=new GraphRunner();runner.CliRunner=(agent,model,effort,prompt,folder,ct)=>Harness.RunOnceAsync(agent,model,effort,prompt,folder,ct);runner.CliRunnerEx=(agent,model,effort,prompt,folder,edit,ct)=>Harness.RunOnceAsync(agent,model,effort,prompt,folder,edit,ct);runner.NodeStatus+=(id,state,detail)=>{lock(gate){nodeStates[id]=state;AddRunStateEvent(id,state,detail,snapshot);}Publish();};runner.Message+=message=>{lock(gate)AddRunMessage(message,snapshot);Publish();};
             Task.Run(async()=>{try{string cli=ModelCatalog.FindCodex();string output=await runner.RunAsync(snapshot,catalog,cli,cwd,solo,connections,token).ConfigureAwait(false);lock(gate){answer=output;status="Run completed.";AddRunEvent("run","completed","Run completed successfully.");}}catch(OperationCanceledException){lock(gate){status=disposed?"Run cancelled because the workspace closed.":"Run stopped.";AddRunEvent("run","cancelled",status);}}catch(Exception ex){lock(gate){status="Run failed: "+ex.Message;AddRunEvent("run","error",status);}}finally{lock(gate){busy=false;if(runToken!=null){runToken.Dispose();runToken=null;}}Publish();}});
             Publish();return State();
         }
@@ -288,7 +297,7 @@ namespace Laica
                 runPlan=ProfileLibrary.Copy(profile.Plan); runPlan.Goal=goal; solo=profile.Mode=="solo"; catalog=models.ToList(); connections=services.Select(CloneService).ToList();
             }
             ValidateStructure(runPlan); GraphValidator.Validate(runPlan,catalog,solo);
-            var runner=new GraphRunner(); runner.CliRunner=(agent,model,effort,prompt,dir,ct)=>Harness.RunOnceAsync(agent,model,effort,prompt,dir,ct);
+            var runner=new GraphRunner(); runner.CliRunner=(agent,model,effort,prompt,dir,ct)=>Harness.RunOnceAsync(agent,model,effort,prompt,dir,ct);runner.CliRunnerEx=(agent,model,effort,prompt,dir,edit,ct)=>Harness.RunOnceAsync(agent,model,effort,prompt,dir,edit,ct);
             Func<string,string> Label=id=>{var n=runPlan.Nodes.FirstOrDefault(x=>x.Id==id);return n!=null?n.Name:id=="$input"?"Input":id=="$review"?"Review":id=="$output"?"Output":id;};
             runner.NodeStatus+=(id,state,detail)=>progress(Label(id)+" — "+state+(String.IsNullOrEmpty(detail)?"":" ("+detail+")"));
             runner.Message+=m=>progress(m);

@@ -11,7 +11,8 @@ namespace Laica
     ///   manual : nothing moves by itself; the chat or team shows the choice.
     ///   team   : the work moves to a backup team that does not rely on the vendor that ran out.
     ///   agent  : the work moves to one agent.
-    /// A setting applies to everything; a team can override it. Work never bounces more than twice.
+    /// A setting applies to everything; a team can override it. Work never bounces more than twice, except in a tag-team chat (see TagTeam.cs),
+    /// which swaps back and forth for as long as the thrash guard sees real progress. The "continuity" settings for that live in the same handoff.json.
     /// </summary>
     public sealed partial class HarnessManager
     {
@@ -35,7 +36,7 @@ namespace Laica
 
         public object HandoffSet(Dictionary<string, object> d)
         {
-            var clean = CleanHandoff(d, false); lock (gate) { handoff = clean; SaveList("handoff.json", new List<Dictionary<string, object>> { clean }); }
+            var clean = CleanHandoff(d, false); lock (gate) { if (handoff.ContainsKey("Continuity")) clean["Continuity"] = handoff["Continuity"]; handoff = clean; SaveList("handoff.json", new List<Dictionary<string, object>> { clean }); }
             Raise(); return HandoffGet();
         }
 

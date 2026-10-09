@@ -1,4 +1,4 @@
-export interface AgentNode { Id:string; ParentId:string|null; Name:string; Role:string; Model:string; Effort:string; Job:string; ConnectionId:string; X:number; Y:number }
+export interface AgentNode { Id:string; ParentId:string|null; Name:string; Role:string; Model:string; Effort:string; Job:string; ConnectionId:string; CanEdit?:boolean; X:number; Y:number }
 export interface AgentPlan { Version:number; Goal:string; Nodes:AgentNode[]; Stages:{Id:string;X:number;Y:number}[]; HiddenStageLinks:{FromId:string;ToId:string}[] }
 export interface Model { Id:string; Name:string; ConnectionId:string; Efforts:string[] }
 export interface Service { Id:string; Name:string; BaseUrl:string; Provider:string; KeyEnvironmentVariable:string; HasKey:boolean }

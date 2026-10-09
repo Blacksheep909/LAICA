@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import ts from 'typescript';
 const source=await readFile(new URL('../src/activity-model.ts',import.meta.url),'utf8');
 const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
-const {crewFor,recordedWorking,eventsFor,workArea,eventTitle}=await import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`);
+const {crewFor,recordedWorking,eventsFor,workArea,eventTitle,switchTimeline}=await import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`);
 const now=Date.now(),agent=(id,offset=0,state='running')=>({Id:id,ParentId:id==='root'?null:'root',State:state,UpdatedUtc:new Date(now-offset).toISOString(),RecentEvents:[]});
 test('one supervisor and three recent workers are shown; earlier threads remain intact',()=>{
  const snapshot={SessionId:'root',Agents:[agent('old',500000,'complete'),agent('root'),agent('a',300),agent('b',200),agent('c',100)],Events:[]};
@@ -27,4 +27,9 @@ test('concrete work categories and outcomes preserve command failures',()=>{
 test('a completed command without an exit code is not labelled pending',()=>{
  assert.match(eventTitle({Command:'pnpm check',Kind:'command_complete'}),/^Ran:/);
  assert.match(eventTitle({Command:'pnpm check',Kind:'command_failed',ExitCode:0}),/^Command failed:/);
+});
+test('tag-team switches and waits form a timeline and count as handoff work',()=>{
+ const ev=[{Kind:'user',Text:'go',TimeUtc:'2026-10-09T01:00:00Z'},{Kind:'switch',Text:'Switched to Claude Code because Codex ran out of usage.',Detail:JSON.stringify({From:'Codex',To:'Claude Code',Reason:'limit'}),TimeUtc:'2026-10-09T02:00:00Z'},{Kind:'pairwait',Text:'Both out of usage.',Detail:'2026-10-09T03:00:00Z',TimeUtc:'2026-10-09T02:30:00Z'}];
+ const steps=switchTimeline(ev);assert.equal(steps.length,2);assert.equal(steps[0].from,'Codex');assert.equal(steps[0].to,'Claude Code');assert.equal(steps[0].reason,'limit');assert.equal(steps[1].wait,true);
+ assert.equal(workArea({Kind:'switch'}),'handoff');assert.equal(workArea({Kind:'pairwait'}),'handoff');
 });

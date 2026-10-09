@@ -14,6 +14,7 @@ import {Markdown} from './markdown';
 import PreviewPanel from './PreviewPanel';
 import SendButton from './SendButton';
 import {LimitBanner} from './UsageUI';
+import {TagTeamChip,SwitchRow} from './TagTeam';
 import {ProviderChip,providerOfSession} from './provider';
 import {useHarness,modeLabel,effortLabel} from './harness-store';
 import type {HEvent} from './harness-store';
@@ -57,7 +58,7 @@ export default function ChatView({models}:{models:Model[]}){
   return <div className={`chat ${panel?'with-panel':''}`}>
     <Glass material="regular" className={`harness-stream ${drop.dragging?'is-dragging':''}`} {...drop.bind}><DropOverlay show={drop.dragging}/>
       <div className="harness-meta">{renaming?<input className="hinput" autoFocus defaultValue={current.Title} onBlur={e=>{setRenaming(false);rename(current.Id,e.target.value);}} onKeyDown={e=>{if(e.key==='Enter')(e.target as HTMLInputElement).blur();if(e.key==='Escape')setRenaming(false);}}/>:<b onDoubleClick={()=>setRenaming(true)}>{current.Title}</b>}
-        <ProviderChip p={providerOfSession(current,nameOf)}/><span className="hsub">{nameOf(current.Harness)} · {modeLabel[current.Mode]??current.Mode}{current.Effort?` · ${effortLabel[current.Effort]??current.Effort} effort`:''}{assistant?` · ${assistant.Name}`:''}</span>
+        <ProviderChip p={providerOfSession(current,nameOf)}/><TagTeamChip session={current}/><span className="hsub">{nameOf(current.Harness)} · {modeLabel[current.Mode]??current.Mode}{current.Effort?` · ${effortLabel[current.Effort]??current.Effort} effort`:''}{assistant?` · ${assistant.Name}`:''}</span>
         {current.Isolated&&<span className="pill ok" title={`Isolated worktree on branch ${current.Branch}`}><GitBranch size={11}/> {current.Branch}</span>}
         <span className="hcwd" title={current.Cwd}>{current.Cwd}</span>
         {current.Paused&&<span className="pill warn"><Pause size={11}/> Paused</span>}<IconButton size="small" variant="quiet" aria-label="Rename chat" onClick={()=>setRenaming(true)}><Pencil size={14}/></IconButton><IconButton size="small" variant="quiet" aria-label="Save chat as Markdown" title="Save chat as Markdown" onClick={()=>{void exportChat();}}><Download size={14}/></IconButton>{!panel&&<IconButton size="small" variant="quiet" aria-label="Show workspace panel" onClick={()=>setPanel(true)}><PanelRightOpen size={15}/></IconButton>}</div>
@@ -85,6 +86,8 @@ function Row({e,resolved,answer}:{e:HEvent;resolved:Map<string,string>;answer:(i
   if(e.Kind==='approval'){let id='',input='';try{const d=JSON.parse(e.Detail??'{}');id=d.RequestId;input=d.Input;}catch{/* malformed */}const state=resolved.get(id);
     return <div className={`hmsg approval ${state??''}`}><div className="ap-head"><ShieldQuestion size={15}/> <b>Allow {e.Text}?</b></div><pre>{input}</pre>
       {state?<small>{state==='allowed'?'Allowed':'Denied'}</small>:<div className="ap-actions"><Button size="small" variant="primary" leadingIcon={<Check size={13}/>} onClick={()=>answer(id,true)}>Allow</Button><Button size="small" onClick={()=>answer(id,true,true)}>Always allow {e.Text}</Button><Button size="small" variant="quiet" leadingIcon={<X size={13}/>} onClick={()=>answer(id,false)}>Deny</Button></div>}</div>;}
+  if(e.Kind==='switch'||e.Kind==='pairwait')return <SwitchRow e={e}/>;
+  if(e.Kind==='pairnote')return <div className="hmsg log tt-note"><Info size={12}/> {e.Text}</div>;
   if(e.Kind==='limit')return <LimitBanner sessionId={e.SessionId} vendor={e.Detail??''} text={e.Text}/>;
     if(e.Kind==='handoff')return <div className="hmsg handoff"><ArrowRightLeft size={14}/><span>{e.Text}</span>{e.Detail&&<button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('laica-open',{detail:e.Detail}))}>Open</button>}</div>;
     if(e.Kind==='error')return <div className="hmsg error"><AlertTriangle size={14}/> {e.Text}</div>;
