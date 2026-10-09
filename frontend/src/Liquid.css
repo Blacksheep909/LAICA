@@ -569,3 +569,22 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .harness-meta .tt-chip~.hsub{display:none}
 .harness-meta .tt-chip{flex:none}
 
+
+/* polish: bars never push the send button over the edge; header controls keep their shape */
+.composer-bar,.compose-bar{align-items:flex-end!important}
+.composer-left,.harness-compose .compose-left{flex:1 1 0;min-width:0;flex-wrap:wrap;row-gap:6px}
+.composer-right,.harness-compose .compose-right{flex:none;align-self:flex-end}
+.composer .composer-right,.harness-compose .compose-right{padding-bottom:0}
+.harness-meta>*{flex-shrink:0}
+.harness-meta>b{flex:0 1 auto;min-width:56px}
+.harness-meta .hcwd{flex:1 1 40px!important;min-width:0}
+.harness-meta .ogui-icon-button,.harness-meta button{flex:none;min-width:28px}
+.harness-meta .tt-chip{flex:0 1 auto;min-width:0;max-width:56%}
+.harness-meta .tt-chip .tt-label{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.harness-meta .tt-chip .tt-go,.harness-meta .tt-chip .tt-pct,.harness-meta .tt-chip .tt-halt{flex:none}
+
+/* narrow windows: a smaller sidebar that still shows names, and headers that wrap instead of running off the edge */
+@media(max-width:900px){.app:not(.sidebar-hidden){grid-template-columns:240px minmax(0,1fr)!important}.page-header{flex-wrap:wrap!important;gap:10px 14px}.page-header .header-actions{flex-wrap:wrap;min-width:0;max-width:100%}}
+
+.harness-meta .tt-chip~.hcwd{display:none}
+

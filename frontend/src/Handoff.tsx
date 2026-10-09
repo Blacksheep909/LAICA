@@ -37,7 +37,7 @@ export function HandoffCard(){
   const {cfg,save}=useHandoff();const options=useHandoffOptions();
   return <div className="handoff-card">
     <div className="handoff-copy"><span className="eyebrow">WORKFLOW HANDOFF</span><h2>When a vendor runs out of usage</h2>
-      <p>Choose what happens to a chat or a team's work when Codex, Claude or another vendor hits its limit. LAICA can hand it to a backup team that doesn't rely on that vendor, or to one agent, and carries over everything done so far. Work moves at most twice, so it can never loop.</p></div>
+      <p>Choose what happens to a chat or a team's work when Codex, Claude or another vendor hits its limit. LAICA can hand it to a backup team that doesn't rely on that vendor, or to one agent, and carries over everything done so far. Work moves at most twice, so it can never loop. (Tag-team chats, below, are different: they swap back and forth for as long as real progress is being made.)</p></div>
     <Select label="Hand off to" value={choiceValue(cfg)} options={options} onChange={e=>save(choiceOf(e.target.value))} searchable={options.length>9} menuWidth={380}/>
     <p className="handoff-note">{cfg.Mode==='manual'?'Nothing moves by itself. The chat shows a banner and you pick where to continue.':cfg.Mode==='team'?'A backup team is only used if none of its agents is the vendor that ran out.':'The agent you chose takes over with the full conversation.'}</p>
   </div>;

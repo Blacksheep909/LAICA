@@ -3,6 +3,13 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.21.3]
+
+### Fixed
+- The send button no longer hangs over the edge of the message box when the pills wrap onto a second row, and the pill rows line up with it.
+- The rename pencil in a chat's header keeps its shape when the title, the tag-team chip and the folder compete for space; the chip and title shorten with "…" instead, and the folder name steps aside while the chip is showing.
+- Narrow windows: the sidebar stays readable (names, Recent, Projects) at 240 px instead of collapsing into a column of badges with empty bars, and page headers (such as the Workflow designer's) wrap instead of running off the right edge.
+- The Settings text about handoff no longer says work "can never loop" without mentioning tag-team chats.
 ## [0.21.2]
 
 ### Changed

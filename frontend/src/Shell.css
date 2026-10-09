@@ -49,7 +49,7 @@
 .chg-diff{max-height:40%;overflow:auto;border-top:1px solid #ffffff10;border-bottom:1px solid #ffffff10}
 .chg-actions{margin-top:auto;padding:10px;display:flex;flex-direction:column;gap:8px;border-top:1px solid #ffffff10}.chg-commit,.chg-row{display:flex;gap:8px}.chg-commit .hinput{flex:1}
 @media(max-width:1200px){.app{grid-template-columns:220px minmax(0,1fr)}.chat.with-panel{grid-template-columns:minmax(0,1fr)}.chat .hpanel{display:none}.assistant-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:850px){.app{grid-template-columns:64px minmax(0,1fr)}.sidebar .brand>div,.side-search,.side-section,.side-empty,.side-title,.side-item small,.side-foot .version,.sidebar .new-chat span,.side-nav .nav-item span,.side-foot .nav-item span{display:none}.sidebar .new-chat{padding:0;font-size:0}}
+@media(max-width:850px){.app{grid-template-columns:240px minmax(0,1fr)}}
 .composer-left{display:flex;align-items:center;gap:8px}.model-input{width:200px}
 .team-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.goal-box{display:flex;flex-direction:column;gap:6px;margin-top:16px;font-size:11px;color:#c5d0df}.goal-box textarea{background:rgba(8,7,14,.45);border:1px solid #e7daff24;border-radius:10px;color:#f2f0fa;padding:10px 12px;font-size:13px;min-height:90px;resize:vertical}
 .phase-row{display:flex;align-items:center;gap:8px}.phase{padding:3px 12px;border-radius:99px;font-size:11px;background:#ffffff0d;color:#8f89a3}.phase.on{background:rgba(190,170,255,.18);color:#e9e2ff}.phase.now{animation:hpulse 1.2s ease-in-out infinite}.phase-row small{margin-left:6px;color:#9a94ad}
@@ -141,7 +141,7 @@ html,body,#root{overflow:hidden}.app{overflow:hidden}
 .app{grid-template-columns:284px minmax(0,1fr)}
 .thread-age{display:none}.side-item.thread:hover .thread-age{display:inline}.side-item.thread:hover .prov{display:none}
 .side-item.thread .prov{font-size:8.5px;padding:0 5px;letter-spacing:.3px}
-@media(max-width:1200px){.app{grid-template-columns:240px minmax(0,1fr)}}@media(max-width:850px){.app{grid-template-columns:64px minmax(0,1fr)}}
+@media(max-width:1200px){.app{grid-template-columns:240px minmax(0,1fr)}}
 
 /* ---- Dark space: near-black, fine specks, see-through panels (the look of the Firefox "Dark space full transparent" theme) ---- */
 .app{background:#030208!important}
