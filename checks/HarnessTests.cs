@@ -448,16 +448,35 @@ public static class HarnessTests
                     Check(k != null && (string)k["Title"] == "Add a dark mode toggle" && (string)k["Project"] == proj, "history: Codex title skips AGENTS.md context and the \\\\?\\ prefix is cleaned (file was locked by another writer)");
                     var s1 = (Dictionary<string, object>)m.ImportOpen("claude", "aaaaaaaa-1111", work); string sid1 = (string)s1["Id"];
                     var ev = Dicts(m.History(sid1)); var kinds = String.Join(",", ev.Select(e => (string)e["Kind"]));
-                    Check(kinds == "log,user,assistant,tool,tool_result", "history: Claude transcript replays user, assistant, tool and result in order, without sidechains (" + kinds + ")");
+                    Check(kinds == "log,user,assistant,tool,tool_result,done", "history: Claude transcript replays user, assistant, tool and result in order, without sidechains (" + kinds + ")");
                     Check((string)s1["Harness"] == "claude" && (string)s1["Cwd"] == proj, "history: opened chat uses the original folder and the claude agent");
-                    var s2 = (Dictionary<string, object>)m.ImportOpen("claude", "aaaaaaaa-1111", work); Check((string)s2["Id"] == sid1, "history: opening twice reuses the same chat");
+                    // richer history: pictures, thinking, reasoning, commands and turn ends
+                    string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+                    File.WriteAllText(Path.Combine(claudeDir, "projects", "p1", "bbbbbbbb-2222.jsonl"),
+                        "{\"type\":\"user\",\"cwd\":\"" + esc + "\",\"timestamp\":\"2026-10-02T00:00:00Z\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Look at this mockup\"},{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/png\",\"data\":\"" + png + "\"}}]}}\n" +
+                        "{\"type\":\"assistant\",\"timestamp\":\"2026-10-02T00:00:03Z\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"thinking\",\"thinking\":\"Considering the layout\"},{\"type\":\"tool_use\",\"name\":\"Screenshot\",\"input\":{}}]}}\n" +
+                        "{\"type\":\"user\",\"timestamp\":\"2026-10-02T00:00:04Z\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"content\":[{\"type\":\"text\",\"text\":\"taken\"},{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"data\":\"" + png + "\"}}]}]}}\n" +
+                        "{\"type\":\"assistant\",\"timestamp\":\"2026-10-02T00:00:06Z\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"Matches the mockup.\"}]}}\n");
+                    File.WriteAllText(Path.Combine(cx, "rollout-2026-10-06T11-00-00-img.jsonl"),
+                        "{\"timestamp\":\"2026-10-06T11:00:00Z\",\"type\":\"session_meta\",\"payload\":{\"id\":\"cx-img-1\",\"cwd\":\"" + esc + "\"}}\n" +
+                        "{\"timestamp\":\"2026-10-06T11:00:01Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"Check this screenshot\"},{\"type\":\"input_image\",\"image_url\":\"data:image/png;base64," + png + "\"}]}}\n" +
+                        "{\"timestamp\":\"2026-10-06T11:00:02Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"reasoning\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"Comparing sizes\"}]}}\n" +
+                        "{\"timestamp\":\"2026-10-06T11:00:03Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"function_call\",\"name\":\"shell\",\"arguments\":\"{\\\"command\\\":[\\\"pwsh\\\",\\\"-c\\\",\\\"dir\\\"]}\"}}\n" +
+                        "{\"timestamp\":\"2026-10-06T11:00:04Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"function_call_output\",\"output\":\"{\\\"output\\\":\\\"a.cs\\\"}\"}}\n" +
+                        "{\"timestamp\":\"2026-10-06T11:00:05Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"Looks right.\"}]}}\n");
+                    var sc = (Dictionary<string, object>)m.ImportOpen("claude", "bbbbbbbb-2222", work); var evc = Dicts(m.History((string)sc["Id"]));
+                    Check(String.Join(",", evc.Select(e => (string)e["Kind"])) == "log,user,image,thinking,tool,tool_result,assistant,done" && evc.Count(e => e.ContainsKey("Images")) == 2, "history: Claude pictures (yours and ones a tool returned), thinking and turn ends are kept");
+                    var imgName = ((System.Collections.IEnumerable)evc.First(e => e.ContainsKey("Images"))["Images"]).Cast<object>().First().ToString(); var got = (Dictionary<string, object>)m.ImageGet((string)sc["Id"], imgName);
+                    Check((string)got["Mime"] == "image/png" && ((string)got["Data"]).Length > 40, "history: the pictures can be fetched back for display");
+                    var sx = (Dictionary<string, object>)m.ImportOpen("codex", "cx-img-1", work); var evx = Dicts(m.History((string)sx["Id"]));
+                    Check(String.Join(",", evx.Select(e => (string)e["Kind"])) == "log,user,image,thinking,tool,tool_result,assistant,done" && (string)evx.First(e => (string)e["Kind"] == "tool")["Detail"] == "pwsh -c dir" && (string)evx.First(e => (string)e["Kind"] == "tool_result")["Text"] == "a.cs", "history: Codex pictures, reasoning summaries and shell commands are kept");                    var s2 = (Dictionary<string, object>)m.ImportOpen("claude", "aaaaaaaa-1111", work); Check((string)s2["Id"] == sid1, "history: opening twice reuses the same chat");
                     var s3 = (Dictionary<string, object>)m.ImportOpen("codex", "cx-main-1", work); var kinds3 = String.Join(",", Dicts(m.History((string)s3["Id"])).Select(e => (string)e["Kind"]));
-                    Check(kinds3 == "log,user,assistant,tool,tool_result", "history: Codex transcript replays correctly (" + kinds3 + ")");
+                    Check(kinds3 == "log,user,assistant,tool,tool_result,done", "history: Codex transcript replays correctly (" + kinds3 + ")");
                     var s4 = (Dictionary<string, object>)m.ImportOpen("codex", "cx-gone-1", work); Check((string)s4["Cwd"] == proj && (string)s4["Title"] == "Renamed in Codex", "history: Codex thread names are used, and a deleted folder falls back to the project's real root");
                     var cxGone = list.First(x => (string)x["ExternalId"] == "cx-gone-1"); Check((string)cxGone["ProjectName"] == "My Project" && (string)cxGone["Title"] == "Renamed in Codex", "history: threads are filed under the project Codex assigned them to");
                     Check((string)k["ProjectName"] == "My Project", "history: threads without an assignment are matched to a project by their folder");
                     var cxp = Dicts(m.CodexProjects()); Check(cxp.Length == 2 && (string)cxp[0]["Name"] == "Second" && (string)cxp[1]["Name"] == "My Project" && (string)cxp[1]["Path"] == proj, "history: projects keep the names and order shown in Codex");
-                    Check(Dicts(m.ImportList(false)).Count(x => (string)x["SessionId"] != "") == 3, "history: list marks conversations that are already open");
+                    Check(Dicts(m.ImportList(false)).Count(x => (string)x["SessionId"] != "") == 5, "history: list marks conversations that are already open");
                     bool badOpen = false; try { m.ImportOpen("codex", "nope", work); } catch (ArgumentException) { badOpen = true; } Check(badOpen, "history: unknown conversation rejected");
                 }
                 Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", null); Environment.SetEnvironmentVariable("CODEX_HOME", null);

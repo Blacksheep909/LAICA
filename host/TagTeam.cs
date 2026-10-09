@@ -504,6 +504,12 @@ namespace Laica
                 if (root.Child != null && (root.Child.Busy || root.Pair.Active == "partner") && (root.Pair.PHarness != h || root.Pair.PService != svc)) throw new InvalidOperationException("The partner is working right now. Change it after it finishes and the work is back with the first agent.");
                 lock (gate) { if (root.Pair.PHarness != h || root.Pair.PService != svc) { root.Pair.PHarness = h; root.Pair.PService = svc; root.Pair.PModel = Str(d, "PartnerModel"); if (root.Child != null) { var old = root.Child; sessions.Remove(old.Id); root.Child = null; root.Pair.ChildId = ""; root.Pair.RanB = false; root.Pair.SeenB = 0; try { File.Delete(Path.Combine(dir, "sessions", Safe(old.Id) + ".json")); } catch (Exception) { } } else root.Pair.PModel = Str(d, "PartnerModel"); } }
             }
+            if (d.ContainsKey("PartnerModel"))
+            {
+                string pm = Str(d, "PartnerModel"); if (pm == "default") pm = "";
+                if (pm != "" && !Regex.IsMatch(pm, @"^[A-Za-z0-9._\-]{1,80}$")) throw new ArgumentException("That model name isn't valid.");
+                lock (gate) { root.Pair.PModel = pm; if (root.Child != null && !root.Child.Busy) root.Child.Model = pm == "" ? null : pm; }
+            }
             if (d.ContainsKey("PartnerMode")) lock (gate) root.Pair.PMode = Str(d, "PartnerMode");
             if (d.ContainsKey("AutoSwitch")) lock (gate) root.Pair.AutoSwitch = Str(d, "AutoSwitch") == "" ? "" : (Str(d, "AutoSwitch") == "True" ? "True" : "False");
             if (d.ContainsKey("SwitchBack")) lock (gate) root.Pair.SwitchBack = Str(d, "SwitchBack") == "" ? "" : (Str(d, "SwitchBack") == "True" ? "True" : "False");

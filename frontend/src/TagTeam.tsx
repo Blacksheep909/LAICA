@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useState} from 'react';
+import {useCallback,useEffect,useMemo,useState} from 'react';
 import {Switch,useToast} from 'open-glass-ui';
 import {ArrowRightLeft,Clock,FileText,Save} from 'lucide-react';
 import {request,isDesktop} from './bridge';
@@ -6,6 +6,8 @@ import {Select} from './GlassSelect';
 import type {GlassOption} from './GlassSelect';
 import {useHarness} from './harness-store';
 import type {HSession,HEvent} from './harness-store';
+import {useClaudeModels} from './ClaudeModels';
+import type {Model} from './types';
 
 export interface PairSide { Key:string; Name:string; Model:string; Percent:number; Limited:boolean; ResetsUtc:string; Ran:boolean; Busy:boolean; Mode?:string; Writable?:boolean }
 export interface PairInfo { Id:string; Mode:'off'|'assisted'|'automatic'; ChatMode:string; Active:'primary'|'partner'; ActiveName:string; Primary:PairSide; Partner:PairSide; HasPartner:boolean; AutoSwitch:boolean; SwitchBack:boolean; Halted:string; WaitUntilUtc:string; Preview:string; EstTokens:number; EstCost:number; Currency:string; HandoffFile:string; LastSwitchUtc:string; Switches:{TimeUtc:string;Text:string;Detail:string}[]; ReturnThreshold:number }
@@ -61,27 +63,50 @@ export function SwitchRow({e}:{e:HEvent}){
   return <div className={'hmsg handoff tt-row'+(wait?' wait':'')}>{wait?<Clock size={14}/>:<ArrowRightLeft size={14}/>}<span>{e.Text}<small>{cost}</small></span><time>{clock(e.TimeUtc)}</time></div>;
 }
 
-/** Composer pills for an open chat: continuity mode, partner, and the two automatic behaviours. */
-export function TagTeamPills({session}:{session:HSession}){
-  const {toast}=useToast();const {harnesses,reload}=useHarness();
-  const {info,load}=usePair(session.Id,(session.Continuity??'')+(session.Busy?1:0));
-  const partners=harnesses.filter(h=>h.Available&&!['workflow','laica'].includes(h.Id)&&h.Id!==session.Harness);
-  if(session.Harness==='workflow'||session.TeamId||!partners.length||!isDesktop)return null;
-  const mode=info?.Mode??'assisted';
-  const apply=(patch:Record<string,unknown>)=>request('pairSet',{Id:session.Id,...patch}).then(()=>{void load();void reload();}).catch(e=>toast({title:'Could not change that',description:(e as Error).message,duration:6500}));
-  const modes:GlassOption[]=[{value:'',label:'Use my default',description:'Set under Settings > Agents > Continuity'},{value:'off',label:'Off',description:'No handoff notes for this chat'},{value:'assisted',label:'Assisted',description:'Keeps HANDOFF.md up to date; you switch by hand'},{value:'automatic',label:'Tag-team',description:'Hands over by itself when one agent runs out, and back when it resets'}];
-  const label=session.Continuity==='automatic'?'Automatic':session.Continuity==='assisted'?'Assisted':session.Continuity==='off'?'Off':mode==='automatic'?'Automatic (default)':mode==='off'?'Off (default)':'Assisted (default)';
-  const partnerKey=info?.Partner.Key??'';
+/** Models the partner can be, from every installed agent except the chat's own. Values look like "claude:opus" or "codex:default". */
+export function usePartnerOptions(exclude:string,models:Model[]):GlassOption[]{
+  const {harnesses}=useHarness();const claudeList=useClaudeModels();
+  return useMemo(()=>{
+    const out:GlassOption[]=[];
+    harnesses.filter(h=>h.Available&&!['laica','workflow'].includes(h.Id)&&h.Id!==exclude).forEach(h=>{
+      if(h.Id==='codex'){const list=models.filter(m=>m.ConnectionId==='codex');(list.length?list:[{Id:'default',Name:'Codex default'}]).forEach(m=>out.push({value:'codex:'+m.Id,label:m.Name,group:'Codex'}));}
+      else if(h.Id==='claude')claudeList.forEach(c=>out.push({value:'claude:'+c.value,label:c.label,description:c.description,group:'Claude Code'}));
+      else out.push({value:h.Id+':default',label:h.Name,group:'Other agents'});
+    });
+    return out;
+  },[harnesses,models,claudeList,exclude]);
+}
+export const splitPartner=(v:string)=>{const i=v.indexOf(':');return {harness:v.slice(0,i),model:v.slice(i+1)==='default'?'':v.slice(i+1)};};
+export type PairRules='both'|'limit'|'manual';
+export const rulesOptions:GlassOption[]=[
+  {value:'both',label:'Switch on limit, return on reset',description:'Hands over when one runs out, and back when it resets'},
+  {value:'limit',label:'Switch on limit only',description:'Hands over when one runs out; you hand back'},
+  {value:'manual',label:'Only when I say',description:'Keeps the notes; you press Switch now'}];
+export const rulesPatch=(r:PairRules)=>({AutoSwitch:r==='manual'?'False':'True',SwitchBack:r==='both'?'True':'False'});
+export const rulesOf=(auto:boolean,back:boolean):PairRules=>!auto?'manual':back?'both':'limit';
+
+/** The two pills a chat needs: who the partner is (any model of any other agent) and when the work moves. */
+export function PartnerPills({options,value,onPick,rules,onRules}:{options:GlassOption[];value:string;onPick:(v:string)=>void;rules:PairRules;onRules:(r:PairRules)=>void}){
+  const label=value?options.find(o=>o.value===value)?.label??splitPartner(value).harness:'';
   return <>
-    <Select variant="pill" aria-label="Tag-team" value={session.Continuity??''} options={modes} onChange={e=>void apply({Mode:e.target.value})} triggerLabel={'Tag-team · '+label} menuWidth={340}/>
-    {mode==='automatic'&&info?.HasPartner&&<>
-      <Select variant="pill" aria-label="Tag-team partner" value={partnerKey} options={partners.map(h=>({value:h.Id,label:h.Name}))} onChange={e=>void apply({PartnerHarness:e.target.value})} triggerLabel={'Partner · '+(info.Partner.Name||'choose')} menuWidth={240}/>
-      <button type="button" className="tt-toggle" aria-pressed={info.AutoSwitch} title="Switch to the partner by itself when this agent runs out of usage" onClick={()=>void apply({AutoSwitch:info.AutoSwitch?'False':'True'})}>Auto-switch on limit</button>
-      <button type="button" className="tt-toggle" aria-pressed={info.SwitchBack} title="Hand the work back once the first agent has reset" onClick={()=>void apply({SwitchBack:info.SwitchBack?'False':'True'})}>Switch back when reset</button>
-    </>}
+    <Select variant="pill" aria-label="Tag-team partner" value={value} options={[{value:'',label:'Off',description:'One agent works alone'},...options]} onChange={e=>onPick(e.target.value)} searchable={options.length>9} menuWidth={320}
+      triggerLabel={value?'Tag-team · '+label:'Tag-team · Off'}/>
+    {value&&<Select variant="pill" aria-label="When to switch" value={rules} options={rulesOptions} onChange={e=>onRules(e.target.value as PairRules)} menuWidth={340} triggerLabel={rules==='both'?'On limit · back on reset':rules==='limit'?'On limit only':'Manual only'}/>}
   </>;
 }
 
+/** Composer pills for an open chat. */
+export function TagTeamPills({session,models}:{session:HSession;models:Model[]}){
+  const {toast}=useToast();const {reload}=useHarness();
+  const {info,load}=usePair(session.Id,(session.Continuity??'')+(session.Busy?1:0));
+  const options=usePartnerOptions(session.Harness,models);
+  if(session.Harness==='workflow'||session.TeamId||!options.length||!isDesktop)return null;
+  const on=!!info&&info.Mode==='automatic'&&info.HasPartner;
+  const value=on?info!.Partner.Key+':'+(info!.Partner.Model||'default'):'';
+  const apply=(patch:Record<string,unknown>)=>request('pairSet',{Id:session.Id,...patch}).then(()=>{void load();void reload();}).catch(e=>toast({title:'Could not change that',description:(e as Error).message,duration:6500}));
+  const pick=(v:string)=>{if(!v){void apply({Mode:'assisted'});return;}const p=splitPartner(v);void apply({Mode:'automatic',PartnerHarness:p.harness,PartnerModel:p.model||'default'});};
+  return <PartnerPills options={options} value={value} onPick={pick} rules={rulesOf(info?.AutoSwitch??true,info?.SwitchBack??true)} onRules={r=>void apply(rulesPatch(r))}/>;
+}
 const num=(v:string,d:number)=>{const n=parseInt(v,10);return Number.isFinite(n)?n:d;};
 
 /** Settings > Agents > Continuity. */

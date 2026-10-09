@@ -138,6 +138,11 @@ public static class TagTeamChecks
             string joinB = LastSection("B");
             Check(joinB.Contains("PROJECT STATE") && joinB.Contains("Never delete the database") && joinB.Contains("Keep it simple. Use tabs.") && joinB.Contains("Add the signup form"), "tag-team: the first time an agent joins it gets the fuller briefing and the unfinished request");
             Check(Dicts(m.History(cid)).Any(h => (string)h["Kind"] == "assistant" && h.ContainsKey("By") && (string)h["By"] == idb && ((string)h["Text"]).Contains("B worked")), "tag-team: the partner's work shows in the same chat, tagged with its vendor");
+            m.PairConfigure(cid, new Dictionary<string, object> { { "PartnerModel", "opus-test" } });
+            Check((string)((Dictionary<string, object>)Info(m, cid)["Partner"])["Model"] == "opus-test", "per-chat partner: the partner's model can be chosen for each chat");
+            bool badModel = false; try { m.PairConfigure(cid, new Dictionary<string, object> { { "PartnerModel", "x; calc" } }); } catch (ArgumentException) { badModel = true; }
+            Check(badModel, "per-chat partner: a model name can't carry extra arguments");
+            m.PairConfigure(cid, new Dictionary<string, object> { { "PartnerModel", "default" } });
             var wr = (Dictionary<string, object>)Info(m, cid)["Partner"];
             Check((string)wr["Mode"] == "default", "writable receiver: the partner runs in its normal permission mode, not plan mode");
             Check(m.CliArgumentPreview("claude", true).Contains("acceptEdits") && m.CliArgumentPreview("claude", false).Contains("--permission-mode plan"), "writable receiver: designer reasoning nodes stay read-only; can-edit nodes use the agent's normal mode");

@@ -3,6 +3,11 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.21.1]
+
+### Changed
+- **Imported Claude Code and Codex history is no longer bare text.** Opening a conversation from Recent or a project now shows what you see in the vendor's own app: the pictures you attached, screenshots and images that tools returned or generated (click for full size), thinking and reasoning summaries, shell commands with their output, file edits and searches, and the end of each turn. Conversations you already imported are upgraded the next time you open them, keeping anything you did in LAICA since. Up to 3000 events per conversation (was 1500).
+- **Tag-team is chosen per chat, model by model.** The odd "Codex + Claude Code" entries in the model picker are gone. Pick your model as usual, then use the **Tag-team** pill next to it to choose the partner: any model of any other installed agent (for example Claude Opus, or a particular Codex model). A second pill sets when the work moves: on a limit and back on reset, on a limit only, or only when you press Switch now. The same two pills sit in the composer of an open chat, where the partner's model can be changed at any time.
 ## [0.21.0]
 
 ### Added

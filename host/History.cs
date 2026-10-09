@@ -17,7 +17,7 @@ namespace Laica
         sealed class CodexMeta { public Dictionary<string, string> Names = new Dictionary<string, string>(); public List<CodexProject> Projects = new List<CodexProject>(); public Dictionary<string, string> Assign = new Dictionary<string, string>(); }
         readonly object histGate = new object();
         List<HistEntry> histCache; DateTime histAt = DateTime.MinValue;
-        const int MaxHistory = 400, MaxTranscriptEvents = 1500;
+        const int MaxHistory = 400, MaxTranscriptEvents = 3000;
 
         static string CleanPath(string p) { if (String.IsNullOrEmpty(p)) return ""; if (p.StartsWith("\\\\?\\")) p = p.Substring(4); return p.TrimEnd('\\', '/'); }
         static IEnumerable<string> SharedLines(string path, int maxLines, long maxChars)
@@ -204,66 +204,132 @@ namespace Laica
         public object ImportOpen(string source, string externalId, string fallbackCwd)
         {
             if (source != "codex" && source != "claude") throw new ArgumentException("Unknown source.");
-            lock (gate) { var existing = sessions.Values.FirstOrDefault(x => x.Harness == source && x.ExternalId == externalId); if (existing != null) return Dto(existing.Parent ?? existing); }
+            Session exist; lock (gate) exist = sessions.Values.FirstOrDefault(x => x.Harness == source && x.ExternalId == externalId);
+            if (exist != null) { try { UpgradeImport(exist); } catch (Exception) { } return Dto(exist.Parent ?? exist); }
             var entry = LoadHistory(false).FirstOrDefault(h => h.Source == source && h.ExternalId == externalId) ?? LoadHistory(true).FirstOrDefault(h => h.Source == source && h.ExternalId == externalId);
             if (entry == null) throw new ArgumentException("That conversation can't be found any more.");
             var info = Harnesses().FirstOrDefault(h => h.Id == source);
             string cwd = Directory.Exists(entry.Project) ? entry.Project : (!String.IsNullOrWhiteSpace(fallbackCwd) && Directory.Exists(fallbackCwd) ? fallbackCwd : Environment.CurrentDirectory);
             var s = new Session { Id = Guid.NewGuid().ToString("N"), Harness = source, Cwd = System.IO.Path.GetFullPath(cwd), Mode = info != null ? info.DefaultMode : "default", ExternalId = externalId, Title = entry.Title, HasSentRules = true };
-            var events = source == "claude" ? TranscriptClaude(entry.Path) : TranscriptCodex(entry.Path);
+            var events = source == "claude" ? TranscriptClaude(s, entry.Path) : TranscriptCodex(s, entry.Path);
             string stamp = DateTime.UtcNow.ToString("o");
-            var head = new Dictionary<string, object> { { "Kind", "log" }, { "Text", "Imported from " + (source == "claude" ? "Claude Code" : "Codex") + " history" + (Directory.Exists(entry.Project) ? "" : " — the original folder no longer exists, so new messages use " + s.Cwd) + ". Send a message to continue this conversation." }, { "Detail", null }, { "TimeUtc", stamp } };
-            lock (gate) { s.Events.Add(head); s.Events.AddRange(events); foreach (var e in s.Events) e["SessionId"] = s.Id; sessions[s.Id] = s; }
+            var head = new Dictionary<string, object> { { "Kind", "log" }, { "Text", "Imported from " + (source == "claude" ? "Claude Code" : "Codex") + " history" + (Directory.Exists(entry.Project) ? "" : " — the original folder no longer exists, so new messages use " + s.Cwd) + ". Send a message to continue this conversation." }, { "Detail", "v2" }, { "TimeUtc", stamp } };
+            lock (gate) { s.Events.Add(head); s.Events.AddRange(events); foreach (var e in s.Events) { e["SessionId"] = s.Id; e["N"] = ++s.Seq; } sessions[s.Id] = s; }
             SaveSession(s); Raise(); return Dto(s);
         }
 
+        /// <summary>Chats imported by an older LAICA only had text. Re-read the vendor's transcript for them (pictures, thinking, commands, turn ends) and keep anything done in LAICA since.</summary>
+        void UpgradeImport(Session s)
+        {
+            Dictionary<string, object> head; DateTime stamp;
+            lock (gate)
+            {
+                if (s.Busy || s.Events.Count == 0) return; head = s.Events[0];
+                if (Str(head, "Kind") != "log" || !Str(head, "Text").StartsWith("Imported from") || Str(head, "Detail") == "v2") return;
+                if (!DateTime.TryParse(Str(head, "TimeUtc"), null, System.Globalization.DateTimeStyles.RoundtripKind, out stamp)) return;
+            }
+            var entry = LoadHistory(false).FirstOrDefault(h => h.Source == s.Harness && h.ExternalId == s.ExternalId); if (entry == null) return;
+            var fresh = s.Harness == "claude" ? TranscriptClaude(s, entry.Path) : TranscriptCodex(s, entry.Path);
+            lock (gate)
+            {
+                var mine = s.Events.Skip(1).Where(e => { DateTime t; return DateTime.TryParse(Str(e, "TimeUtc"), null, System.Globalization.DateTimeStyles.RoundtripKind, out t) && t > stamp.AddSeconds(2); }).ToList();
+                head["Detail"] = "v2"; var all = new List<Dictionary<string, object>> { head }; all.AddRange(fresh); all.AddRange(mine);
+                long n = 0; foreach (var e in all) { e["SessionId"] = s.Id; e["N"] = ++n; } s.Events.Clear(); s.Events.AddRange(all); s.Seq = n;
+            }
+            SaveSession(s); Raise();
+        }
         static Dictionary<string, object> Ev(string kind, string text, string detail, string time) { return new Dictionary<string, object> { { "SessionId", "" }, { "Kind", kind }, { "Text", text }, { "Detail", detail }, { "TimeUtc", String.IsNullOrEmpty(time) ? DateTime.UtcNow.ToString("o") : time } }; }
         static void Add(List<Dictionary<string, object>> list, Dictionary<string, object> e) { list.Add(e); if (list.Count > MaxTranscriptEvents + 300) list.RemoveRange(0, list.Count - MaxTranscriptEvents); }
         static string Cap(string s, int n) { return s != null && s.Length > n ? s.Substring(0, n) + "\n… (truncated)" : (s ?? ""); }
 
-        List<Dictionary<string, object>> TranscriptClaude(string file)
+        static void EndTurn(List<Dictionary<string, object>> list, ref bool open, string time) { if (open) { Add(list, Ev("done", "", null, time)); open = false; } }
+        static Dictionary<string, object> WithImages(Dictionary<string, object> e, List<string> images) { if (images != null && images.Count > 0) e["Images"] = images.ToArray(); return e; }
+
+        /// <summary>A Claude Code transcript as chat events: your messages, replies, thinking, tool calls and results, pictures (yours and ones a tool returned) and turn ends.</summary>
+        List<Dictionary<string, object>> TranscriptClaude(Session s, string file)
         {
-            var list = new List<Dictionary<string, object>>();
+            var list = new List<Dictionary<string, object>>(); bool open = false;
             foreach (string line in SharedLines(file, Int32.MaxValue, Int64.MaxValue))
             {
-                if (line.Length > 2000000 || (!line.Contains("\"type\":\"user\"") && !line.Contains("\"type\":\"assistant\""))) continue;
+                if (line.Length > 12000000 || (!line.Contains("\"type\":\"user\"") && !line.Contains("\"type\":\"assistant\""))) continue;
                 Dictionary<string, object> o; try { o = json.Deserialize<Dictionary<string, object>>(line); } catch (Exception) { continue; }
                 if (Str(o, "isSidechain") == "True" || Str(o, "isMeta") == "True") continue;
                 var m = Obj(o, "message"); if (m == null) continue; string time = Str(o, "timestamp"), type = Str(o, "type"); object content = m.ContainsKey("content") ? m["content"] : null;
                 if (type == "user")
                 {
-                    string text = UserTextOf(content); if (text.Trim() != "") Add(list, Ev("user", Cap(text, 6000), null, time));
-                    var blocks = content as System.Collections.IEnumerable; if (blocks != null && !(content is string)) foreach (object b in blocks) { var d = b as Dictionary<string, object>; if (d != null && Str(d, "type") == "tool_result") Add(list, Ev("tool_result", Cap(Flatten(d.ContainsKey("content") ? d["content"] : null), 4000), Str(d, "is_error") == "True" ? "error" : null, time)); }
+                    string text = UserTextOf(content); if (text.Trim() != "") { EndTurn(list, ref open, time); Add(list, Ev("user", Cap(text, 6000), null, time)); open = true; }
+                    var blocks = content as System.Collections.IEnumerable; if (blocks != null && !(content is string)) foreach (object b in blocks)
+                        {
+                            var d = b as Dictionary<string, object>; if (d == null) continue; string ty = Str(d, "type");
+                            if (ty == "tool_result") { object inner = d.ContainsKey("content") ? d["content"] : null; Add(list, WithImages(Ev("tool_result", Cap(Flatten(inner), 4000), Str(d, "is_error") == "True" ? "error" : null, time), SaveImages(s, inner))); }
+                            else if (ty == "image") { var im = SaveImages(s, new object[] { d }); if (im.Count > 0) Add(list, WithImages(Ev("image", "", "attached", time), im)); }
+                        }
                 }
                 else
                 {
-                    var blocks = content as System.Collections.IEnumerable; if (blocks == null || content is string) { if (content is string) Add(list, Ev("assistant", Cap((string)content, 8000), null, time)); continue; }
-                    foreach (object b in blocks) { var d = b as Dictionary<string, object>; if (d == null) continue; string ty = Str(d, "type");
+                    var blocks = content as System.Collections.IEnumerable; if (blocks == null || content is string) { if (content is string) { Add(list, Ev("assistant", Cap((string)content, 8000), null, time)); open = true; } continue; }
+                    foreach (object b in blocks)
+                    {
+                        var d = b as Dictionary<string, object>; if (d == null) continue; string ty = Str(d, "type"); open = true;
                         if (ty == "text" && Str(d, "text").Trim() != "") Add(list, Ev("assistant", Cap(Str(d, "text"), 8000), null, time));
-                        else if (ty == "tool_use") Add(list, Ev("tool", Str(d, "name"), Cap(json.Serialize(d.ContainsKey("input") ? d["input"] : null), 2000), time)); }
+                        else if (ty == "thinking" && Str(d, "thinking").Trim() != "") Add(list, Ev("thinking", Cap(Str(d, "thinking"), 4000), null, time));
+                        else if (ty == "tool_use") Add(list, Ev("tool", Str(d, "name"), Cap(json.Serialize(d.ContainsKey("input") ? d["input"] : null), 2000), time));
+                        else if (ty == "image") { var im = SaveImages(s, new object[] { d }); if (im.Count > 0) Add(list, WithImages(Ev("image", "", null, time), im)); }
+                    }
                 }
             }
+            EndTurn(list, ref open, DateTime.UtcNow.ToString("o"));
             return list.Count > MaxTranscriptEvents ? list.Skip(list.Count - MaxTranscriptEvents).ToList() : list;
         }
 
-        List<Dictionary<string, object>> TranscriptCodex(string file)
+        static string CodexCommand(JavaScriptSerializer js, string arguments)
         {
-            var list = new List<Dictionary<string, object>>();
+            try
+            {
+                var d = js.Deserialize<Dictionary<string, object>>(arguments); object c = d.ContainsKey("command") ? d["command"] : d.ContainsKey("cmd") ? d["cmd"] : null;
+                var arr = c as System.Collections.IEnumerable; if (arr != null && !(c is string)) return String.Join(" ", arr.Cast<object>().Select(x => Convert.ToString(x)));
+                return Convert.ToString(c) ?? "";
+            }
+            catch (Exception) { return ""; }
+        }
+
+        /// <summary>A Codex rollout as chat events: messages, reasoning summaries, commands and their output, file edits, searches, pictures (yours, viewed or generated) and turn ends.</summary>
+        List<Dictionary<string, object>> TranscriptCodex(Session s, string file)
+        {
+            var list = new List<Dictionary<string, object>>(); bool open = false;
             foreach (string line in SharedLines(file, Int32.MaxValue, Int64.MaxValue))
             {
-                if (line.Length > 2000000 || !line.Contains("\"response_item\"")) continue;
+                if (line.Length > 12000000 || !line.Contains("\"response_item\"")) continue;
                 Dictionary<string, object> o; try { o = json.Deserialize<Dictionary<string, object>>(line); } catch (Exception) { continue; }
                 var p = Obj(o, "payload"); if (p == null) continue; string time = Str(o, "timestamp"), ty = Str(p, "type");
                 if (ty == "message")
                 {
                     string role = Str(p, "role"); object content = p.ContainsKey("content") ? p["content"] : null;
-                    if (role == "user") { string t = UserTextOf(content); if (t.Trim() != "") Add(list, Ev("user", Cap(t, 6000), null, time)); }
-                    else if (role == "assistant") { string t = TextOf(content); if (t.Trim() != "") Add(list, Ev("assistant", Cap(t, 8000), null, time)); }
+                    if (role == "user")
+                    {
+                        string t = UserTextOf(content); if (t.Trim() != "") { EndTurn(list, ref open, time); Add(list, Ev("user", Cap(t, 6000), null, time)); open = true; }
+                        var im = SaveImages(s, content); if (im.Count > 0) Add(list, WithImages(Ev("image", "", "attached", time), im));
+                    }
+                    else if (role == "assistant") { string t = TextOf(content); if (t.Trim() != "") { Add(list, Ev("assistant", Cap(t, 8000), null, time)); open = true; } }
                 }
-                else if (ty == "function_call" || ty == "custom_tool_call") Add(list, Ev("tool", Str(p, "name") == "" ? "tool" : Str(p, "name"), Cap(ty == "function_call" ? Str(p, "arguments") : Str(p, "input"), 2000), time));
-                else if (ty == "function_call_output" || ty == "custom_tool_call_output") { object output = p.ContainsKey("output") ? p["output"] : null; Add(list, Ev("tool_result", Cap(output is string ? (string)output : Flatten(output) != "" ? Flatten(output) : json.Serialize(output), 4000), null, time)); }
+                else if (ty == "reasoning") { string r = Flatten(p.ContainsKey("summary") ? p["summary"] : null); if (r.Trim() != "") { Add(list, Ev("thinking", Cap(r, 4000), null, time)); open = true; } }
+                else if (ty == "function_call" || ty == "custom_tool_call")
+                {
+                    string name = Str(p, "name") == "" ? "tool" : Str(p, "name"), args = ty == "function_call" ? Str(p, "arguments") : Str(p, "input");
+                    if (name == "shell" || name == "shell_command" || name == "exec_command" || name == "container.exec") { string c = CodexCommand(json, args); if (c != "") { Add(list, Ev("tool", "shell", Cap(c, 2000), time)); open = true; continue; } }
+                    Add(list, Ev("tool", name == "apply_patch" ? "file change" : name, Cap(args, 2000), time)); open = true;
+                }
+                else if (ty == "local_shell_call") { var act = Obj(p, "action"); string c = act != null && act.ContainsKey("command") ? Flatten(act["command"]) : ""; Add(list, Ev("tool", "shell", Cap(c.Replace("\n", " "), 2000), time)); open = true; }
+                else if (ty == "web_search_call") { var act = Obj(p, "action"); Add(list, Ev("tool", "web search", Str(act, "query"), time)); open = true; }
+                else if (ty == "function_call_output" || ty == "custom_tool_call_output")
+                {
+                    object output = p.ContainsKey("output") ? p["output"] : null; string text = output is string ? (string)output : Flatten(output) != "" ? Flatten(output) : json.Serialize(output);
+                    try { if (output is string && ((string)output).StartsWith("{")) { var od = json.Deserialize<Dictionary<string, object>>((string)output); if (od.ContainsKey("output")) text = Convert.ToString(od["output"]); } } catch (Exception) { }
+                    Add(list, WithImages(Ev("tool_result", Cap(text, 4000), null, time), SaveImages(s, output))); open = true;
+                }
+                else if (ty.IndexOf("image", StringComparison.OrdinalIgnoreCase) >= 0) { var im = ImagesFromItem(s, p); if (im.Count > 0) { Add(list, WithImages(Ev("image", ty, Str(p, "path"), time), im)); open = true; } }
             }
+            EndTurn(list, ref open, DateTime.UtcNow.ToString("o"));
             return list.Count > MaxTranscriptEvents ? list.Skip(list.Count - MaxTranscriptEvents).ToList() : list;
-        }
-    }
+        }    }
 }
