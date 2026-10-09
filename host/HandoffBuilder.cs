@@ -15,6 +15,7 @@ namespace Laica
     {
         public string Goal = "", Latest = "", Stage = "", UpdatedBy = "", UpdatedUtc = "", Constraints = "", NextSteps = "";
         public bool Unfinished;
+        public List<string> Requests = new List<string>(), Recent = new List<string>(), Problems = new List<string>();
         public List<string> Done = new List<string>(), InProgress = new List<string>(), Files = new List<string>(), VerifyFirst = new List<string>(), Commands = new List<string>(), FolderOnly = new List<string>();
     }
 
@@ -78,13 +79,22 @@ namespace Laica
             string firstUser = "", lastUser = "", turnFinal = "", turnRequest = ""; bool turnOpen = false, turnFailed = false, lastClean = true;
             DateTime stopAt = DateTime.MinValue; int count = 0;
             var recentEdits = new List<KeyValuePair<string, DateTime>>();
+            var requests = new List<string>(); var turns = new List<string>(); var problems = new List<string>(); var turnFiles = new List<string>();
+            Action closeTurn = () =>
+            {
+                if (turnRequest == "") return;
+                var sbT = new StringBuilder(); sbT.Append("**You:** ").Append(Clip(turnRequest, 1000)).Append("\r\n\r\n").Append("**Agent:** ").Append(turnFinal == "" ? (turnFailed ? "(stopped before replying)" : "(no reply)") : Clip(turnFinal, 1800));
+                if (turnFiles.Count > 0) sbT.Append("\r\n\r\n_Changed: ").Append(String.Join(", ", turnFiles.Distinct().Take(10))).Append("_");
+                turns.Add(sbT.ToString()); turnFiles.Clear();
+            };
             for (int i = 0; i < events.Count; i++)
             {
                 var e = events[i]; string kind = Str(e, "Kind"), text = Str(e, "Text"), detail = Str(e, "Detail"); DateTime t = DateTime.MinValue;
                 DateTime.TryParse(Str(e, "TimeUtc"), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out t);
                 if (kind == "user")
                 {
-                    if (turnOpen) done.Add(Turn(turnRequest, turnFinal, turnFailed));
+                    if (turnOpen) { done.Add(Turn(turnRequest, turnFinal, turnFailed)); closeTurn(); }
+                    requests.Add(text);
                     if (firstUser == "") firstUser = text; lastUser = text; turnRequest = text; turnFinal = ""; turnOpen = true; turnFailed = false; lastClean = false; stopAt = DateTime.MinValue; count++;
                 }
                 else if (kind == "assistant") turnFinal = (detail == "append" && turnFinal != "") ? turnFinal + "\n" + text : text;
@@ -94,11 +104,11 @@ namespace Laica
                     if (name == "shell" || name == "Bash" || name == "PowerShell" || name == "run_command") { string c = name == "shell" ? detail : CommandOf(js, detail); pending.Add(new Pending { Kind = "cmd", Name = name, Cmd = c, Index = i }); cmds.Add(c); }
                     else if (name == "file change")
                     {
-                        foreach (var ch in ChangesOf(js, detail)) { files.Add(new KeyValuePair<string, string>(Rel(cwd, ch.Key), ch.Value)); if (t != DateTime.MinValue) recentEdits.Add(new KeyValuePair<string, DateTime>(Rel(cwd, ch.Key), t)); }
+                        foreach (var ch in ChangesOf(js, detail)) { files.Add(new KeyValuePair<string, string>(Rel(cwd, ch.Key), ch.Value)); turnFiles.Add(Rel(cwd, ch.Key)); if (t != DateTime.MinValue) recentEdits.Add(new KeyValuePair<string, DateTime>(Rel(cwd, ch.Key), t)); }
                     }
                     else if (EditTools.Contains(name))
                     {
-                        string p = PathOf(js, detail); if (p != "") { p = Rel(cwd, p); pending.Add(new Pending { Kind = "edit", Name = name, Cmd = p, Index = i }); files.Add(new KeyValuePair<string, string>(p, name == "Write" ? "written" : "edited")); if (t != DateTime.MinValue) recentEdits.Add(new KeyValuePair<string, DateTime>(p, t)); }
+                        string p = PathOf(js, detail); if (p != "") { p = Rel(cwd, p); pending.Add(new Pending { Kind = "edit", Name = name, Cmd = p, Index = i }); files.Add(new KeyValuePair<string, string>(p, name == "Write" ? "written" : "edited")); turnFiles.Add(p); if (t != DateTime.MinValue) recentEdits.Add(new KeyValuePair<string, DateTime>(p, t)); }
                     }
                 }
                 else if (kind == "tool_result")
@@ -106,20 +116,23 @@ namespace Laica
                     int at = -1;
                     if (detail != "" && detail != "error") at = pending.FindIndex(x => x.Kind == "cmd" && x.Cmd == detail);
                     if (at < 0 && pending.Count > 0) at = 0;
-                    if (at >= 0) { var p = pending[at]; pending.RemoveAt(at); if (p.Kind == "cmd") { int ci = cmds.LastIndexOf(p.Cmd); if (ci >= 0 && detail == "error") cmds[ci] = p.Cmd + "  [failed]"; } }
+                    if (at >= 0) { var p = pending[at]; pending.RemoveAt(at); if (p.Kind == "cmd") { int ci = cmds.LastIndexOf(p.Cmd); if (ci >= 0 && detail == "error") cmds[ci] = p.Cmd + "  [failed: " + OneLine(text, 200) + "]"; } }
                 }
-                else if (kind == "error" || kind == "limit") { turnFailed = true; if (stopAt == DateTime.MinValue || t > stopAt) stopAt = t; }
-                else if (kind == "done") { if (turnOpen) { done.Add(Turn(turnRequest, turnFinal, turnFailed)); lastClean = !turnFailed && turnFinal != ""; turnOpen = false; } }
+                else if (kind == "error" || kind == "limit") { turnFailed = true; if (stopAt == DateTime.MinValue || t > stopAt) stopAt = t; if (kind == "error") problems.Add(OneLine(text, 260)); }
+                else if (kind == "done") { if (turnOpen) { done.Add(Turn(turnRequest, turnFinal, turnFailed)); closeTurn(); lastClean = !turnFailed && turnFinal != ""; turnOpen = false; } }
             }
-            if (turnOpen) { lastClean = false; }
-            info.Goal = Redact(Clip(firstUser, 500)); info.Latest = Redact(Clip(lastUser, 3000));
+            if (turnOpen) { lastClean = false; closeTurn(); }
+            info.Goal = Redact(Clip(firstUser, 800)); info.Latest = Redact(Clip(lastUser, 4000));
             info.Unfinished = lastUser != "" && !lastClean;
-            foreach (string d in done.Skip(Math.Max(0, done.Count - 8))) info.Done.Add(Redact(d));
+            for (int i = Math.Max(0, requests.Count - 30), n = i + 1; i < requests.Count; i++, n++) info.Requests.Add(n + ". " + Redact(OneLine(requests[i], 260)));
+            foreach (string d in turns.Skip(Math.Max(0, turns.Count - 6))) info.Recent.Add(Redact(d));
+            foreach (string pr in problems.Skip(Math.Max(0, problems.Count - 5))) info.Problems.Add(Redact(pr));
+            foreach (string d in done.Skip(Math.Max(0, done.Count - 30))) info.Done.Add(Redact(d));
             if (info.Unfinished) { info.InProgress.Add("Unfinished request: " + Redact(OneLine(lastUser, 400))); if (turnFinal != "") info.InProgress.Add("Last thing the agent said: " + Redact(OneLine(turnFinal, 400))); }
             // newest first, one line per file
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            for (int i = files.Count - 1; i >= 0 && info.Files.Count < 40; i--) if (files[i].Key != "" && seen.Add(files[i].Key)) info.Files.Add(files[i].Key + " (" + files[i].Value + ")");
-            for (int i = cmds.Count - 1; i >= 0 && info.Commands.Count < 10; i--) if (!String.IsNullOrWhiteSpace(cmds[i])) info.Commands.Add(Redact(OneLine(cmds[i], 160)));
+            for (int i = files.Count - 1; i >= 0 && info.Files.Count < 80; i--) if (files[i].Key != "" && seen.Add(files[i].Key)) info.Files.Add(files[i].Key + " (" + files[i].Value + ")");
+            for (int i = cmds.Count - 1; i >= 0 && info.Commands.Count < 20; i--) if (!String.IsNullOrWhiteSpace(cmds[i])) info.Commands.Add(Redact(OneLine(cmds[i], 360)));
             // half-written files: an edit that never got a result, or one touched in the last moments before the agent stopped
             var verify = new List<string>();
             if (info.Unfinished) foreach (var p in pending) if (p.Kind == "edit" && !verify.Contains(p.Cmd)) verify.Add(p.Cmd);
@@ -224,14 +237,17 @@ namespace Laica
             sb.Append("_This block is rewritten by LAICA after every turn so any agent can pick the work up. Put your own notes under Pinned at the bottom: LAICA never touches those._\r\n\r\n");
             sb.Append("Last updated by ").Append(h.UpdatedBy == "" ? "LAICA" : h.UpdatedBy).Append(" at ").Append(h.UpdatedUtc).Append("\r\n\r\n");
             sb.Append("### Goal\r\n").Append(h.Goal == "" ? "_No request yet._" : h.Goal).Append("\r\n\r\n");
+            if (h.Requests.Count > 1) Section(sb, "Everything the user has asked, in order", h.Requests, "None.");
             if (h.Latest != "" && h.Latest != h.Goal) sb.Append("### Latest request from the user\r\n").Append(h.Latest).Append("\r\n\r\n");
             sb.Append("### Current stage\r\n").Append(h.Stage == "" ? "Not started." : h.Stage).Append("\r\n\r\n");
-            Section(sb, "Done", h.Done, "Nothing finished yet.");
+            Section(sb, "Done, turn by turn", h.Done, "Nothing finished yet.");
+            if (h.Recent.Count > 0) { sb.Append("### Recent conversation (newest last)\r\n"); foreach (string r in h.Recent) sb.Append(r).Append("\r\n\r\n---\r\n\r\n"); }
             var next = new List<string>(h.InProgress); if (h.NextSteps != "") next.Add("Agent note: " + h.NextSteps);
             Section(sb, "In progress and next steps", next, "Nothing waiting.");
             Section(sb, "Verify first (may be half-written)", h.VerifyFirst, "None.");
             Section(sb, "Files touched", h.Files.Concat(h.FolderOnly.Select(f => f + " (changed in the folder)")), "No files changed yet.");
             Section(sb, "Recent commands", h.Commands, "None.");
+            if (h.Problems.Count > 0) Section(sb, "Problems reported", h.Problems, "None.");
             sb.Append("### Active constraints\r\n").Append(h.Constraints == "" ? "_None recorded._" : h.Constraints).Append("\r\n").Append(EndMark);
             return sb.ToString();
         }
@@ -274,28 +290,39 @@ namespace Laica
             var sb = new StringBuilder(); var js = new JavaScriptSerializer();
             var fresh = events.Where(e => Num(e, "N") > afterSeq).ToList();
             string lastUser = "", lastSaid = ""; var files = new List<string>(); var cmds = new List<string>(); var errors = new List<string>(); var pending = new List<string>();
+            var talk = new List<KeyValuePair<string, string>>();   // who said what, in order
             foreach (var e in fresh)
             {
                 string kind = Str(e, "Kind"), text = Str(e, "Text"), detail = Str(e, "Detail");
-                if (kind == "user") lastUser = text;
-                else if (kind == "assistant") lastSaid = (Str(e, "Detail") == "append" && lastSaid != "") ? lastSaid + "\n" + text : text;
+                if (kind == "user") { lastUser = text; talk.Add(new KeyValuePair<string, string>("user", text)); }
+                else if (kind == "assistant")
+                {
+                    lastSaid = (Str(e, "Detail") == "append" && lastSaid != "") ? lastSaid + "\n" + text : text;
+                    if (Str(e, "Detail") == "append" && talk.Count > 0 && talk[talk.Count - 1].Key == "agent") talk[talk.Count - 1] = new KeyValuePair<string, string>("agent", talk[talk.Count - 1].Value + "\n" + text); else talk.Add(new KeyValuePair<string, string>("agent", text));
+                }
                 else if (kind == "tool")
                 {
                     if (text == "shell" || text == "Bash" || text == "PowerShell") cmds.Add(text == "shell" ? detail : CommandOf(js, detail));
                     else if (text == "file change") foreach (var c in ChangesOf(js, detail)) files.Add(Rel(cwd, c.Key) + " (" + c.Value + ")");
                     else if (EditTools.Contains(text)) { string p = PathOf(js, detail); if (p != "") { files.Add(Rel(cwd, p) + " (" + (text == "Write" ? "written" : "edited") + ")"); pending.Add(Rel(cwd, p)); } }
                 }
-                else if (kind == "tool_result") { if (pending.Count > 0) pending.RemoveAt(0); }
-                else if (kind == "error" || kind == "limit") errors.Add(OneLine(text, 200));
+                else if (kind == "tool_result") { if (pending.Count > 0) pending.RemoveAt(0); if (detail == "error" && cmds.Count > 0) cmds[cmds.Count - 1] = cmds[cmds.Count - 1] + "  [failed: " + OneLine(text, 200) + "]"; }
+                else if (kind == "error" || kind == "limit") errors.Add(OneLine(text, 260));
             }
             sb.Append("WHAT HAPPENED SINCE YOU LAST WORKED ON THIS (").Append(fresh.Count).Append(" new events; this is only the new part, not the whole conversation)\n");
             if (fresh.Count == 0) sb.Append("- Nothing new in the chat. Check the files before editing.\n");
-            if (lastUser != "") sb.Append("- Latest request from the user: ").Append(Clip(lastUser, 3000)).Append("\n");
-            if (lastSaid != "") sb.Append("- ").Append(fromName).Append(" last said: ").Append(Clip(lastSaid, 1800)).Append("\n");
+            if (talk.Count > 0)
+            {
+                sb.Append("\nTHE CONVERSATION SINCE (oldest first):\n");
+                foreach (var tk in talk.Skip(Math.Max(0, talk.Count - 14)))
+                    sb.Append(tk.Key == "user" ? "- The user wrote: " : "- " + fromName + " replied: ").Append(Clip(tk.Value, tk.Key == "user" ? 2000 : 2200)).Append("\n");
+                sb.Append("\n");
+            }
+            else if (lastUser != "") sb.Append("- Latest request from the user: ").Append(Clip(lastUser, 3000)).Append("\n");
             var distinct = new List<string>(); var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase); for (int i = files.Count - 1; i >= 0; i--) if (seen.Add(files[i])) distinct.Add(files[i]);
-            if (distinct.Count > 0) sb.Append("- Files ").Append(fromName).Append(" changed: ").Append(String.Join(", ", distinct.Take(25))).Append("\n");
-            if (cmds.Count > 0) sb.Append("- Commands run: ").Append(String.Join(" | ", cmds.Skip(Math.Max(0, cmds.Count - 8)).Select(c => OneLine(c, 120)))).Append("\n");
-            if (errors.Count > 0) sb.Append("- Problems reported: ").Append(String.Join(" | ", errors.Skip(Math.Max(0, errors.Count - 3)))).Append("\n");
+            if (distinct.Count > 0) sb.Append("- Files ").Append(fromName).Append(" changed: ").Append(String.Join(", ", distinct.Take(60))).Append("\n");
+            if (cmds.Count > 0) sb.Append("- Commands run: ").Append(String.Join(" | ", cmds.Skip(Math.Max(0, cmds.Count - 15)).Select(c => OneLine(c, 320)))).Append("\n");
+            if (errors.Count > 0) sb.Append("- Problems reported: ").Append(String.Join(" | ", errors.Skip(Math.Max(0, errors.Count - 5)))).Append("\n");
             if (pending.Count > 0) sb.Append("- VERIFY FIRST (edits with no result, may be half-written): ").Append(String.Join(", ", pending.Distinct().Take(15))).Append("\n");
             sb.Append("- Full project state, decisions and notes are in ").Append(handoffName).Append(" in the working folder. Read it only if you need more than this.\n");
             return Redact(Clip(sb.ToString(), maxChars));

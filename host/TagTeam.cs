@@ -126,6 +126,7 @@ namespace Laica
         /// <summary>The reset time to trust when a limit message arrives: the message's own words if it has any, else the fullest plan window.</summary>
         DateTime RefineReset(string key, string text, DateTime fallback, bool parsed)
         {
+            DateTime tryAt = ParseTryAgain(text); if (tryAt != DateTime.MinValue && tryAt > DateTime.UtcNow) return tryAt.AddMinutes(1);
             DateTime clock = ParseResetClock(text, DateTime.Now); if (clock != DateTime.MinValue) return clock.ToUniversalTime().AddMinutes(1);
             if (parsed) return fallback;
             try
@@ -233,14 +234,14 @@ namespace Laica
                 string state = HandoffBuilder.ManagedOf(text); string pinned = HandoffBuilder.PinnedOf(text);
                 if (state == "") state = HandoffBuilder.RenderManaged(HandoffBuilder.Build(events, root.Cwd, root.Rules, AgentLabel(root), DateTime.UtcNow));
                 sb.Append("You are joining a project that is already under way, as one half of a two-agent tag team: ").Append(fromName).Append(" and you take turns on this same working folder and hand over when one runs out of usage. The user does not want to explain anything again, so carry on from the notes below.\n\n");
-                sb.Append("PROJECT STATE (kept up to date by LAICA):\n").Append(HandoffBuilder.Clip(state.Replace(HandoffBuilder.StartMark, "").Replace(HandoffBuilder.EndMark, ""), 7000)).Append("\n");
-                if (pinned != "") sb.Append("\nPINNED NOTES FROM THE USER:\n").Append(HandoffBuilder.Clip(pinned, 3000)).Append("\n");
-                sb.Append("\n").Append(HandoffBuilder.Delta(events, 0, fromName, root.Cwd, hp, 5000));
+                sb.Append("PROJECT STATE (kept up to date by LAICA):\n").Append(HandoffBuilder.Clip(state.Replace(HandoffBuilder.StartMark, "").Replace(HandoffBuilder.EndMark, ""), 16000)).Append("\n");
+                if (pinned != "") sb.Append("\nPINNED NOTES FROM THE USER:\n").Append(HandoffBuilder.Clip(pinned, 6000)).Append("\n");
+                sb.Append("\n").Append(HandoffBuilder.Delta(events, 0, fromName, root.Cwd, hp, 9000));
             }
             else
             {
                 sb.Append("You are taking the work back from ").Append(fromName).Append(". You already know everything up to your own last turn; this is only what is new.\n\n");
-                sb.Append(HandoffBuilder.Delta(events, seen, fromName, root.Cwd, hp, 6500));
+                sb.Append(HandoffBuilder.Delta(events, seen, fromName, root.Cwd, hp, 14000));
             }
             sb.Append("\n---\n\n");
             if (unfinished) sb.Append("The previous agent stopped before finishing. Carry on with the request that was in progress and do not ask the user to repeat it:\n").Append(HandoffBuilder.Redact(HandoffBuilder.Clip(request, 4000))).Append("\n\nInspect the working folder first and read any files listed under VERIFY FIRST before building on them. Do not redo finished work.");

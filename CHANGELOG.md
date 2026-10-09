@@ -3,6 +3,14 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.21.4]
+
+### Fixed
+- **Usage that is really spent no longer sits at 99%.** When Codex refuses work ("You've hit your usage limit"), LAICA now shows the fullest window as 100% used, takes the reset time from the message ("try again at Oct 10th, 2026 2:26 AM"), and ignores the credits-only readings Codex writes afterwards, which used to hide the real windows. Limits that LAICA itself saw show 100% too, and windows that have passed their reset time show 0%.
+- **Usage warnings no longer cover the Usage button.** Notifications now appear at the top right under the title bar, with a calmer look.
+
+### Changed
+- **The handoff carries much more.** The briefing a joining agent gets (and HANDOFF.md) now includes every request in order, a turn-by-turn list of what was done, the recent conversation in the agents' own words (the last six turns with the files each changed), up to 20 recent commands with the reason when one failed, problems reported and up to 80 files. A returning agent gets each new message and reply since its last turn in full (up to 14,000 characters) rather than one line. The overall budget grew from about 1,500 tokens to several thousand; the hover preview shows the real size and cost.
 ## [0.21.3]
 
 ### Fixed

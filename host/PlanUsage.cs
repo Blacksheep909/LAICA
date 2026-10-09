@@ -41,10 +41,19 @@ namespace Laica
             return w;
         }
 
+        static readonly Regex TryAgainRx = new Regex(@"try again at ([A-Z][a-z]{2}) (\d{1,2})(?:st|nd|rd|th)?, (\d{4}) (\d{1,2}):(\d{2}) ?([AP]M)", RegexOptions.Compiled);
+        /// <summary>"...or try again at Oct 10th, 2026 2:26 AM." in a limit message: that local time in UTC, or DateTime.MinValue.</summary>
+        public static DateTime ParseTryAgain(string text)
+        {
+            var m = TryAgainRx.Match(text ?? ""); if (!m.Success) return DateTime.MinValue;
+            DateTime t; string s = m.Groups[1].Value + " " + m.Groups[2].Value + " " + m.Groups[3].Value + " " + m.Groups[4].Value + ":" + m.Groups[5].Value + " " + m.Groups[6].Value;
+            if (!DateTime.TryParseExact(s, "MMM d yyyy h:mm tt", CultureInfo.InvariantCulture, DateTimeStyles.None, out t)) return DateTime.MinValue;
+            return DateTime.SpecifyKind(t, DateTimeKind.Local).ToUniversalTime();
+        }
         /// <summary>The newest rate-limit reading in the Codex session logs.</summary>
         void RefreshCodex()
         {
-            var best = new List<PlanWin>(); DateTime bestSeen = DateTime.MinValue; string plan = "";
+            var best = new List<PlanWin>(); DateTime bestSeen = DateTime.MinValue; string plan = ""; bool bestHit = false; long bestHitSecs = 0; DateTime bestHitAt = DateTime.MinValue, bestHitClock = DateTime.MinValue;
             try
             {
                 string root = Path.Combine(CodexHomeDir(), "sessions");
@@ -63,18 +72,35 @@ namespace Laica
                             }
                         }
                         catch (Exception) { continue; }
-                        Match last = null; foreach (Match m in RateRx.Matches(tail)) last = m;
+                        Match last = null, lastAny = null; foreach (Match m in RateRx.Matches(tail)) { lastAny = m; if (m.Groups[1].Value != "null" || m.Groups[2].Value != "null") last = m; }   // a reading with both windows null (credits only) says nothing about the plan
+                        if (last == null) last = lastAny;
                         if (last == null) continue;
                         DateTime seen = fi.LastWriteTimeUtc; int ts = tail.LastIndexOf("\"timestamp\":\"", last.Index, StringComparison.Ordinal);
                         if (ts >= 0) { DateTime t; int end = tail.IndexOf('"', ts + 13); if (end > ts && DateTime.TryParse(tail.Substring(ts + 13, end - ts - 13), CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out t)) seen = t; }
+                        // an out-of-usage error written after the last reading means the plan is spent, whatever the last percentage said
+                        bool hit = false; long hitSecs = 0; DateTime hitAt = seen, hitAtClock = DateTime.MinValue;
+                        int li = Math.Max(Math.Max(tail.LastIndexOf("usage_limit_exceeded", StringComparison.Ordinal), tail.LastIndexOf("usage_limit_reached", StringComparison.Ordinal)), tail.LastIndexOf("hit your usage limit", StringComparison.OrdinalIgnoreCase));
+                        if (li > last.Index)
+                        {
+                            hit = true; string around = tail.Substring(Math.Max(0, li - 400), Math.Min(1100, tail.Length - Math.Max(0, li - 400)));
+                            var rs = Regex.Match(around, "\"resets_in_seconds\"\\s*:\\s*(\\d+)"); if (rs.Success) long.TryParse(rs.Groups[1].Value, out hitSecs);
+                            hitAtClock = ParseTryAgain(around);
+                            int hts = tail.LastIndexOf("\"timestamp\":\"", li, StringComparison.Ordinal); DateTime ht; int he = hts >= 0 ? tail.IndexOf('"', hts + 13) : -1;
+                            if (he > hts && DateTime.TryParse(tail.Substring(hts + 13, he - hts - 13), CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out ht)) hitAt = ht;
+                        }
                         if (seen <= bestSeen) continue;
                         var list = new List<PlanWin>(); var a = ParseWindow(last.Groups[1].Value, "Codex"); var b = ParseWindow(last.Groups[2].Value, "Codex");
                         if (a != null) { a.SeenUtc = seen; list.Add(a); } if (b != null) { b.SeenUtc = seen; list.Add(b); }
-                        if (list.Count == 0) continue; best = list; bestSeen = seen; plan = last.Groups[3].Success ? last.Groups[3].Value : "";
+                        if (list.Count == 0) continue; best = list; bestSeen = seen; bestHit = hit; bestHitSecs = hitSecs; bestHitAt = hitAt; bestHitClock = hitAtClock; plan = last.Groups[3].Success ? last.Groups[3].Value : "";
                     }
                 }
             }
             catch (Exception) { }
+            if (bestHit && best.Count > 0)
+            {
+                var spent = best.OrderByDescending(w => w.Percent).ThenByDescending(w => w.Minutes).First(); spent.Percent = 100;
+                if (bestHitClock != DateTime.MinValue) spent.ResetsUtc = bestHitClock; else if (bestHitSecs > 0) spent.ResetsUtc = bestHitAt.AddSeconds(bestHitSecs);
+            }
             foreach (var w in best) if (w.ResetsUtc != DateTime.MinValue && w.ResetsUtc <= DateTime.UtcNow) { w.Percent = 0; w.Stale = true; }   // the window has renewed since that reading
             lock (planGate) { codexCache = best; codexPlan = plan; }
         }
@@ -165,7 +191,13 @@ namespace Laica
                 lock (planGate)
                 {
                     if (key == "codex") { wins.AddRange(codexCache); source = "Read from your Codex session logs" + (codexPlan != "" ? " (" + codexPlan + " plan)" : ""); }
-                    foreach (var kv in liveWindows) if (kv.Key.StartsWith(key + "|")) wins.Add(kv.Value);
+                    foreach (var kv in liveWindows) if (kv.Key.StartsWith(key + "|")) { var lw = kv.Value; if (lw.ResetsUtc != DateTime.MinValue && lw.ResetsUtc <= DateTime.UtcNow) { lw.Percent = 0; lw.Stale = true; } wins.Add(lw); }
+                }
+                if ((bool)r["Limited"] && wins.Count > 0)
+                {
+                    // LAICA saw the vendor refuse work: show the fullest window as spent instead of the last reading before it ran out
+                    wins = wins.Select(w => new PlanWin { Label = w.Label, Source = w.Source, Percent = w.Percent, ResetsUtc = w.ResetsUtc, SeenUtc = w.SeenUtc, Minutes = w.Minutes, Stale = w.Stale }).ToList();
+                    var fullest = wins.Where(w => !w.Stale).OrderByDescending(w => w.Percent).ThenByDescending(w => w.Minutes).FirstOrDefault(); if (fullest != null) fullest.Percent = 100;
                 }
                 if (key == "claude") { today = Math.Max(today, ClaudeTokens(1)); week = Math.Max(Convert.ToInt64(r["TokensToday"]), ClaudeTokens(7)); if (source == "") source = "Tokens counted from all your Claude Code transcripts"; r["TokensToday"] = today; }
                 else { lock (gate) { VendorUse u; if (usage.TryGetValue(key, out u)) week = WeekTokens(u); } }
@@ -174,6 +206,7 @@ namespace Laica
                 r["Windows"] = wins.OrderBy(w => w.Minutes == 0 ? 99999 : w.Minutes).Select(WinDto).ToArray(); r["TokensWeek"] = week; r["WeekBudget"] = weekBudget; r["Source"] = source;
                 double top = wins.Count == 0 ? 0 : wins.Max(w => w.Percent); long dBud = Convert.ToInt64(r["Budget"]);
                 if (dBud > 0) top = Math.Max(top, today * 100.0 / dBud); if (weekBudget > 0) top = Math.Max(top, week * 100.0 / weekBudget);
+                if ((bool)r["Limited"]) top = 100;
                 r["TopPercent"] = Math.Round(top, 1);
                 if (!(bool)r["Limited"]) r["Warn"] = top >= 100 ? "over" : top >= 80 ? "near" : Str(r, "Warn") == "near" || Str(r, "Warn") == "over" ? Str(r, "Warn") : "";
             }

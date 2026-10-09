@@ -85,6 +85,13 @@ public static class TagTeamChecks
             ev3.Add(Ev("tool", "file change", "[{\"path\":\"search.ts\",\"kind\":\"add\"}]", 5, t0));
             string delta = HandoffBuilder.Delta(ev3, 2, "Codex", folder, "HANDOFF.md", 6000);
             Check(delta.Contains("NEWREQUEST") && delta.Contains("NEWREPLY") && delta.Contains("search.ts") && !delta.Contains("OLDREQUEST") && !delta.Contains("OLDREPLY") && delta.Contains("3 new events"), "delta: contains only events newer than the receiver's last turn, never a full replay");
+            // a longer conversation is carried in full, not squeezed to a line each
+            var long1 = new List<Dictionary<string, object>>(); long n = 0;
+            for (int q = 1; q <= 12; q++) { long1.Add(Ev("user", "Request number " + q + ": please do part " + q + " of the dashboard", null, ++n, t0)); long1.Add(Ev("assistant", "Part " + q + " is finished. I chose approach " + q + " because of reason " + q + ", and left a follow-up about caching for part " + (q + 1) + ".", null, ++n, t0)); long1.Add(Ev("done", "", null, ++n, t0)); }
+            var big = HandoffBuilder.Build(long1, folder, "", "Codex", DateTime.UtcNow); string bigMd = HandoffBuilder.RenderManaged(big);
+            Check(big.Requests.Count == 12 && big.Done.Count == 12 && big.Recent.Count == 6 && bigMd.Contains("approach 12 because of reason 12") && bigMd.Contains("approach 7 because of reason 7") && bigMd.Contains("Request number 1:") && bigMd.Length > 3500, "handoff builder: every request, every turn and the recent conversation (with the agent's own words) are carried, not just one line");
+            string bigDelta = HandoffBuilder.Delta(long1, 12, "Codex", folder, "HANDOFF.md", 14000);
+            Check(bigDelta.Contains("approach 12 because of reason 12") && bigDelta.Contains("approach 7 because of reason 7") && !bigDelta.Contains("approach 3 because"), "delta: carries each new reply in the agent's own words, and still nothing from before the cut-off");
             string merged = HandoffBuilder.Merge("# My notes\r\nkeep me\r\n", HandoffBuilder.RenderManaged(info));
             Check(merged.Contains("keep me") && merged.Contains(HandoffBuilder.StartMark) && HandoffBuilder.Merge(merged, HandoffBuilder.RenderManaged(info)).Split(new[] { HandoffBuilder.StartMark }, StringSplitOptions.None).Length == 2, "HANDOFF.md: an existing file is kept and the block is replaced, not duplicated");
             var d1 = HarnessManager.ParseResetClock("5-hour limit reached - resets 3pm", new DateTime(2026, 10, 9, 10, 0, 0));
@@ -93,6 +100,33 @@ public static class TagTeamChecks
             Check(!new AgentNode().CanEdit, "designer: nodes are read-only unless switched to can-edit");
         }
 
+        // ---------- a plan that is really spent must not sit at 99% ----------
+        {
+            Check(HarnessManager.ParseTryAgain("...or try again at Oct 10th, 2026 2:26 AM.") == new DateTime(2026, 10, 10, 2, 26, 0, DateTimeKind.Local).ToUniversalTime() && HarnessManager.ParseTryAgain("no time here") == DateTime.MinValue, "usage: 'try again at <date time>' in a limit message becomes the reset time");
+            string codexHome = Path.Combine(root, "spent-codex"), day = Path.Combine(codexHome, "sessions", "2026", "10", "09"); Directory.CreateDirectory(day);
+            string past = DateTime.UtcNow.AddMinutes(-20).ToString("o"), later = DateTime.UtcNow.AddMinutes(-10).ToString("o"); long soon = (long)(DateTime.UtcNow.AddHours(3) - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds;
+            File.WriteAllText(Path.Combine(day, "rollout-2026-10-09T01-00-00-spent.jsonl"),
+                "{\"timestamp\":\"" + past + "\",\"type\":\"event_msg\",\"payload\":{\"type\":\"token_count\",\"rate_limits\":{\"limit_id\":\"codex\",\"primary\":{\"used_percent\":99.0,\"window_minutes\":300,\"resets_at\":" + soon + "},\"secondary\":{\"used_percent\":31.0,\"window_minutes\":10080,\"resets_at\":" + (soon + 400000) + "},\"plan_type\":null}}}\n" +
+                "{\"timestamp\":\"" + later + "\",\"type\":\"event_msg\",\"payload\":{\"type\":\"token_count\",\"rate_limits\":{\"limit_id\":\"premium\",\"primary\":null,\"secondary\":null,\"plan_type\":null}}}\n" +
+                "{\"timestamp\":\"" + later + "\",\"type\":\"event_msg\",\"payload\":{\"type\":\"task_complete\",\"error\":{\"message\":\"You\\u2019ve hit your usage limit. try again at Oct 10th, 2030 2:26 AM.\",\"codex_error_info\":\"usage_limit_exceeded\"}}}\n");
+            string pc = Environment.GetEnvironmentVariable("CODEX_HOME"), pcl = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
+            Environment.SetEnvironmentVariable("CODEX_HOME", codexHome); Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", Path.Combine(root, "spent-claude"));
+            try
+            {
+                using (var m = new HarnessManager(Path.Combine(root, "data-spent")))
+                {
+                    var row = Dicts(m.Usage()).FirstOrDefault(x => (string)x["Key"] == "codex");
+                    if (row == null) Console.WriteLine("SKIP usage: Codex isn't installed here");
+                    else
+                    {
+                        var wins = Dicts(row["Windows"]); var five = wins.FirstOrDefault(w => (string)w["Label"] == "5-hour");
+                        Check(five != null && Convert.ToDouble(five["Percent"]) >= 100 && Convert.ToDouble(row["TopPercent"]) >= 100, "usage: a usage-limit error after the last reading shows the 5-hour window as spent, not 99%");
+                        Check(five != null && DateTime.Parse((string)five["ResetsUtc"], null, System.Globalization.DateTimeStyles.RoundtripKind).Year == 2030, "usage: the reset time comes from the limit message when it names one");
+                    }
+                }
+            }
+            finally { Environment.SetEnvironmentVariable("CODEX_HOME", pc); Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", pcl); }
+        }
         // ---------- settings: gentle migration ----------
         {
             string legacy = Path.Combine(root, "data-legacy", "harness"); Directory.CreateDirectory(legacy);
