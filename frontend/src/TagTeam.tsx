@@ -7,10 +7,12 @@ import type {GlassOption} from './GlassSelect';
 import {useHarness,effortLabel} from './harness-store';
 import type {HSession,HEvent} from './harness-store';
 import {useClaudeModels} from './ClaudeModels';
+import {Markdown} from './markdown';
 import type {Model} from './types';
 
 export interface PairSide { Key:string; Name:string; Model:string; Effort?:string; Percent:number; Limited:boolean; ResetsUtc:string; Ran:boolean; Busy:boolean; Mode?:string; Writable?:boolean }
-export interface PairInfo { Id:string; Mode:'off'|'assisted'|'automatic'; ChatMode:string; Active:'primary'|'partner'; ActiveName:string; Primary:PairSide; Partner:PairSide; HasPartner:boolean; AutoSwitch:boolean; SwitchBack:boolean; Halted:string; WaitUntilUtc:string; Preview:string; EstTokens:number; EstCost:number; Currency:string; HandoffFile:string; LastSwitchUtc:string; Switches:{TimeUtc:string;Text:string;Detail:string}[]; ReturnThreshold:number }
+export interface PairInfo { Id:string; Mode:'off'|'assisted'|'automatic'; ChatMode:string; Active:'primary'|'partner'; ActiveName:string; Primary:PairSide; Partner:PairSide; HasPartner:boolean; AutoSwitch:boolean; SwitchBack:boolean; Halted:string; WaitUntilUtc:string; Preview:string; EstTokens:number; EstCost:number; Currency:string; HandoffFile:string; LastSwitchUtc:string; Switches:{TimeUtc:string;Text:string;Detail:string}[]; ReturnThreshold:number; Summary?:PairSummary|null }
+export interface PairSummary { Target:string; From:string; Fresh:boolean; Request:string; Unfinished:boolean; LastReply:string; Turns:number; Files:string[]; FilesTotal:number; Verify:string[]; Commands:string[]; Problems:string[]; Stage:string }
 export interface Continuity { Mode:'off'|'assisted'|'automatic'; PartnerHarness:string; PartnerService:string; PartnerModel:string; AutoSwitch:boolean; SwitchBack:boolean; MinGapMinutes:number; ThrashSwitches:number; ThrashMinutes:number; ReturnThreshold:number; ReturnAtBoundary:boolean; HandoffPath:string; AgentNote:boolean; Harnesses:{Id:string;Name:string}[] }
 
 export const clock=(iso?:string)=>{if(!iso)return '';const d=new Date(iso);return Number.isNaN(d.getTime())?'':d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toLowerCase();};
@@ -48,14 +50,31 @@ export function TagTeamChip({session}:{session:HSession}){
     {info.Halted&&<b className="tt-halt">auto-switching paused</b>}
     <button type="button" className="tt-go" disabled={session.Busy||waiting} onClick={go}>Switch now</button>
     <span className="tt-pop" role="tooltip">
-      <b>If you switch now, {other.Name} receives:</b>
-      <small>{tokensText(info.EstTokens)} · about {money(info.EstCost,info.Currency)} (input only, estimated)</small>
-      <pre>{info.Preview?info.Preview.slice(0,1800)+(info.Preview.length>1800?'\n…':''):'Nothing yet.'}</pre>
-      <small>Kept in {info.HandoffFile} in the project folder. Nothing is sent until a switch happens.</small>
+      <RunDown info={info} target={other.Name}/>
     </span>
+
   </span>;
 }
 
+/** The plain-language rundown: where the next agent picks up, as a short list, with the exact text one click away. */
+function RunDown({info,target}:{info:PairInfo;target:string}){
+  const s=info.Summary;
+  const short=(t:string,n=170)=>{const x=(t||'').replace(/\s+/g,' ').trim();return x.length>n?x.slice(0,n-1)+'…':x;};
+  return <div className="tt-run">
+    <b>{target} takes over from here</b>
+    <small>{tokensText(info.EstTokens)} · about {money(info.EstCost,info.Currency)} to send (input only, estimated){s?.Fresh?' · first time it joins, so it gets the full briefing':''}</small>
+    {s?<ul>
+      <li><i>{s.Unfinished?'Carries on with':'Next request'}</i><span>{short(s.Request)||'Waiting for your next message'}</span></li>
+      {s.LastReply&&<li><i>{s.From} last said</i><span>{short(s.LastReply)}</span></li>}
+      {s.FilesTotal>0&&<li><i>Files changed ({s.FilesTotal})</i><span>{s.Files.join(', ')}{s.FilesTotal>s.Files.length?' …':''}</span></li>}
+      {s.Verify.length>0&&<li className="warn"><i>Check first</i><span>{s.Verify.join(', ')} (may be half-written)</span></li>}
+      {s.Commands.length>0&&<li><i>Recent commands</i><span>{s.Commands.map(c=>short(c,70)).join(' · ')}</span></li>}
+      {s.Problems.length>0&&<li className="warn"><i>Problems</i><span>{s.Problems.map(c=>short(c,100)).join(' · ')}</span></li>}
+      <li><i>Background</i><span>{s.Turns} earlier turn{s.Turns===1?'':'s'} summarised in {info.HandoffFile}</span></li>
+    </ul>:<p className="tt-none">Nothing to hand over yet.</p>}
+    <details><summary>Show the exact text it receives</summary><pre>{info.Preview?info.Preview.slice(0,6000)+(info.Preview.length>6000?'\n…':''):'Nothing yet.'}</pre></details>
+  </div>;
+}
 /** One line in the chat for a switch or a wait, so the timeline of who did what is readable. */
 export function SwitchRow({e}:{e:HEvent}){
   let cost='';try{const d=JSON.parse(e.Detail??'{}') as {EstTokens?:number;EstCost?:number};if(d.EstTokens)cost=` · ${tokensText(d.EstTokens)}${d.EstCost?` (~${money(d.EstCost,'USD')})`:''}`;}catch{/* plain text */}
@@ -155,7 +174,7 @@ export function HandoffPanel({sessionId,refreshKey}:{sessionId:string;refreshKey
   const save=()=>request<NonNullable<typeof doc>>('handoffFileSet',{Cwd:cwd,Pinned:pinned}).then(d=>{setDoc(d);setPinned(d.Pinned);setDirty(false);toast({title:'Pinned notes saved'});}).catch(e=>toast({title:'Could not save',description:(e as Error).message,duration:6500}));
   return <div className="handoff-panel">
     <div className="hp-head"><FileText size={14}/><b>Project handoff</b>{doc?.Exists&&<small>last updated by {doc.UpdatedBy||'LAICA'}{doc.UpdatedUtc?' at '+new Date(doc.UpdatedUtc).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):''}</small>}</div>
-    {doc?.Exists?<pre className="hp-managed">{doc.Managed}</pre>:<p className="tree-note">No handoff file yet. LAICA writes one after the first finished turn in this project.</p>}
+    {doc?.Exists?<div className="hp-managed"><Markdown text={doc.Managed}/></div>:<p className="tree-note">No handoff file yet. LAICA writes one after the first finished turn in this project.</p>}
     <label className="hp-pinned">Pinned notes <small>(yours, never overwritten, every agent reads them)</small>
       <textarea className="hinput" rows={5} value={pinned} placeholder="Decisions, conventions, things no agent should touch…" onChange={e=>{setPinned(e.target.value);setDirty(true);}}/></label>
     <button type="button" className="sketch-go" disabled={!dirty} onClick={()=>{void save();}}><Save size={13}/> Save pinned notes</button>

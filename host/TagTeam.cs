@@ -483,12 +483,23 @@ namespace Laica
             {
                 try { preview = BuildDelivery(root, !partner, "preview", LastUserRequest(root), LastTurnUnfinished(root), false); tokens = preview.Length / 4 + 200; Session t = partner ? root : (root.Child ?? new Session { Harness = Str(spec, "Harness"), Model = Str(spec, "Model") }); cost = CostFor(t, tokens, false); } catch (Exception) { }
             }
-            var switches = new List<object>(); lock (gate) foreach (var e in root.Events) if (Str(e, "Kind") == "switch") switches.Add(new Dictionary<string, object> { { "TimeUtc", Str(e, "TimeUtc") }, { "Text", Str(e, "Text") }, { "Detail", Str(e, "Detail") } });
+            // a plain-language rundown of what the next agent will take over, for the interface (the full text stays available)
+            object summary = null;
+            if (spec != null && mode != "off")
+            {
+                try
+                {
+                    var hi = HandoffBuilder.Build(EventsOf(root), root.Cwd, root.Rules, "", DateTime.UtcNow); Session tgt = partner ? root : root.Child; bool fresh = !(partner ? root.Pair.RanA : root.Pair.RanB) || tgt == null || tgt.ExternalId == null;
+                    summary = new Dictionary<string, object> { { "Target", VendorName(SideKey(root, !partner)) }, { "From", VendorName(SideKey(root, partner)) }, { "Fresh", fresh }, { "Request", HandoffBuilder.Clip(hi.Latest, 400) }, { "Unfinished", hi.Unfinished }, { "LastReply", hi.LastReply }, { "Turns", hi.Done.Count },
+                        { "Files", hi.Files.Take(8).ToArray() }, { "FilesTotal", hi.Files.Count }, { "Verify", hi.VerifyFirst.Take(6).ToArray() }, { "Commands", hi.Commands.Take(5).ToArray() }, { "Problems", hi.Problems.Take(3).ToArray() }, { "Stage", hi.Stage } };
+                }
+                catch (Exception) { }
+            }            var switches = new List<object>(); lock (gate) foreach (var e in root.Events) if (Str(e, "Kind") == "switch") switches.Add(new Dictionary<string, object> { { "TimeUtc", Str(e, "TimeUtc") }, { "Text", Str(e, "Text") }, { "Detail", Str(e, "Detail") } });
             return new Dictionary<string, object> {
                 { "Id", root.Id }, { "Mode", mode }, { "ChatMode", root.Pair.Mode }, { "Active", root.Pair.Active }, { "ActiveName", ActiveKey(root) == "" ? "" : VendorName(ActiveKey(root)) },
                 { "Primary", SideDto(root, false) }, { "Partner", SideDto(root, true) }, { "HasPartner", spec != null }, { "AutoSwitch", AutoOn(root) }, { "SwitchBack", BackOn(root) },
                 { "Halted", root.Pair.Halted }, { "WaitUntilUtc", root.Pair.WaitUntil == DateTime.MinValue ? "" : root.Pair.WaitUntil.ToString("o") },
-                { "Preview", preview }, { "EstTokens", tokens }, { "EstCost", Math.Round(cost, 4) }, { "Currency", "USD" }, { "HandoffFile", HandoffName(root) },
+                { "Preview", preview }, { "Summary", summary }, { "EstTokens", tokens }, { "EstCost", Math.Round(cost, 4) }, { "Currency", "USD" }, { "HandoffFile", HandoffName(root) },
                 { "LastSwitchUtc", root.Pair.LastSwitch == DateTime.MinValue ? "" : root.Pair.LastSwitch.ToString("o") }, { "Switches", switches.Skip(Math.Max(0, switches.Count - 30)).ToArray() },
                 { "ReturnThreshold", ContInt("ReturnThreshold") } };
         }

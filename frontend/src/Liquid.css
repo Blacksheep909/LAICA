@@ -592,3 +592,16 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 /* toasts: top right under the title bar, so they never cover the usage chip; calmer look */
 .ogui-toast-viewport{top:52px!important;bottom:auto!important;right:18px!important;width:min(22rem,calc(100vw - 2rem))!important}
 .ogui-toast{border-radius:16px!important;padding:.7rem .85rem!important;box-shadow:0 14px 36px -16px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.08)!important;transform-origin:100% 0!important}
+
+/* hover rundown */
+.tt-pop{width:460px!important;max-height:70vh;overflow:auto}
+.tt-run{display:flex;flex-direction:column;gap:8px}.tt-run>b{font-size:14px}
+.tt-run ul{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column;gap:7px}
+.tt-run li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:10px;font-size:12px;line-height:1.45}
+.tt-run li i{font-style:normal;color:var(--ink-3)}.tt-run li span{color:var(--ink);overflow-wrap:anywhere}
+.tt-run li.warn i{color:#ffb84d}
+.tt-run details{margin-top:2px}.tt-run summary{cursor:pointer;font-size:11.5px;color:var(--ink-3)}
+.tt-run details pre{margin:6px 0 0;max-height:260px;overflow:auto;font-size:11px;line-height:1.45;white-space:pre-wrap;color:var(--ink-2)}
+.handoff-panel .hp-managed{font-size:12.5px;line-height:1.55;white-space:normal}
+.handoff-panel .hp-managed h1{font-size:15px}.handoff-panel .hp-managed h3{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);margin:14px 0 4px}
+.handoff-panel .hp-managed hr{border:0;border-top:1px solid rgba(255,255,255,.08);margin:12px 0}

@@ -3,6 +3,11 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.21.6]
+
+### Changed
+- **The handoff preview is a rundown, not a wall of text.** Hovering the tag-team chip now says who takes over and lists, in plain sentences: what request they carry on with, what the other agent last said, the files changed, files to check first, recent commands, problems, and how many earlier turns are summarised in HANDOFF.md, with the size and estimated cost on top. The exact text that will be sent is one click away under "Show the exact text it receives".
+- The **Handoff** tab in the side panel shows HANDOFF.md formatted (headings, lists, rules) instead of raw text.
 ## [0.21.5]
 
 ### Fixed

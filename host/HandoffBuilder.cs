@@ -14,7 +14,7 @@ namespace Laica
     public sealed class HandoffInfo
     {
         public string Goal = "", Latest = "", Stage = "", UpdatedBy = "", UpdatedUtc = "", Constraints = "", NextSteps = "";
-        public bool Unfinished;
+        public bool Unfinished; public string LastReply = "";
         public List<string> Requests = new List<string>(), Recent = new List<string>(), Problems = new List<string>();
         public List<string> Done = new List<string>(), InProgress = new List<string>(), Files = new List<string>(), VerifyFirst = new List<string>(), Commands = new List<string>(), FolderOnly = new List<string>();
     }
@@ -123,7 +123,7 @@ namespace Laica
             }
             if (turnOpen) { lastClean = false; closeTurn(); }
             info.Goal = Redact(Clip(firstUser, 800)); info.Latest = Redact(Clip(lastUser, 4000));
-            info.Unfinished = lastUser != "" && !lastClean;
+            info.Unfinished = lastUser != "" && !lastClean; info.LastReply = Redact(Clip(turnFinal, 600));
             for (int i = Math.Max(0, requests.Count - 30), n = i + 1; i < requests.Count; i++, n++) info.Requests.Add(n + ". " + Redact(OneLine(requests[i], 260)));
             foreach (string d in turns.Skip(Math.Max(0, turns.Count - 6))) info.Recent.Add(Redact(d));
             foreach (string pr in problems.Skip(Math.Max(0, problems.Count - 5))) info.Problems.Add(Redact(pr));
