@@ -3,6 +3,11 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.21.11]
+
+### Fixed
+- **A partner that isn't signed in no longer strands the work.** If the agent handed the work can't start (for example Claude Code answering "Not logged in · Please run /login", which happens when it is only signed in through the Claude desktop app and not on its own), LAICA now undoes the hand-over, gives the work back to the agent that had it, carries on with your request there, says what went wrong, and doesn't try that agent again automatically until you fix it and press **Switch now**.
+- **LAICA checks sign-in before switching.** It asks Claude Code (`claude auth status`) and Codex (`codex login status`) whether they are signed in, and doesn't switch to one that isn't. The Tag-team panel shows "Claude Code isn't signed in on this computer" with a **Sign in** button, and the same button appears on a "Not logged in" error in a chat. It starts the agent's own sign-in, which opens your browser; LAICA never sees the login.
 ## [0.21.10]
 
 ### Changed

@@ -20,7 +20,7 @@ namespace Laica
         sealed class PairState
         {
             public string Mode = "", PHarness = "", PService = "", PModel = "", PEffort = "", PMode = "", AutoSwitch = "", SwitchBack = "";
-            public string ChildId = "", Active = "primary", Halted = "", Pending = "", LogId = "", Note = "";
+            public string Blocked = "", BlockedWhy = "", ChildId = "", Active = "primary", Halted = "", Pending = "", LogId = "", Note = "";
             public long SeenA, SeenB, DeliverSeq; public bool RanA, RanB, Switching, PendingUnfinished;
             public DateTime LastSwitch, WaitUntil; public List<DateTime> Times = new List<DateTime>(); public List<string> Stamps = new List<string>();
             public string DeliverReason = "", DeliverRequest = ""; public bool DeliverUnfinished; public long[] Before = new long[4];
@@ -30,6 +30,7 @@ namespace Laica
             { "Mode", "assisted" }, { "PartnerHarness", "" }, { "PartnerService", "" }, { "PartnerModel", "" }, { "AutoSwitch", true }, { "SwitchBack", true },
             { "MinGapMinutes", 5 }, { "ThrashSwitches", 4 }, { "ThrashMinutes", 30 }, { "ReturnThreshold", 80 }, { "ReturnAtBoundary", false }, { "HandoffPath", "HANDOFF.md" }, { "AgentNote", false } };
         static readonly string[] ContModes = { "off", "assisted", "automatic" };
+        static readonly Regex AuthRx = new Regex(@"not logged in|please run /login|not signed in|please (log|sign) ?in|login required|invalid (api key|credentials|x-api-key)|authentication (failed|error|required)|unauthorized|\b401\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         static readonly Regex ResumeFailRx = new Regex(@"no conversation found|could not (resume|find)|session .{0,40}(not found|does not exist|expired)|thread .{0,40}not found|unknown (session|thread)|invalid session|failed to resume|no rollout found|resume.{0,30}(fail|error)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         readonly object handoffIo = new object(), switchGate = new object();
         List<Dictionary<string, object>> switchLog;
@@ -330,6 +331,12 @@ namespace Laica
                 if (IsBusy(root)) { if (manual) throw new InvalidOperationException("Wait for the agent to finish this turn, then switch."); return false; }
                 if (PartnerSpec(root) == null) { if (manual) throw new InvalidOperationException("There is no second agent to switch to. Install another agent CLI first."); return false; }
                 bool toPartner = root.Pair.Active != "partner";
+                string sideName = toPartner ? "partner" : "primary";
+                if (root.Pair.Blocked == sideName)
+                {
+                    if (manual) lock (gate) { root.Pair.Blocked = ""; root.Pair.BlockedWhy = ""; }
+                    else { if (reason == "limit") Emit(root, "pairnote", "Not switching to " + VendorName(SideKey(root, toPartner)) + ": it " + root.Pair.BlockedWhy + ". Fix that, then press Switch now.", null); return false; }
+                }
                 string holderKey = SideKey(root, !toPartner), targetKey = SideKey(root, toPartner), toName = VendorName(targetKey), fromName = VendorName(holderKey);
                 if (IsLimited(targetKey))
                 {
@@ -347,7 +354,15 @@ namespace Laica
                     Emit(root, "pairnote", "Not switching to " + toName + ": it is out of usage" + (tr != DateTime.MinValue ? " until about " + ClockText(tr) : "") + ".", null);
                     return false;
                 }
-                bool optional = reason == "return" || reason == "threshold";
+                string targetHarness = toPartner ? Str(PartnerSpec(root), "Harness") : root.Harness;
+                if (AuthState(targetHarness) == false)
+                {
+                    string msg = toName + " isn't signed in on this computer. Open a terminal, run it once and sign in (for Claude Code: run claude and use /login), or press Sign in in the Tag-team panel.";
+                    if (manual) throw new InvalidOperationException(msg);
+                    lock (gate) { root.Pair.Blocked = sideName; root.Pair.BlockedWhy = "isn't signed in"; }
+                    if (reason == "limit" || reason == "resume") Emit(root, "pairnote", "Not switching to " + toName + ": " + msg, null);
+                    return false;
+                }                bool optional = reason == "return" || reason == "threshold";
                 if (optional && root.Pair.LastSwitch != DateTime.MinValue && (DateTime.UtcNow - root.Pair.LastSwitch).TotalMinutes < ContInt("MinGapMinutes")) return false;
                 if (!manual && Thrashing(root))
                 {
@@ -437,6 +452,14 @@ namespace Laica
                         return;
                     }
                 }
+                // the agent that was handed the work could not even start (not signed in, crashed): give the work back
+                if (root.Pair.DeliverReason != "" && fin == (root.Pair.Active == "partner" ? root.Child : root))
+                {
+                    bool said = false; string err = ""; long from = root.Pair.DeliverSeq;
+                    lock (gate) foreach (var e in root.Events) { if (Num(e, "N") <= from) continue; string k = Str(e, "Kind"); if (k == "assistant" || k == "tool") said = true; if (k == "error" && !IsLimitText(Str(e, "Text"))) err = Str(e, "Text"); }
+                    lock (gate) root.Pair.DeliverReason = "";
+                    if (!said && err != "") { PairUndoSwitch(root, child, err); return; }
+                }
                 if (ContMode(root) != "off") WriteHandoffFile(root, fin);
                 SaveSession(root);
             }
@@ -445,6 +468,90 @@ namespace Laica
 
         /// <summary>Checks waiting tag-team chats now instead of at the next timer tick.</summary>
         public void PairPoll() { PairTick(); }
+        // ---------- is the agent signed in? ----------
+        readonly Dictionary<string, KeyValuePair<DateTime, bool?>> authCache = new Dictionary<string, KeyValuePair<DateTime, bool?>>();
+
+        /// <summary>Reads the result of an agent's own "am I signed in" command. true/false, or null when it can't tell.</summary>
+        public static bool? ParseAuth(string harness, int exitCode, string output)
+        {
+            output = output ?? "";
+            if (harness == "claude")
+            {
+                if (Regex.IsMatch(output, "\"loggedIn\"\\s*:\\s*true", RegexOptions.IgnoreCase)) return true;
+                if (Regex.IsMatch(output, "\"loggedIn\"\\s*:\\s*false", RegexOptions.IgnoreCase)) return false;
+                return null;
+            }
+            if (harness == "codex") { if (Regex.IsMatch(output, "not logged in|logged out", RegexOptions.IgnoreCase)) return false; if (Regex.IsMatch(output, "logged in", RegexOptions.IgnoreCase)) return true; return exitCode == 0 ? (bool?)true : null; }
+            return null;
+        }
+
+        static string QuickRun(string exe, string args, int ms, out int exit)
+        {
+            exit = -1;
+            try
+            {
+                string file = exe, arguments = args;
+                if (exe.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase) || exe.EndsWith(".bat", StringComparison.OrdinalIgnoreCase)) { file = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe"; arguments = "/c \"\"" + exe + "\" " + args + "\""; }
+                var psi = new System.Diagnostics.ProcessStartInfo { FileName = file, Arguments = arguments, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true, RedirectStandardInput = true };
+                using (var p = System.Diagnostics.Process.Start(psi))
+                {
+                    try { p.StandardInput.Close(); } catch (Exception) { }
+                    var o = p.StandardOutput.ReadToEndAsync(); var e = p.StandardError.ReadToEndAsync();
+                    if (!p.WaitForExit(ms)) { try { p.Kill(); } catch (Exception) { } return ""; }
+                    exit = p.ExitCode; return o.Result + e.Result;
+                }
+            }
+            catch (Exception) { return ""; }
+        }
+
+        /// <summary>Whether Claude Code or Codex is signed in on this computer (null: unknown or not one of those). Asks the agent itself, never reads its credentials. Cached for a minute.</summary>
+        public bool? AuthState(string harness)
+        {
+            if (harness != "claude" && harness != "codex") return null;
+            lock (authCache) { KeyValuePair<DateTime, bool?> c; if (authCache.TryGetValue(harness, out c) && (DateTime.UtcNow - c.Key).TotalSeconds < 60) return c.Value; }
+            var info = Harnesses().FirstOrDefault(h => h.Id == harness && h.Available); if (info == null) return null;
+            int exit; string output = QuickRun(ResolveExe(info.Path), harness == "claude" ? "auth status" : "login status", 8000, out exit);
+            bool? v = ParseAuth(harness, exit, output);
+            lock (authCache) authCache[harness] = new KeyValuePair<DateTime, bool?>(DateTime.UtcNow, v);
+            return v;
+        }
+
+        public object AgentAuth()
+        {
+            var list = new List<object>();
+            foreach (var h in Harnesses().Where(x => x.Available && (x.Id == "claude" || x.Id == "codex")))
+                list.Add(new Dictionary<string, object> { { "Id", h.Id }, { "Name", h.Name }, { "SignedIn", AuthState(h.Id) } });
+            return list.ToArray();
+        }
+
+        /// <summary>Starts the agent's own sign-in (it opens your browser). LAICA never sees the credentials.</summary>
+        public void AgentSignIn(string harness)
+        {
+            var info = Harnesses().FirstOrDefault(h => h.Id == harness && h.Available && (h.Id == "claude" || h.Id == "codex")); if (info == null) throw new ArgumentException("That agent can't be signed in from here.");
+            string exe = ResolveExe(info.Path);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = exe, Arguments = harness == "claude" ? "auth login" : "login", UseShellExecute = true, WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) });
+            lock (authCache) authCache.Remove(harness);
+        }
+        /// <summary>The agent handed the work could not start. Give the work back to the one that had it, say why, and stop trying that agent until the user fixes it and presses Switch now.</summary>
+        void PairUndoSwitch(Session root, bool failedIsChild, string err)
+        {
+            bool auth = AuthRx.IsMatch(err ?? ""); string failedName = VendorName(SideKey(root, failedIsChild)), prevKey = SideKey(root, !failedIsChild), prevName = VendorName(prevKey);
+            lock (gate)
+            {
+                root.Pair.Active = failedIsChild ? "primary" : "partner";
+                if (root.Pair.Times.Count > 0) { root.Pair.Times.RemoveAt(root.Pair.Times.Count - 1); root.Pair.Stamps.RemoveAt(root.Pair.Stamps.Count - 1); }
+                root.Pair.LastSwitch = DateTime.MinValue; root.Pair.Blocked = failedIsChild ? "partner" : "primary"; root.Pair.BlockedWhy = auth ? "isn't signed in" : "stopped with an error";
+            }
+            string request = root.Pair.DeliverRequest; bool prevUsable = !IsLimited(prevKey);
+            string hint = auth ? failedName + " isn't signed in. Open a terminal, run it once and sign in (for Claude Code: run claude and use /login), then press Switch now." : failedName + " stopped before it could start: " + HandoffBuilder.Clip(err, 200) + " Fix that, then press Switch now.";
+            Emit(root, "pairnote", "The hand-over to " + failedName + " didn't happen. " + hint + (prevUsable && request != "" ? " " + prevName + " keeps the work for now." : (prevUsable ? "" : " " + prevName + " is out of usage too, so the chat is waiting on you.")), null);
+            SaveSession(root); Raise();
+            if (prevUsable && request != "")
+            {
+                try { Session ps = failedIsChild ? root : EnsureChild(root); SendCore(ps.Id, request, null, false); }
+                catch (Exception ex) { Emit(root, "pairnote", "Couldn't hand the work back to " + prevName + ": " + ex.Message, null); }
+            }
+        }
         /// <summary>Called every few seconds: when both agents were out of usage, carry on by itself as soon as one is back.</summary>
         void PairTick()
         {
@@ -548,7 +655,7 @@ namespace Laica
         // ---------- saving the pair ----------
         Dictionary<string, object> PairToDict(PairState p)
         {
-            return new Dictionary<string, object> { { "Mode", p.Mode }, { "PHarness", p.PHarness }, { "PService", p.PService }, { "PModel", p.PModel }, { "PEffort", p.PEffort }, { "PMode", p.PMode }, { "AutoSwitch", p.AutoSwitch }, { "SwitchBack", p.SwitchBack }, { "ChildId", p.ChildId }, { "Active", p.Active }, { "Halted", p.Halted }, { "Pending", p.Pending }, { "PendingUnfinished", p.PendingUnfinished }, { "Note", p.Note },
+            return new Dictionary<string, object> { { "Mode", p.Mode }, { "PHarness", p.PHarness }, { "PService", p.PService }, { "PModel", p.PModel }, { "PEffort", p.PEffort }, { "PMode", p.PMode }, { "AutoSwitch", p.AutoSwitch }, { "SwitchBack", p.SwitchBack }, { "ChildId", p.ChildId }, { "Active", p.Active }, { "Halted", p.Halted }, { "Blocked", p.Blocked }, { "BlockedWhy", p.BlockedWhy }, { "Pending", p.Pending }, { "PendingUnfinished", p.PendingUnfinished }, { "Note", p.Note },
                 { "SeenA", p.SeenA }, { "SeenB", p.SeenB }, { "RanA", p.RanA }, { "RanB", p.RanB }, { "LastSwitch", p.LastSwitch == DateTime.MinValue ? "" : p.LastSwitch.ToString("o") }, { "WaitUntil", p.WaitUntil == DateTime.MinValue ? "" : p.WaitUntil.ToString("o") },
                 { "Times", p.Times.Select(t => t.ToString("o")).ToArray() }, { "Stamps", p.Stamps.ToArray() }, { "DeliverRequest", p.DeliverRequest }, { "DeliverReason", p.DeliverReason }, { "DeliverUnfinished", p.DeliverUnfinished }, { "DeliverSeq", p.DeliverSeq } };
         }
@@ -556,7 +663,7 @@ namespace Laica
         {
             var p = new PairState(); if (d == null) return p;
             p.Mode = Str(d, "Mode"); p.PHarness = Str(d, "PHarness"); p.PService = Str(d, "PService"); p.PModel = Str(d, "PModel"); p.PEffort = Str(d, "PEffort"); p.PMode = Str(d, "PMode"); p.AutoSwitch = Str(d, "AutoSwitch"); p.SwitchBack = Str(d, "SwitchBack"); p.ChildId = Str(d, "ChildId");
-            p.Active = Str(d, "Active") == "partner" ? "partner" : "primary"; p.Halted = Str(d, "Halted"); p.Pending = Str(d, "Pending"); p.PendingUnfinished = Str(d, "PendingUnfinished") == "True"; p.Note = Str(d, "Note");
+            p.Active = Str(d, "Active") == "partner" ? "partner" : "primary"; p.Halted = Str(d, "Halted"); p.Blocked = Str(d, "Blocked"); p.BlockedWhy = Str(d, "BlockedWhy"); p.Pending = Str(d, "Pending"); p.PendingUnfinished = Str(d, "PendingUnfinished") == "True"; p.Note = Str(d, "Note");
             p.SeenA = Num(d, "SeenA"); p.SeenB = Num(d, "SeenB"); p.RanA = Str(d, "RanA") == "True"; p.RanB = Str(d, "RanB") == "True"; p.DeliverRequest = Str(d, "DeliverRequest"); p.DeliverReason = Str(d, "DeliverReason"); p.DeliverUnfinished = Str(d, "DeliverUnfinished") == "True"; p.DeliverSeq = Num(d, "DeliverSeq");
             DateTime t; if (DateTime.TryParse(Str(d, "LastSwitch"), null, DateTimeStyles.RoundtripKind, out t)) p.LastSwitch = t; if (DateTime.TryParse(Str(d, "WaitUntil"), null, DateTimeStyles.RoundtripKind, out t)) p.WaitUntil = t;
             var times = Arr(d, "Times"); if (times != null) foreach (object o in times) if (DateTime.TryParse(Convert.ToString(o), null, DateTimeStyles.RoundtripKind, out t)) p.Times.Add(t);

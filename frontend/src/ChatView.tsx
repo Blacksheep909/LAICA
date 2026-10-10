@@ -14,7 +14,7 @@ import {Markdown} from './markdown';
 import PreviewPanel from './PreviewPanel';
 import SendButton from './SendButton';
 import {LimitBanner} from './UsageUI';
-import {TagTeamChip,SwitchRow} from './TagTeam';
+import {TagTeamChip,SwitchRow,SignInButton} from './TagTeam';
 import {ProviderChip,providerOfSession} from './provider';
 import {useHarness,modeLabel,effortLabel} from './harness-store';
 import type {HEvent} from './harness-store';
@@ -64,7 +64,7 @@ export default function ChatView({models}:{models:Model[]}){
         {current.Isolated&&<span className="pill ok" title={`Isolated worktree on branch ${current.Branch}`}><GitBranch size={11}/> {current.Branch}</span>}
         <span className="hcwd" title={current.Cwd}>{current.Cwd}</span>
         {current.Paused&&<span className="pill warn"><Pause size={11}/> Paused</span>}<IconButton size="small" variant="quiet" aria-label="Rename chat" onClick={()=>setRenaming(true)}><Pencil size={14}/></IconButton><IconButton size="small" variant="quiet" aria-label="Save chat as Markdown" title="Save chat as Markdown" onClick={()=>{void exportChat();}}><Download size={14}/></IconButton>{!panel&&<IconButton size="small" variant="quiet" aria-label="Show workspace panel" onClick={()=>setPanel(true)}><PanelRightOpen size={15}/></IconButton>}</div>
-      <div className="harness-log" aria-live="polite" ref={logRef} onScroll={onLogScroll}>{items.map((r,i)=>r.type==='steps'?<Steps key={i} items={r.items} running={r.running}/>:r.type==='files'?<FileCards key={i} files={r.files}/>:r.type==='worked'?<WorkedLine key={i} ms={r.ms}/>:r.type==='summary'?<TurnSummary key={i} files={r.files} add={r.add} del={r.del} onOpen={openChanges}/>:<Row key={i} e={r.e} resolved={resolved} answer={answer}/>)}{queue.map((q,i)=><div key={i} className="hmsg queued"><Clock size={12}/><span>Queued: {splitPrompt(q).body.slice(0,120)}</span><button type="button" aria-label="Remove queued message" onClick={()=>{const item=q;setQueue(cur=>cur.filter((_,k)=>k!==i));pushUndo('Removed a queued message',()=>setQueue(cur=>[...cur,item]));}}><X size={11}/></button></div>)}{current.Busy&&<WorkingLine events={list} paused={current.Paused}/>}<div ref={endRef}/></div>
+      <div className="harness-log" aria-live="polite" ref={logRef} onScroll={onLogScroll}>{items.map((r,i)=>r.type==='steps'?<Steps key={i} items={r.items} running={r.running}/>:r.type==='files'?<FileCards key={i} files={r.files}/>:r.type==='worked'?<WorkedLine key={i} ms={r.ms}/>:r.type==='summary'?<TurnSummary key={i} files={r.files} add={r.add} del={r.del} onOpen={openChanges}/>:<Row key={i} e={r.e} resolved={resolved} answer={answer} harness={current.Harness}/>)}{queue.map((q,i)=><div key={i} className="hmsg queued"><Clock size={12}/><span>Queued: {splitPrompt(q).body.slice(0,120)}</span><button type="button" aria-label="Remove queued message" onClick={()=>{const item=q;setQueue(cur=>cur.filter((_,k)=>k!==i));pushUndo('Removed a queued message',()=>setQueue(cur=>[...cur,item]));}}><X size={11}/></button></div>)}{current.Busy&&<WorkingLine events={list} paused={current.Paused}/>}<div ref={endRef}/></div>
       {!atBottom&&<button type="button" className="to-bottom" aria-label="Jump to the latest message" onClick={jumpDown}><ArrowDown size={16}/></button>}
       <div className="harness-compose">
         <FlagChips flags={flags} setFlags={setFlags}/><AttachChips items={files.items} busy={files.busy} onRemove={files.remove}/>
@@ -76,7 +76,7 @@ export default function ChatView({models}:{models:Model[]}){
   </div>;
 }
 
-function Row({e,resolved,answer}:{e:HEvent;resolved:Map<string,string>;answer:(id:string,allow:boolean,always?:boolean)=>void}){
+function Row({e,resolved,answer,harness}:{e:HEvent;resolved:Map<string,string>;answer:(id:string,allow:boolean,always?:boolean)=>void;harness:string}){
   if(e.Kind==='paused'||e.Kind==='resumed')return <div className="hmsg log">{e.Kind==='paused'?<Pause size={12}/>:<Play size={12}/>} {e.Text}</div>;
     if(e.Kind==='user'){const p=splitPrompt(e.Text);return <div className="hmsg user">{p.tags.length>0&&<div className="msg-tags">{p.tags.map(t=><span key={t} className="ui-badge is-accent">{t}</span>)}</div>}{p.body}{p.files.length>0&&<div className="msg-files">{p.files.map(f=><span key={f.path} className="file-chip" title={f.path}><Paperclip size={11}/>{f.name}</span>)}</div>}<CopyBtn text={p.body}/></div>;}
   if(e.Kind==='assistant')return <div className="hmsg assistant"><Markdown text={e.Text}/><CopyBtn text={e.Text}/></div>;
@@ -92,6 +92,6 @@ function Row({e,resolved,answer}:{e:HEvent;resolved:Map<string,string>;answer:(i
   if(e.Kind==='pairnote')return <div className="hmsg log tt-note"><Info size={12}/> {e.Text}</div>;
   if(e.Kind==='limit')return <LimitBanner sessionId={e.SessionId} vendor={e.Detail??''} text={e.Text}/>;
     if(e.Kind==='handoff')return <div className="hmsg handoff"><ArrowRightLeft size={14}/><span>{e.Text}</span>{e.Detail&&<button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('laica-open',{detail:e.Detail}))}>Open</button>}</div>;
-    if(e.Kind==='error')return <div className="hmsg error"><AlertTriangle size={14}/> {e.Text}</div>;
+    if(e.Kind==='error')return <div className="hmsg error"><AlertTriangle size={14}/> <span>{e.Text}</span>{/not logged in|\/login|not signed in|please log ?in/i.test(e.Text)&&<SignInButton harness={e.By||harness}/>}</div>;
   return <div className="hmsg log">{e.Text}</div>;
 }

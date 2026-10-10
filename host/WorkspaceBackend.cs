@@ -147,6 +147,8 @@ namespace Laica
             case "usageGet": result = Harness.Usage(); break;
             case "usageBudget": result = Harness.SetUsageBudget(Text(payload,"Key"), payload.ContainsKey("Tokens")&&payload["Tokens"]!=null?Convert.ToInt64(payload["Tokens"]):-1L, payload.ContainsKey("Weekly")&&payload["Weekly"]!=null?Convert.ToInt64(payload["Weekly"]):-1L); break;
             case "usageClear": result = Harness.ClearUsageLimit(Text(payload,"Key")); break;
+            case "agentAuth": result = Harness.AgentAuth(); break;
+            case "agentSignIn": Harness.AgentSignIn(Text(payload,"Harness")); result = true; break;
             case "continuityGet": result = Harness.ContinuityGet(); break;
             case "continuitySet": result = Harness.ContinuitySet(payload); break;
             case "pairGet": result = Harness.PairInfo(Text(payload,"Id")); break;

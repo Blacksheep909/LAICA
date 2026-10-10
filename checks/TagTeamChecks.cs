@@ -38,6 +38,7 @@ public static class TagTeamChecks
         string all = Console.In.ReadToEnd(), dir = Environment.GetEnvironmentVariable("LAICA_TAG_LOGS") ?? Path.GetTempPath();
         File.AppendAllText(Path.Combine(dir, "tag-" + name + ".log"), "=====\n" + all + "\n");
         if (File.Exists(Path.Combine(dir, "limit-" + name + ".flag"))) { Console.WriteLine("{\"type\":\"error\",\"message\":\"You have hit your usage limit. Try again in 2 hours.\"}"); return 0; }
+        if (File.Exists(Path.Combine(dir, "autherr-" + name + ".flag"))) { Console.WriteLine("{\"type\":\"error\",\"message\":\"Not logged in \u00b7 Please run /login\"}"); return 0; }
         string rf = Path.Combine(dir, "resumefail-" + name + ".flag");
         if (File.Exists(rf)) { File.Delete(rf); Console.WriteLine("{\"type\":\"error\",\"message\":\"No conversation found with session ID thr-" + name + "\"}"); return 0; }
         int turn = System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(Path.Combine(dir, "tag-" + name + ".log")), "=====").Count;
@@ -126,6 +127,10 @@ public static class TagTeamChecks
                 }
             }
             finally { Environment.SetEnvironmentVariable("CODEX_HOME", pc); Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", pcl); }
+        }
+        {
+            Check(HarnessManager.ParseAuth("claude", 1, "{ \"loggedIn\": false, \"authMethod\": \"none\" }") == false && HarnessManager.ParseAuth("claude", 0, "{ \"loggedIn\": true }") == true && HarnessManager.ParseAuth("claude", 0, "garbage") == null, "sign-in: Claude's own status output says whether it is signed in");
+            Check(HarnessManager.ParseAuth("codex", 0, "Logged in using ChatGPT") == true && HarnessManager.ParseAuth("codex", 1, "Not logged in") == false, "sign-in: Codex's own status output says whether it is signed in");
         }
         // ---------- settings: gentle migration ----------
         {
@@ -257,7 +262,26 @@ public static class TagTeamChecks
             Check(Active(m, cid) == "partner" && (string)Info(m, cid)["Halted"] == "", "thrash guard: Switch now clears the stop and carries on");
             Unset("nowrite");
         }
-        Console.WriteLine(failures == 0 ? "tag-team checks passed" : failures + " tag-team checks FAILED");
+        // an agent that is not signed in gives the work back and is not tried again until the user fixes it
+        using (var m = new HarnessManager(Path.Combine(root, "data-tag4")))
+        {
+            m.SaveAgent(new Dictionary<string, object> { { "Name", "TagA" }, { "Command", fakeExe }, { "Args", "--fake-tag A" }, { "Parser", "codex" } });
+            m.SaveAgent(new Dictionary<string, object> { { "Name", "TagB" }, { "Command", fakeExe }, { "Args", "--fake-tag B" }, { "Parser", "codex" } });
+            string ida = m.Harnesses().First(h => h.Name == "TagA").Id, idb = m.Harnesses().First(h => h.Name == "TagB").Id;
+            string w5 = Path.Combine(root, "tagwork5"); Directory.CreateDirectory(w5);
+            m.ContinuitySet(new Dictionary<string, object> { { "ThrashSwitches", "10" }, { "MinGapMinutes", "0" } });
+            string cid = (string)((Dictionary<string, object>)m.Create(ida, w5, null, null, null, "auth chat"))["Id"];
+            m.PairConfigure(cid, new Dictionary<string, object> { { "Mode", "automatic" }, { "PartnerHarness", idb } });
+            m.Send(cid, "first job"); Settle(m, cid, "primary", 0);
+            Set("autherr-B"); m.PairSwitchNow(cid); Settle(m, cid, "primary", 1);
+            Check(Active(m, cid) == "primary" && Dicts(m.History(cid)).Any(h => (string)h["Kind"] == "pairnote" && ((string)h["Text"]).Contains("isn't signed in") && ((string)h["Text"]).Contains("keeps the work")), "not signed in: the hand-over is undone, the first agent keeps the work, and the chat says how to sign in");
+            Check(Dicts(m.History(cid)).Count(h => (string)h["Kind"] == "assistant" && ((string)h["Text"]).Contains("A worked")) >= 2, "not signed in: the first agent carries on with the request instead of leaving it stranded");
+            Set("limit-A"); m.Send(cid, "second job"); Settle(m, cid, "primary", 1); Thread.Sleep(800);
+            Check(Active(m, cid) == "primary" && Dicts(m.History(cid)).Any(h => (string)h["Kind"] == "pairnote" && ((string)h["Text"]).Contains("Not switching to")), "not signed in: an agent that failed to sign in is not switched to again automatically");
+            Unset("autherr-B"); Unset("limit-A"); m.ClearUsageLimit(ida);
+            m.PairSwitchNow(cid); Settle(m, cid, "partner", 2);
+            Check(Active(m, cid) == "partner", "not signed in: Switch now tries again once it is fixed");
+        }        Console.WriteLine(failures == 0 ? "tag-team checks passed" : failures + " tag-team checks FAILED");
         return failures;
     }
 }

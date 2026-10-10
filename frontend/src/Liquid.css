@@ -631,3 +631,8 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .prov-duo .prov-gpt{color:#7fd8a6}.prov-duo .prov-claude{color:#e8956a}.prov-duo .prov-gemini{color:#8fb4ff}.prov-duo .prov-other,.prov-duo .prov-team{color:var(--ink-2)}
 .prov-duo b{background:none!important;padding:0!important;box-shadow:none!important}
 
+
+.tt-signin{margin-left:10px;height:24px;padding:0 12px;border:0;border-radius:999px;font-size:12px;color:var(--ink);background:linear-gradient(180deg,rgba(179,165,247,.4),rgba(150,130,235,.26));cursor:pointer}
+.tt-signin:hover{background:linear-gradient(180deg,rgba(179,165,247,.55),rgba(150,130,235,.36))}
+.tt-warn{margin:0;padding:9px 11px;border-radius:12px;font-size:12px;line-height:1.5;color:#ffd9a0;background:rgba(255,184,77,.12)}
+.hmsg.error{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
