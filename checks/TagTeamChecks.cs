@@ -38,6 +38,7 @@ public static class TagTeamChecks
         string all = Console.In.ReadToEnd(), dir = Environment.GetEnvironmentVariable("LAICA_TAG_LOGS") ?? Path.GetTempPath();
         File.AppendAllText(Path.Combine(dir, "tag-" + name + ".log"), "=====\n" + all + "\n");
         if (File.Exists(Path.Combine(dir, "limit-" + name + ".flag"))) { Console.WriteLine("{\"type\":\"error\",\"message\":\"You have hit your usage limit. Try again in 2 hours.\"}"); return 0; }
+        if (File.Exists(Path.Combine(dir, "writer-" + name + ".flag"))) { Console.WriteLine("{\"type\":\"error\",\"message\":\"thread-store conflict: thread 11111111-1111-1111-1111-111111111111 already has an active writer\"}"); return 0; }
         if (File.Exists(Path.Combine(dir, "autherr-" + name + ".flag"))) { Console.WriteLine("{\"type\":\"error\",\"message\":\"Not logged in \u00b7 Please run /login\"}"); return 0; }
         string rf = Path.Combine(dir, "resumefail-" + name + ".flag");
         if (File.Exists(rf)) { File.Delete(rf); Console.WriteLine("{\"type\":\"error\",\"message\":\"No conversation found with session ID thr-" + name + "\"}"); return 0; }
@@ -289,6 +290,19 @@ public static class TagTeamChecks
             Unset("autherr-B"); Unset("limit-A"); m.ClearUsageLimit(ida);
             m.PairSwitchNow(cid); Settle(m, cid, "partner", 2);
             Check(Active(m, cid) == "partner", "not signed in: Switch now tries again once it is fixed");
+            // the other agent's conversation is open in another window: keep the link, give the work back, say why
+            m.PairSwitchNow(cid); Settle(m, cid, "primary", 3);
+            Set("writer-B"); m.PairSwitchNow(cid); Settle(m, cid, "primary", 4);
+            Check(Active(m, cid) == "primary" && Dicts(m.History(cid)).Any(h => (string)h["Kind"] == "pairnote" && ((string)h["Text"]).Contains("open somewhere else")) && !Dicts(m.History(cid)).Any(h => (string)h["Kind"] == "pairnote" && ((string)h["Text"]).Contains("Starting it again")), "open elsewhere: a conversation another window is writing to is not thrown away and replaced");
+            Unset("writer-B"); m.PairSwitchNow(cid); Settle(m, cid, "partner", 5);
+            Check(Active(m, cid) == "partner" && !LastSection("B").Contains("PROJECT STATE"), "open elsewhere: once it is closed there, the same conversation is picked up again (not a new one)");
+        }
+        // closed mid-turn: the chat says so when it opens again
+        {
+            string dd = Path.Combine(root, "data-busy"); string wb = Path.Combine(root, "busywork"); Directory.CreateDirectory(wb); string bid;
+            using (var m = new HarnessManager(dd)) bid = (string)((Dictionary<string, object>)m.Create(m.Harnesses().First(h => h.Id == "codex" || h.Id == "claude").Id, wb, null, null, null, "busy chat"))["Id"];
+            string file = Path.Combine(dd, "harness", "sessions", bid + ".json"); File.WriteAllText(file, File.ReadAllText(file).Replace("\"Busy\":false", "\"Busy\":true"));
+            using (var m = new HarnessManager(dd)) Check(Dicts(m.History(bid)).Any(h => (string)h["Kind"] == "pairnote" && ((string)h["Text"]).StartsWith("LAICA was closed while this was working")), "closed mid-turn: the chat says so when it opens again");
         }        Console.WriteLine(failures == 0 ? "tag-team checks passed" : failures + " tag-team checks FAILED");
         return failures;
     }

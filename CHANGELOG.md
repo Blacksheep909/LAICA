@@ -3,6 +3,12 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.22.1]
+
+### Fixed
+- **Closing or updating LAICA no longer loses a long-running turn.** A turn is now saved every few seconds while the agent works (it used to be saved only when the turn finished, so closing LAICA part-way lost the whole turn from the chat). If LAICA was closed mid-turn, the chat says so when it opens again and tells you to send "continue"; a tag-team hand-over treats that turn as unfinished. The release script also refuses to close a LAICA that is running agents unless told to.
+- **A Codex conversation that is open in the Codex app is no longer cut loose.** Resuming a thread that another window is writing to fails with "already has an active writer". LAICA used to treat that as a broken session and start a new, empty Codex thread, so Codex appeared to have forgotten everything. It now keeps the link, hands the work back to the agent that had it, and tells you to close that conversation in the other app and press Switch now. Chats that were cut loose by this are re-linked to their original Codex thread the next time LAICA starts.
+- **A usage limit during a hand-over no longer also counts as a failed start.** The limit is handled on its own (wait or hand on), and the agent is no longer wrongly marked "stopped with an error".
 ## [0.22.0]
 
 ### Added

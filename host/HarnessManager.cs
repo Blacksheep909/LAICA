@@ -19,7 +19,7 @@ namespace Laica
             public string Id, Harness, Cwd, Mode, ExternalId, Title = "New chat", Rules, AssistantId; public Process Proc; public bool Busy, HasSentRules, Paused, HandoffDone; public int HandoffDepth; public readonly System.Threading.ManualResetEventSlim Go = new System.Threading.ManualResetEventSlim(true);
             public string ServiceId, Model, ImageModel, Effort, TeamId; public List<Dictionary<string, object>> Messages = new List<Dictionary<string, object>>(); public System.Threading.CancellationTokenSource Cts;
             public bool Notify, Interactive, Ended; public string TurnPrompt; public readonly object InLock = new object(); public readonly Dictionary<string, Dictionary<string, object>> Pending = new Dictionary<string, Dictionary<string, object>>(); public readonly HashSet<string> AlwaysAllow = new HashSet<string>();
-            public PairState Pair = new PairState(); public Session Parent, Child; public string ParentId; public long Seq; public bool Probe;
+            public PairState Pair = new PairState(); public Session Parent, Child; public string ParentId; public long Seq, SavedSeq; public bool Probe, WasBusy;
             public long TIn, TOut, TCr, TCw; public bool Isolated; public string RepoRoot, Branch, BaseBranch, BaseCommit, WorktreePath, SnapHead; public Dictionary<string, string> Snapshot;
             public readonly List<Dictionary<string, object>> Events = new List<Dictionary<string, object>>();
         }
@@ -535,7 +535,7 @@ namespace Laica
         void SaveSession(Session s)
         {
             Dictionary<string, object> d;
-            lock (gate) d = new Dictionary<string, object> { { "Id", s.Id }, { "Harness", s.Harness }, { "Cwd", s.Cwd }, { "Mode", s.Mode }, { "ExternalId", s.ExternalId }, { "Title", s.Title }, { "Rules", s.Rules }, { "AssistantId", s.AssistantId }, { "HasSentRules", s.HasSentRules }, { "Isolated", s.Isolated }, { "RepoRoot", s.RepoRoot }, { "Branch", s.Branch }, { "BaseBranch", s.BaseBranch }, { "BaseCommit", s.BaseCommit }, { "WorktreePath", s.WorktreePath }, { "ServiceId", s.ServiceId }, { "Model", s.Model }, { "ImageModel", s.ImageModel }, { "Effort", s.Effort }, { "TeamId", s.TeamId }, { "ParentId", s.ParentId }, { "Seq", s.Seq }, { "Pair", PairToDict(s.Pair) }, { "Messages", s.Messages.ToArray() }, { "Events", s.Events.ToArray() } };
+            lock (gate) d = new Dictionary<string, object> { { "Id", s.Id }, { "Harness", s.Harness }, { "Cwd", s.Cwd }, { "Mode", s.Mode }, { "ExternalId", s.ExternalId }, { "Title", s.Title }, { "Rules", s.Rules }, { "AssistantId", s.AssistantId }, { "HasSentRules", s.HasSentRules }, { "Isolated", s.Isolated }, { "RepoRoot", s.RepoRoot }, { "Branch", s.Branch }, { "BaseBranch", s.BaseBranch }, { "BaseCommit", s.BaseCommit }, { "WorktreePath", s.WorktreePath }, { "ServiceId", s.ServiceId }, { "Model", s.Model }, { "ImageModel", s.ImageModel }, { "Effort", s.Effort }, { "TeamId", s.TeamId }, { "ParentId", s.ParentId }, { "Seq", s.Seq }, { "Busy", s.Busy }, { "Pair", PairToDict(s.Pair) }, { "Messages", s.Messages.ToArray() }, { "Events", s.Events.ToArray() } };
             try { string p = Path.Combine(dir, "sessions", Safe(s.Id) + ".json"), t = p + ".tmp"; File.WriteAllText(t, json.Serialize(d)); if (File.Exists(p)) File.Delete(p); File.Move(t, p); } catch (Exception) { }
             try { Dictionary<string, string> snap; string head; lock (gate) { snap = s.Snapshot; head = s.SnapHead; } if (snap != null) { string p = Path.Combine(dir, "sessions", Safe(s.Id) + ".snap.json"), t = p + ".tmp"; File.WriteAllText(t, json.Serialize(new Dictionary<string, object> { { "Head", head }, { "Files", snap } })); if (File.Exists(p)) File.Delete(p); File.Move(t, p); } } catch (Exception) { }
         }
@@ -548,7 +548,7 @@ namespace Laica
                     try
                     {
                         var d = json.Deserialize<Dictionary<string, object>>(File.ReadAllText(f));
-                        var s = new Session { Id = Str(d, "Id"), Harness = Str(d, "Harness"), Cwd = Str(d, "Cwd"), Mode = Str(d, "Mode"), ExternalId = Str(d, "ExternalId") == "" ? null : Str(d, "ExternalId"), Title = Str(d, "Title"), Rules = Str(d, "Rules"), AssistantId = Str(d, "AssistantId"), HasSentRules = Str(d, "HasSentRules") == "True", Isolated = Str(d, "Isolated") == "True", RepoRoot = Str(d, "RepoRoot"), Branch = Str(d, "Branch"), BaseBranch = Str(d, "BaseBranch"), BaseCommit = Str(d, "BaseCommit"), WorktreePath = Str(d, "WorktreePath"), ServiceId = Str(d, "ServiceId"), Model = Str(d, "Model"), ImageModel = Str(d, "ImageModel") == "" ? null : Str(d, "ImageModel"), Effort = Str(d, "Effort") == "" ? null : Str(d, "Effort"), TeamId = Str(d, "TeamId") == "" ? null : Str(d, "TeamId"), ParentId = Str(d, "ParentId"), Seq = Num(d, "Seq"), Pair = PairFromDict(Obj(d, "Pair")) };
+                        var s = new Session { Id = Str(d, "Id"), Harness = Str(d, "Harness"), Cwd = Str(d, "Cwd"), Mode = Str(d, "Mode"), ExternalId = Str(d, "ExternalId") == "" ? null : Str(d, "ExternalId"), Title = Str(d, "Title"), Rules = Str(d, "Rules"), AssistantId = Str(d, "AssistantId"), HasSentRules = Str(d, "HasSentRules") == "True", Isolated = Str(d, "Isolated") == "True", RepoRoot = Str(d, "RepoRoot"), Branch = Str(d, "Branch"), BaseBranch = Str(d, "BaseBranch"), BaseCommit = Str(d, "BaseCommit"), WorktreePath = Str(d, "WorktreePath"), ServiceId = Str(d, "ServiceId"), Model = Str(d, "Model"), ImageModel = Str(d, "ImageModel") == "" ? null : Str(d, "ImageModel"), Effort = Str(d, "Effort") == "" ? null : Str(d, "Effort"), TeamId = Str(d, "TeamId") == "" ? null : Str(d, "TeamId"), ParentId = Str(d, "ParentId"), Seq = Num(d, "Seq"), WasBusy = Str(d, "Busy") == "True", Pair = PairFromDict(Obj(d, "Pair")) };
                         var msgs = Arr(d, "Messages"); if (msgs != null) foreach (object mo in msgs) { var md = mo as Dictionary<string, object>; if (md != null) s.Messages.Add(md); }
                         if (s.Id == "") continue;
                         var ev = Arr(d, "Events"); if (ev != null) foreach (object o in ev) { var e = o as Dictionary<string, object>; if (e != null) s.Events.Add(e); }
@@ -613,6 +613,9 @@ namespace Laica
             }
             foreach (var t in due) { try { Execute(t); } catch (Exception) { } }
             try { PairTick(); } catch (Exception) { }
+            // a turn can run for an hour: save it as it goes, so closing or crashing loses at most a few seconds of it
+            List<Session> running; lock (gate) running = sessions.Values.Where(x => x.Busy && x.Seq != x.SavedSeq).ToList();
+            foreach (var rs in running) { try { long q = rs.Seq; SaveSession(rs); rs.SavedSeq = q; } catch (Exception) { } }
         }
 
         void Execute(Dictionary<string, object> t)

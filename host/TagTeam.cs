@@ -30,6 +30,7 @@ namespace Laica
             { "Mode", "assisted" }, { "PartnerHarness", "" }, { "PartnerService", "" }, { "PartnerModel", "" }, { "AutoSwitch", true }, { "SwitchBack", true },
             { "MinGapMinutes", 5 }, { "ThrashSwitches", 4 }, { "ThrashMinutes", 30 }, { "ReturnThreshold", 80 }, { "ReturnAtBoundary", false }, { "HandoffPath", "HANDOFF.md" }, { "AgentNote", false } };
         static readonly string[] ContModes = { "off", "assisted", "automatic" };
+        static readonly Regex WriterRx = new Regex(@"already has an active writer|thread-store conflict", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         static readonly Regex AuthRx = new Regex(@"not logged in|please run /login|not signed in|please (log|sign) ?in|login required|invalid (api key|credentials|x-api-key)|authentication (failed|error|required)|unauthorized|\b401\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         static readonly Regex ResumeFailRx = new Regex(@"no conversation found|could not (resume|find)|session .{0,40}(not found|does not exist|expired)|thread .{0,40}not found|unknown (session|thread)|invalid session|failed to resume|no rollout found|resume.{0,30}(fail|error)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         readonly object handoffIo = new object(), switchGate = new object();
@@ -266,7 +267,7 @@ namespace Laica
             lock (gate)
             {
                 bool bad = false;
-                for (int i = root.Events.Count - 1; i >= 0; i--) { string k = Str(root.Events[i], "Kind"); if (k == "user") return bad; if (k == "limit") bad = true; }
+                for (int i = root.Events.Count - 1; i >= 0; i--) { string k = Str(root.Events[i], "Kind"); if (k == "user") return bad; if (k == "limit" || (k == "pairnote" && Str(root.Events[i], "Text").StartsWith("LAICA was closed"))) bad = true; }
             }
             return false;
         }
@@ -441,7 +442,7 @@ namespace Laica
                 if (fin.Probe)
                 {
                     fin.Probe = false; bool failed = false, said = false; long from = root.Pair.DeliverSeq;
-                    lock (gate) foreach (var e in root.Events) { if (Num(e, "N") <= from) continue; string k = Str(e, "Kind"); if (k == "assistant") said = true; if (k == "error" && ResumeFailRx.IsMatch(Str(e, "Text"))) failed = true; }
+                    lock (gate) foreach (var e in root.Events) { if (Num(e, "N") <= from) continue; string k = Str(e, "Kind"); if (k == "assistant") said = true; if (k == "error" && ResumeFailRx.IsMatch(Str(e, "Text")) && !WriterRx.IsMatch(Str(e, "Text"))) failed = true; }
                     if (failed && !said && root.Pair.DeliverRequest != "")
                     {
                         lock (gate) { fin.ExternalId = null; if (child) root.Pair.RanB = false; else root.Pair.RanA = false; }
@@ -455,10 +456,11 @@ namespace Laica
                 // the agent that was handed the work could not even start (not signed in, crashed): give the work back
                 if (root.Pair.DeliverReason != "" && fin == (root.Pair.Active == "partner" ? root.Child : root))
                 {
-                    bool said = false; string err = ""; long from = root.Pair.DeliverSeq;
-                    lock (gate) foreach (var e in root.Events) { if (Num(e, "N") <= from) continue; string k = Str(e, "Kind"); if (k == "assistant" || k == "tool") said = true; if (k == "error" && !IsLimitText(Str(e, "Text"))) err = Str(e, "Text"); }
+                    bool said = false, limitSeen = false; string err = "", errAll = ""; long from = root.Pair.DeliverSeq;
+                    lock (gate) foreach (var e in root.Events) { if (Num(e, "N") <= from) continue; string k = Str(e, "Kind"); if (k == "assistant" || k == "tool") said = true; if (k == "error") { if (IsLimitText(Str(e, "Text"))) limitSeen = true; else { err = Str(e, "Text"); errAll += Str(e, "Text") + "\n"; } } }
                     lock (gate) root.Pair.DeliverReason = "";
-                    if (!said && err != "") { PairUndoSwitch(root, child, err); return; }
+                    // a usage limit is handled by its own path (wait, or hand on): only a real failure to start is undone here
+                    if (!said && !limitSeen && err != "") { PairUndoSwitch(root, child, err, errAll); return; }
                 }
                 if (ContMode(root) != "off") WriteHandoffFile(root, fin);
                 SaveSession(root);
@@ -533,17 +535,18 @@ namespace Laica
             lock (authCache) authCache.Remove(harness);
         }
         /// <summary>The agent handed the work could not start. Give the work back to the one that had it, say why, and stop trying that agent until the user fixes it and presses Switch now.</summary>
-        void PairUndoSwitch(Session root, bool failedIsChild, string err)
+        void PairUndoSwitch(Session root, bool failedIsChild, string err, string errAll)
         {
-            bool auth = AuthRx.IsMatch(err ?? ""); string failedName = VendorName(SideKey(root, failedIsChild)), prevKey = SideKey(root, !failedIsChild), prevName = VendorName(prevKey);
+            bool writer = WriterRx.IsMatch(errAll ?? err ?? ""); bool auth = !writer && AuthRx.IsMatch(err ?? ""); string failedName = VendorName(SideKey(root, failedIsChild)), prevKey = SideKey(root, !failedIsChild), prevName = VendorName(prevKey);
             lock (gate)
             {
                 root.Pair.Active = failedIsChild ? "primary" : "partner";
                 if (root.Pair.Times.Count > 0) { root.Pair.Times.RemoveAt(root.Pair.Times.Count - 1); root.Pair.Stamps.RemoveAt(root.Pair.Stamps.Count - 1); }
-                root.Pair.LastSwitch = DateTime.MinValue; root.Pair.Blocked = failedIsChild ? "partner" : "primary"; root.Pair.BlockedWhy = auth ? "isn't signed in" : "stopped with an error";
+                root.Pair.LastSwitch = DateTime.MinValue;
+                if (!writer) { root.Pair.Blocked = failedIsChild ? "partner" : "primary"; root.Pair.BlockedWhy = auth ? "isn't signed in" : "stopped with an error"; }
             }
             string request = root.Pair.DeliverRequest; bool prevUsable = !IsLimited(prevKey);
-            string hint = auth ? failedName + " isn't signed in. Open a terminal, run it once and sign in (for Claude Code: run claude and use /login), then press Switch now." : failedName + " stopped before it could start: " + HandoffBuilder.Clip(err, 200) + " Fix that, then press Switch now.";
+            string hint = writer ? failedName + "'s conversation is open somewhere else (for example in the " + failedName + " app), and only one place can write to it at a time. Close that conversation or the app there, then press Switch now. Nothing was lost: LAICA kept this chat linked to it." : auth ? failedName + " isn't signed in. Open a terminal, run it once and sign in (for Claude Code: run claude and use /login), then press Switch now." : failedName + " stopped before it could start: " + HandoffBuilder.Clip(err, 200) + " Fix that, then press Switch now.";
             Emit(root, "pairnote", "The hand-over to " + failedName + " didn't happen. " + hint + (prevUsable && request != "" ? " " + prevName + " keeps the work for now." : (prevUsable ? "" : " " + prevName + " is out of usage too, so the chat is waiting on you.")), null);
             SaveSession(root); Raise();
             if (prevUsable && request != "")
@@ -682,6 +685,16 @@ namespace Laica
                     foreach (var e in s.Events) if (Num(e, "N") <= 0) e["N"] = ++n;
                     s.Seq = Math.Max(s.Seq, n);
                 }
+                foreach (var s in sessions.Values)
+                {
+                    // older versions threw the link to the vendor's own conversation away after "already has an active writer" and started an empty one: put the link back
+                    if (s.Parent != null || (s.Harness != "codex" && s.Harness != "claude")) continue;
+                    string lost = null; foreach (var e in s.Events) { if (Str(e, "Kind") != "error") continue; var m = Regex.Match(Str(e, "Text"), @"thread ([0-9a-f\-]{36}) already has an active writer"); if (m.Success) lost = m.Groups[1].Value; }
+                    if (lost != null && s.ExternalId != lost && s.Events.Any(e => Str(e, "Kind") == "pairnote" && Str(e, "Text").StartsWith("Couldn't pick"))) s.ExternalId = lost;
+                }
+                // LAICA was closed (or crashed) while an agent was mid-turn: say so, so nobody wonders why the work stopped
+                foreach (var s in sessions.Values)
+                    if (s.WasBusy) { s.WasBusy = false; var ie = new Dictionary<string, object> { { "SessionId", s.Id }, { "Kind", "pairnote" }, { "Text", "LAICA was closed while this was working. What the agent had already done is in your files and in the chat above. Send continue and it will pick up from there; LAICA lists what changed since." }, { "Detail", null }, { "TimeUtc", DateTime.UtcNow.ToString("o") }, { "N", ++s.Seq } }; s.Events.Add(ie); }
                 foreach (var s in sessions.Values.ToList()) if (!String.IsNullOrEmpty(s.ParentId)) { Session p; if (sessions.TryGetValue(s.ParentId, out p)) { s.Parent = p; p.Child = s; p.Pair.ChildId = s.Id; } else s.ParentId = ""; }
             }
         }
