@@ -23,7 +23,7 @@ interface Store {
   pinned:string[]; togglePin:(key:string,title?:string)=>void;
   usage:VendorUsage[]; reloadUsage:()=>void; setBudget:(key:string,tokens?:number,weekly?:number)=>void; clearLimit:(key:string)=>void; continueElsewhere:(id:string,harness:string,serviceId?:string,model?:string)=>Promise<void>;
   project:string|null; setProject:(p:string|null)=>void; savedProjects:string[]; addProject:(p:string)=>void; removeProject:(p:string)=>void;
-  codexProjects:CodexProject[]; history:HistoryItem[]; historyLoading:boolean; reloadHistory:(refresh?:boolean)=>void; openHistory:(h:HistoryItem,cwd:string)=>Promise<void>;
+  codexProjects:CodexProject[]; history:HistoryItem[]; historyLoading:boolean; reloadHistory:(refresh?:boolean,silent?:boolean)=>void; openHistory:(h:HistoryItem,cwd:string)=>Promise<void>;
   teams:TeamRun[]; reloadTeams:()=>void;
   harnesses:HarnessInfo[]; refreshHarnesses:()=>void; assistants:Assistant[]; sessions:HSession[]; active:string|null; events:Record<string,HEvent[]>; refreshKey:number;
   setActive:(id:string|null)=>void; reload:(prefer?:string|null)=>Promise<void>; reloadAssistants:()=>void;
@@ -46,7 +46,8 @@ export function HarnessProvider({children}:{children:ReactNode}){
   const setBudget=useCallback((key:string,tokens?:number,weekly?:number)=>{request<VendorUsage[]>('usageBudget',{Key:key,Tokens:tokens,Weekly:weekly}).then(setUsage).catch(()=>{});},[]);
   const clearLimit=useCallback((key:string)=>{request<VendorUsage[]>('usageClear',{Key:key}).then(setUsage).catch(()=>{});},[]);
   useEffect(()=>{reloadUsage();const t=setInterval(reloadUsage,20000);return()=>clearInterval(t);},[reloadUsage]);
-  const reloadHistory=useCallback((refresh=false)=>{if(!isDesktop)return;setHistoryLoading(true);request<CodexProject[]>('codexProjects').then(setCodexProjects).catch(()=>{});request<HistoryItem[]>('historyList',{Refresh:refresh}).then(setHistory).catch(()=>{}).finally(()=>setHistoryLoading(false));},[]);
+  const reloadHistory=useCallback((refresh=false,silent=false)=>{if(!isDesktop)return;if(!silent)setHistoryLoading(true);request<CodexProject[]>('codexProjects').then(setCodexProjects).catch(()=>{});request<HistoryItem[]>('historyList',{Refresh:refresh}).then(setHistory).catch(()=>{}).finally(()=>{if(!silent)setHistoryLoading(false);});},[]);
+  useEffect(()=>{const t=setInterval(()=>{if(!document.hidden)reloadHistory(true,true);},25000);return()=>clearInterval(t);},[reloadHistory]);
   useEffect(()=>{let last=Date.now();const onFocus=()=>{reloadUsage();if(Date.now()-last>15000){last=Date.now();reloadHistory(true);request<HarnessInfo[]>('harnesses').then(setHarnesses).catch(()=>{});}};window.addEventListener('focus',onFocus);return()=>window.removeEventListener('focus',onFocus);},[reloadHistory,reloadUsage]);
   const persistProjects=useCallback((next:string[])=>{setSavedProjects(next);request('storeSet',{Name:'projects',Value:next}).catch(()=>{});},[]);
   const addProject=useCallback((p:string)=>{const path=p.trim().replace(/[\\\\/]+$/,'');if(!path)return;setSavedProjects(cur=>{if(cur.some(x=>x.toLowerCase()===path.toLowerCase()))return cur;const next=[path,...cur];request('storeSet',{Name:'projects',Value:next}).catch(()=>{});return next;});setProject(path);},[]);

@@ -3,6 +3,11 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.21.5]
+
+### Fixed
+- **Chats you opened from Codex now sit in the project Codex put them in.** A conversation you had opened in LAICA was filed by its folder, so one that Codex keeps in a project (for example "Create biped V0.0 CAD blockout" in LAICA BIPED, while its files live elsewhere) showed up under the wrong project, and the right project said "No conversations yet". Open chats now use the project Codex assigned them to.
+- **Projects and chats follow Codex and Claude Code while LAICA is open.** The list of conversations and projects is re-read every 25 seconds in the background (as well as when you return to the window), so a conversation moved or created in Codex shows up without reopening LAICA.
 ## [0.21.4]
 
 ### Fixed

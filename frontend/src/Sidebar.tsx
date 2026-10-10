@@ -35,7 +35,7 @@ export default function Sidebar({page,go,version,onGuide,teams,activeTeam,openTe
   const rows=useMemo<Row[]>(()=>{
     const out:Row[]=[];
     sessions.forEach(s=>{
-      const name=s.TeamId?'':projectOf(s.Project||s.Cwd,codexProjects,savedProjects)||(projects.find(p=>p.path.toLowerCase()===(s.Project||s.Cwd).toLowerCase())?.name??'');
+      const name=s.TeamId?'':(history.find(h=>h.SessionId===s.Id)?.ProjectName||projectOf(s.Project||s.Cwd,codexProjects,savedProjects))||(projects.find(p=>p.path.toLowerCase()===(s.Project||s.Cwd).toLowerCase())?.name??'');
       out.push({sid:s.Id,key:'s'+s.Id,title:s.Title,provider:providerOfSession(s,nameOf),when:s.Busy?Date.now():(Date.parse(s.UpdatedUtc||'')||Date.parse(history.find(h=>h.SessionId===s.Id)?.UpdatedUtc||'')||Date.now()-60000),project:name,active:page==='chat'&&s.Id===active,busy:s.Busy,since:s.BusySince,paused:s.Paused,branch:s.Isolated?s.Branch:undefined,past:false,open:()=>{setActive(s.Id);go('chat');},close:()=>close(s.Id)});
     });
     history.filter(h=>!h.SessionId).forEach(h=>out.push({key:'h'+h.Source+h.ExternalId,title:h.Title,provider:providerOfHistory(h),when:new Date(h.UpdatedUtc).getTime(),project:h.ProjectName||'',active:false,past:true,open:()=>{void openHistory(h,workingDirectory).then(()=>go('chat'));}}));
