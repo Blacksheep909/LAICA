@@ -41,10 +41,6 @@ It runs your own installed tools with your own logins. Nothing is proxied throug
 <td width="50%"><img src="docs/images/teams.jpg" alt="A team run with tasks, a switched agent and the final result"><br><sub><b>Teams</b>: Claude, Codex and Gemini on one team, with a seamless agent swap</sub></td>
 </tr>
 <tr>
-<td><img src="docs/images/analytics-teams.jpg" alt="Team analytics"><br><sub><b>Team analytics</b>: which design is most reliable, fastest and cheapest</sub></td>
-<td><img src="docs/images/analytics-charts.jpg" alt="Analytics charts"><br><sub><b>Analytics</b>: tokens, estimated cost and activity over time</sub></td>
-</tr>
-<tr>
 <td><img src="docs/images/designer.jpg" alt="The workflow designer"><br><sub><b>Workflow designer</b>: arrange agents, pick any installed vendor and model for each</sub></td>
 <td><img src="docs/images/settings-agents.jpg" alt="Settings: workflow handoff and co-author"><br><sub><b>Settings</b>: workflow handoff, LAICA as a co-author and updates</sub></td>
 </tr>
