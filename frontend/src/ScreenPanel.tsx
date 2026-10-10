@@ -12,13 +12,13 @@ export const SCREEN_TOOL=/(playwright|browser|chrome|puppeteer|laica-computer|co
 const parse=(d?:string|null):Record<string,unknown>=>{if(!d||d[0]!=='{')return {};try{return JSON.parse(d) as Record<string,unknown>;}catch{return {};}};
 const bare=(t:string)=>t.replace(/^mcp__[^_]*(?:_[^_]+)*?__/,'').replace(/^[^.]*\./,'');
 
-export interface ScreenAction { time:string; kind:'shot'|'click'|'type'|'key'|'go'|'scroll'|'move'|'wait'|'other'; text:string; computer:boolean }
+export interface ScreenAction { url?:string; time:string; kind:'shot'|'click'|'type'|'key'|'go'|'scroll'|'move'|'wait'|'other'; text:string; computer:boolean }
 function describe(e:HEvent):ScreenAction{
   const name=bare(e.Text||'tool').toLowerCase(),j=parse(e.Detail),computer=/laica-computer/i.test(e.Text||'');
   const at=typeof j.x==='number'&&typeof j.y==='number'?` at ${Math.round(j.x as number)}, ${Math.round(j.y as number)}`:'';
-  const url=typeof j.url==='string'?j.url:'';
+  const url=typeof j.url==='string'?j.url:typeof j.query==='string'?j.query:'';
   if(/screenshot|snapshot|screen_info|capture/.test(name))return {time:e.TimeUtc,kind:'shot',text:computer?'Looked at the screen':'Took a screenshot',computer};
-  if(/navigate|goto|open_page|new_page|go_to/.test(name))return {time:e.TimeUtc,kind:'go',text:'Opened '+(url||'a page'),computer};
+  if(/navigate|goto|open_page|new_page|go_to|search/.test(name)||typeof j.url==='string')return {url:url||undefined,time:e.TimeUtc,kind:'go',text:(/search/.test(name)?'Searched ':'Opened ')+(url||'a page'),computer};
   if(/double_click/.test(name))return {time:e.TimeUtc,kind:'click',text:'Double-clicked'+at,computer};
   if(/right_click/.test(name))return {time:e.TimeUtc,kind:'click',text:'Right-clicked'+at,computer};
   if(/click|press_button|tap/.test(name))return {time:e.TimeUtc,kind:'click',text:'Clicked'+(typeof j.element==='string'?' '+j.element:at),computer};
@@ -41,7 +41,8 @@ export function useScreenActivity(sessionId:string){
       if((e.Kind==='tool_result'||e.Kind==='tool'||e.Kind==='image')&&e.Images?.length&&(any||SCREEN_TOOL.test(e.Text||''))){last=refsOf(e.SessionId,e.Images);any=true;}
     }
     const lastTime=acts.length?Date.parse(acts[acts.length-1].time):0;
-    return {any,acts,image:last[last.length-1]??null,images:last,live:busy&&lastTime>0&&Date.now()-lastTime<120000,lastTime};
+    const page=[...acts].reverse().find(x=>x.url&&/^https?:|^file:|^about:|^localhost/i.test(x.url))?.url??'';
+    return {any,page,acts,image:last[last.length-1]??null,images:last,live:busy&&lastTime>0&&Date.now()-lastTime<120000,lastTime};
   },[list,busy]);
 }
 
@@ -53,6 +54,7 @@ export default function ScreenPanel({sessionId}:{sessionId:string}){
   const computer=a.acts.some(x=>x.computer);
   return <div className="screen-panel">
     <div className="screen-head"><span className={`screen-dot ${a.live?'live':''}`}/><b>{a.live?(computer?'LAICA is using your computer':'The agent is using a browser'):'Last used '+(a.lastTime?ago(a.lastTime):'earlier')}</b>{a.live&&<Button size="small" variant="quiet" leadingIcon={<Square size={11} fill="currentColor"/>} onClick={()=>{void request('harnessStop',{Id:sessionId});}}>Stop · Esc</Button>}</div>
+    {a.page&&<div className="screen-url" title={a.page}><Globe size={12}/><span>{a.page}</span></div>}
     <div className={`screen-frame ${a.live?'live':''}`}>{url?<img src={url} alt="What the agent last saw" draggable={false}/>:<div className="screen-wait">Waiting for a picture…</div>}</div>
     {a.images.length>1&&<div className="screen-strip"><Thumbs images={a.images.slice(-8)} max={8}/></div>}
     <ol className="screen-steps">{a.acts.slice(-40).reverse().map((x,i)=><li key={i} className={x.computer?'is-computer':''}><span className="ss-ico">{icon(x.kind)}</span><span className="ss-text">{x.text}</span><time>{new Date(x.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})}</time></li>)}</ol>

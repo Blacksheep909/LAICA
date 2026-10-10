@@ -510,6 +510,7 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .screen-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.25);flex:none}
 @keyframes screen-pulse{70%{box-shadow:0 0 0 7px rgba(181,166,255,0)}100%{box-shadow:0 0 0 0 rgba(181,166,255,0)}}
 .screen-panel{display:flex;flex-direction:column;gap:12px;padding:12px;overflow-y:auto;min-height:0;flex:1}
+.screen-url{display:flex;align-items:center;gap:6px;font-size:12px;opacity:.75;min-width:0}.screen-url span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .screen-head{display:flex;align-items:center;gap:8px;font-size:13px}.screen-head b{flex:1;font-weight:600}
 .screen-frame{border-radius:12px;overflow:hidden;background:#0b0916;border:1px solid rgba(255,255,255,.1);min-height:120px;display:grid;place-items:center}
 .screen-frame.live{border:2px solid var(--accent);box-shadow:0 0 0 4px rgba(181,166,255,.14),0 0 28px rgba(181,166,255,.25)}

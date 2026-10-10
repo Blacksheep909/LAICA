@@ -3,6 +3,14 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.23.0]
+
+### Added
+- **Ponytail in the plugin library.** A new skill, based on [Ponytail](https://github.com/DietrichGebert/ponytail), that makes agents write the smallest complete change and keep replies short. Install it into Claude Code, Codex or both from Plugins.
+
+### Fixed
+- **The Screen tab now follows Codex's own browser.** Codex's built-in browser and computer actions (which are not MCP calls) were never shown, so the Screen tab stayed empty. They now appear with the pictures they return, and the tab shows the address of the page the agent is on.
+
 ## [0.22.2]
 
 ### Fixed

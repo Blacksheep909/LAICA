@@ -89,6 +89,10 @@ TypeScript, Vite, the React plugin and pnpm are used to build the interface and 
 
 LAICA's feature set was inspired by [AionUi](https://github.com/iOfficeAI/AionUi) and its interface by Apple's published Liquid Glass design guidance. No AionUi or Apple source code or assets are included.
 
+## Skills in the plugin library
+
+The **Ponytail** skill offered in the plugin library is a condensed copy of [Ponytail](https://github.com/DietrichGebert/ponytail) by Dietrich Gebert, used under the MIT licence.
+
 ## Trademarks
 
 Codex, OpenAI, Claude, Anthropic, Gemini, Google, Windows, WebView2 and other names are trademarks of their owners. LAICA is an independent project, not affiliated with or endorsed by them; it launches tools you install yourself.

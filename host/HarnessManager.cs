@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Text;
 using System.Threading;
 using System.Web.Script.Serialization;
@@ -473,7 +474,23 @@ namespace Laica
             else if (it == "fileChange") Emit(s, "tool", "file change", json.Serialize(item.ContainsKey("changes") ? item["changes"] : null));
             else if (it == "mcpToolCall") Emit(s, "tool", Str(item, "server") + "." + Str(item, "tool"), json.Serialize(item.ContainsKey("arguments") ? item["arguments"] : null), SaveImages(s, Obj(item, "result") != null && Obj(item, "result").ContainsKey("content") ? Obj(item, "result")["content"] : item.ContainsKey("result") ? item["result"] : null));
             else if (it.IndexOf("image", StringComparison.OrdinalIgnoreCase) >= 0) { var im = ImagesFromItem(s, item); if (im.Count > 0) Emit(s, "image", it, Str(item, "path"), im); }
+            else if (BrowserItem.IsMatch(it)) EmitBrowserItem(s, it, item);
         }
+
+        /// <summary>Codex's own browser and computer tools arrive as item types of their own (not MCP calls). Show them in the Screen tab like any other browser tool.</summary>
+        static readonly Regex BrowserItem = new Regex("browser|web_?search|computer|screenshot|dynamic_?tool|navigate", RegexOptions.IgnoreCase);
+        void EmitBrowserItem(Session s, string it, Dictionary<string, object> item)
+        {
+            string tool = Str(item, "tool"); if (tool == "") tool = Str(item, "action") != "" && Obj(item, "action") == null ? Str(item, "action") : it;
+            string ns = Str(item, "namespace"); if (ns == "") ns = Str(item, "server");
+            string name = (ns != "" ? ns + "." : "") + tool; if (!SCREEN_NAME.IsMatch(name)) name = "browser." + name;
+            object args = item.ContainsKey("arguments") ? item["arguments"] : item.ContainsKey("action") ? item["action"] : null;
+            if (args == null) { var d = new Dictionary<string, object>(); foreach (string k in new[] { "url", "query", "title", "text", "x", "y" }) if (item.ContainsKey(k)) d[k] = item[k]; args = d; }
+            var images = new List<string>(); object res = item.ContainsKey("contentItems") ? item["contentItems"] : item.ContainsKey("content") ? item["content"] : item.ContainsKey("output") ? item["output"] : item.ContainsKey("result") ? item["result"] : null;
+            images.AddRange(SaveImages(s, res)); foreach (string n in ImagesFromItem(s, item)) if (!images.Contains(n)) images.Add(n);
+            Emit(s, "tool", name, json.Serialize(args), images);
+        }
+        static readonly Regex SCREEN_NAME = new Regex("playwright|browser|chrome|puppeteer|laica-computer|computer|screenshot|navigate", RegexOptions.IgnoreCase);
 
         void ParseCodex(Session s, Dictionary<string, object> o, string type)
         {
@@ -491,6 +508,7 @@ namespace Laica
             else if (it == "file_change") Emit(s, "tool", "file change", json.Serialize(item.ContainsKey("changes") ? item["changes"] : null));
             else if (it == "mcp_tool_call") Emit(s, "tool", Str(item, "server") + "." + Str(item, "tool"), json.Serialize(item.ContainsKey("arguments") ? item["arguments"] : null), SaveImages(s, Obj(Obj(item, "result"), "content") != null ? null : (Obj(item, "result") != null && Obj(item, "result").ContainsKey("content") ? Obj(item, "result")["content"] : item.ContainsKey("result") ? item["result"] : null)));
             else if (it.IndexOf("image", StringComparison.OrdinalIgnoreCase) >= 0) { var im = ImagesFromItem(s, item); if (im.Count > 0) Emit(s, "image", it, Str(item, "path"), im); }
+            else if (BrowserItem.IsMatch(it)) EmitBrowserItem(s, it, item);
         }
 
         static string Str(Dictionary<string, object> d, string k) { object v; return d != null && d.TryGetValue(k, out v) && v != null ? Convert.ToString(v) : ""; }

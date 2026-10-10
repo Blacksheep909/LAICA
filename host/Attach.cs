@@ -191,7 +191,7 @@ namespace Laica
                     var src = Obj(d, "source"); data = src != null ? Str(src, "data") : Str(d, "data");
                     if (data == "" && src != null && Str(src, "type") == "url") continue;
                 }
-                else if (type == "image_url" || type == "input_image" || type == "output_image") { object u = d.ContainsKey("image_url") ? d["image_url"] : d.ContainsKey("url") ? d["url"] : null; data = u is Dictionary<string, object> ? Str((Dictionary<string, object>)u, "url") : Convert.ToString(u); }
+                else if (type == "image_url" || type == "input_image" || type == "output_image" || type == "inputImage" || type == "outputImage") { object u = d.ContainsKey("image_url") ? d["image_url"] : d.ContainsKey("imageUrl") ? d["imageUrl"] : d.ContainsKey("url") ? d["url"] : null; data = u is Dictionary<string, object> ? Str((Dictionary<string, object>)u, "url") : Convert.ToString(u); }
                 else continue;
                 int comma = data.IndexOf("base64,", StringComparison.Ordinal); if (data.StartsWith("data:", StringComparison.OrdinalIgnoreCase) && comma > 0) data = data.Substring(comma + 7);
                 if (data.Length < 40 || data.Length > MaxImageBytes * 4 / 3 + 16) continue;
