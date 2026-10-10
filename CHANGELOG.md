@@ -3,6 +3,12 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.23.1]
+
+### Changed
+- **The activity view is shorter and closer to Codex's.** Empty "Thinking" pills are gone, and a thinking summary now becomes the title of the steps that follow it ("Repositioning the bridge · ran 3 commands, edited 2 files") instead of splitting them into many small groups. MCP tools are grouped by server ("used Fusion integration"). When more than three files were edited they fold into one "Edited N files" card.
+- **"Viewed an image".** Pictures an agent looks at (Codex's view image, or any tool that returns one) now show as a "Viewed an image" step with the thumbnail underneath, so you can see it without opening anything.
+
 ## [0.23.0]
 
 ### Added

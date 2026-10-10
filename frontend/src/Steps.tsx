@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {ChevronRight,SquareTerminal,FileText,Pencil,Search,Globe,Wrench,LoaderCircle,AlertTriangle,FileCode2} from 'lucide-react';
+import {ChevronRight,SquareTerminal,FileText,Pencil,Search,Globe,Wrench,LoaderCircle,AlertTriangle,FileCode2,Image as ImageIcon} from 'lucide-react';
 import type {HEvent} from './harness-store';
 import {WorkingGlyph} from './ui/kit';
 import {Thumbs,refsOf} from './Images';
@@ -8,10 +8,10 @@ import type {ImgRef} from './Images';
 
 /* The activity view: tool calls turned into plain sentences, grouped the way a person would describe them ("Ran 2 commands, edited a file"),
    with the exact command, edit or output one click away. Works for Claude Code, Codex, the built-in agent and imported history. */
-type Kind='cmd'|'read'|'edit'|'search'|'web'|'tool';
+type Kind='cmd'|'read'|'view'|'edit'|'search'|'web'|'tool';
 export interface FileEdit { file:string; add:number; del:number; text:string; note?:string }
-export interface Step { file?:string; edits?:FileEdit[]; tool:string; kind:Kind; title:string; body:string; result?:string; failed?:boolean; running?:boolean; time?:string; images?:ImgRef[] }
-export type RowItem={type:'event';e:HEvent}|{type:'steps';items:Step[];running:boolean}|{type:'files';files:FileEdit[]}|{type:'summary';files:number;add:number;del:number}|{type:'worked';ms:number};
+export interface Step { server?:string; file?:string; edits?:FileEdit[]; tool:string; kind:Kind; title:string; body:string; result?:string; failed?:boolean; running?:boolean; time?:string; images?:ImgRef[] }
+export type RowItem={type:'event';e:HEvent}|{type:'steps';items:Step[];running:boolean;label?:string}|{type:'files';files:FileEdit[]}|{type:'summary';files:number;add:number;del:number}|{type:'worked';ms:number};
 
 /** Lines added and removed by one edit: the common start and end are trimmed, the rest is what changed. */
 function lineDiff(oldS:string,newS:string):{add:number;del:number;text:string}{
@@ -45,13 +45,17 @@ const s=(v:unknown)=>typeof v==='string'?v:'';
 function kindOf(tool:string):Kind{
   const t=tool.toLowerCase();
   if(/^(bash|powershell|shell|command|run|exec)/.test(t)||/(^|[._])exec(_command)?$/.test(t))return 'cmd';
-  if(/^(read|ls|view|notebookread)/.test(t)||/view_image/.test(t))return 'read';
+  if(/view_image|image_?view/.test(t))return 'view';
+  if(/^(read|ls|view|notebookread)/.test(t))return 'read';
   if(/(edit|write|patch|file change|multiedit|notebookedit)/.test(t))return 'edit';
   if(/^(grep|glob|search|find|toolsearch)/.test(t))return 'search';
   if(/(web|fetch|browser|navigate)/.test(t))return 'web';
   return 'tool';
 }
 
+const pretty=(n:string)=>{const w=n.replace(/[-_]+/g,' ').trim();return w.charAt(0).toUpperCase()+w.slice(1);};
+/** The server an MCP tool belongs to: "fusion.execute" and "mcp__fusion__execute" both give "Fusion". */
+function serverOf(tool:string):string{const m=/^mcp__(.+?)__.+$/.exec(tool)??/^([^.\s]+)\..+$/.exec(tool);return m?pretty(m[1]):'';}
 export function stepOf(e:HEvent):Step{
   const tool=e.Text||'tool';const kind=kindOf(tool);const j=parse(e.Detail);const raw=j?'':(e.Detail??'');
   const desc=s(j?.description),cmd=s(j?.command)||s(j?.cmd)||(kind==='cmd'?raw:''),file=s(j?.file_path)||s(j?.path)||s(j?.notebook_path)||(kind==='read'||kind==='edit'?raw:'');
@@ -64,7 +68,7 @@ export function stepOf(e:HEvent):Step{
     else if(kind==='web')title=s(j?.query)?`Searched the web for “${first(s(j?.query),50)}”`:'Fetched '+(()=>{try{return new URL(s(j?.url)||raw).hostname;}catch{return first(raw,40)||'a page';}})();
     else if(/^update_plan$/i.test(tool))title='Updated the plan';
     else if(/^(script|js)$/i.test(tool))title='Ran a script';
-    else if(/^view_image$/i.test(tool))title='Looked at '+(base(raw)||'a picture');
+    else if(kind==='view')title='Viewed an image';
     else if(/^spawn_agent$/i.test(tool))title='Started a helper agent'+(s(j?.task_name)?': '+s(j?.task_name):'');
     else if(/^(send_message|followup_task)$/i.test(tool))title='Messaged '+(s(j?.target)||'a helper agent');
     else if(/^(wait_agent|list_agents)$/i.test(tool))title=/wait/.test(tool)?'Waited for the helper agents':'Checked the helper agents';
@@ -73,7 +77,7 @@ export function stepOf(e:HEvent):Step{
     else if(/write_stdin|send_input/i.test(tool))title='Sent input to a running command';
     else if(/^skill$/i.test(tool))title='Used the '+(s(j?.skill)||'a')+' skill';
     else if(/^(task|agent)$/i.test(tool))title='Delegated: '+first(s(j?.description)||s(j?.prompt),70);
-    else if(tool.includes('.'))title='Used '+tool.split('.').slice(1).join('.')+' ('+tool.split('.')[0]+')';
+    else if(serverOf(tool))title=serverOf(tool)+' · '+tool.replace(/^mcp__.+?__/,'').replace(/^[^.]+\./,'');
     else title='Used '+tool;
   }
   let body='';
@@ -83,49 +87,56 @@ export function stepOf(e:HEvent):Step{
   else if(j)body=JSON.stringify(j,null,2);else body=raw;
   const edits=kind==='edit'?editsOf(tool,e.Detail,j):undefined;
   if(kind==='edit'&&(!desc)&&edits&&edits.length===1&&edits[0].file)title=(/write/i.test(tool)?'Wrote ':'Edited ')+base(edits[0].file);
-  return {tool,kind,title,body:body.length>6000?body.slice(0,6000)+'\n...':body,time:e.TimeUtc,edits,images:refsOf(e.SessionId,e.Images),file:(kind==='read'||kind==='edit')?(file||edits?.[0]?.file||''):undefined};
+  return {server:kind==='tool'?serverOf(tool)||undefined:undefined,tool,kind,title,body:body.length>6000?body.slice(0,6000)+'\n...':body,time:e.TimeUtc,edits,images:refsOf(e.SessionId,e.Images),file:(kind==='read'||kind==='edit')?(file||edits?.[0]?.file||''):undefined};
 }
 
 const failedText=(t:string)=>/^(error|fatal|exception|command failed)\b/i.test(t.trim())||/\bexit code:?\s*[1-9]\d*\b/i.test(t)||/\bexited with code [1-9]/i.test(t);
 
 /** Folds consecutive tool calls and their outputs into groups, leaving every other event as it is. */
 export function groupRows(events:HEvent[],busy:boolean):RowItem[]{
-  const out:RowItem[]=[];let cur:Step[]|null=null;const turn=new Map<string,{add:number;del:number}>();
+  const out:RowItem[]=[];let cur:Step[]|null=null;let label='';let think:HEvent|null=null;const turn=new Map<string,{add:number;del:number}>();
   const flush=()=>{
     if(cur&&cur.length){
-      out.push({type:'steps',items:cur,running:false});
+      out.push({type:'steps',items:cur,running:false,label:label||undefined});
       const merged=new Map<string,FileEdit>();
       for(const st of cur)for(const ed of st.edits??[]){const key=ed.file||'(file)';const m=merged.get(key);if(m){m.add+=ed.add;m.del+=ed.del;m.text=(m.text?m.text+'\n':'')+ed.text;}else merged.set(key,{...ed});const t=turn.get(key)??{add:0,del:0};t.add+=ed.add;t.del+=ed.del;turn.set(key,t);}
       if(merged.size)out.push({type:'files',files:[...merged.values()]});
     }
-    cur=null;
+    cur=null;label='';
   };
+  const firstLine=(x:string)=>{const l=x.trim().split('\n')[0].replace(/^[*#\s]+|[*\s]+$/g,'');return l.length>70?l.slice(0,69)+'…':l;};
   const summarize=()=>{if(!turn.size)return;let add=0,del=0;turn.forEach(v=>{add+=v.add;del+=v.del;});out.push({type:'summary',files:turn.size,add,del});turn.clear();};
   for(const e of events){
-    if(e.Kind==='tool'){(cur??=[]).push(stepOf(e));}
+    if(e.Kind==='thinking'){const l=firstLine(e.Text||'');if(l){if(cur&&!label)label=l;else if(!cur){think=e;}}continue;}
+    if(e.Kind==='tool'){if(!cur&&think){label=firstLine(think.Text);think=null;}(cur??=[]).push(stepOf(e));}
     else if(e.Kind==='tool_result'&&cur){const open=cur.find(x=>x.result===undefined);if(open){open.result=e.Text||'';open.failed=e.Detail==='error'||failedText(e.Text||'');if(e.Images?.length)open.images=[...(open.images??[]),...refsOf(e.SessionId,e.Images)];}else{(cur as Step[]).push({tool:'Result',kind:'tool',title:'Output',body:'',result:e.Text||'',failed:e.Detail==='error',images:refsOf(e.SessionId,e.Images)});}}
-    else if(e.Kind==='image'&&cur){(cur as Step[]).push({tool:'Image',kind:'tool',title:'Looked at a picture',body:'',result:'',images:refsOf(e.SessionId,e.Images)});}
+    else if(e.Kind==='image'&&e.Images?.length){
+      const refs=refsOf(e.SessionId,e.Images);const list=cur??=[];const last=list[list.length-1];
+      if(last&&last.kind==='view'&&!(last.images?.length))last.images=refs;else list.push({tool:'Image',kind:'view',title:refs.length>1?`Viewed ${refs.length} images`:'Viewed an image',body:'',images:refs});
+    }
     else if(e.Kind==='done'){
       flush();
       let started=0;for(let i=events.indexOf(e)-1;i>=0;i--){if(events[i].Kind==='user'){started=Date.parse(events[i].TimeUtc)||0;break;}}
       const ms=started?Date.parse(e.TimeUtc)-started:0;if(ms>=8000)out.push({type:'worked',ms});
       summarize();
     }
-    else{flush();if(e.Kind==='user')summarize();out.push({type:'event',e});}
+    else{flush();if(think){out.push({type:'event',e:think});think=null;}if(e.Kind==='user')summarize();out.push({type:'event',e});}
   }
-  flush();summarize();
+  flush();if(think)out.push({type:'event',e:think});summarize();
   if(busy&&out.length){const last=out[out.length-1];if(last.type==='steps'){last.running=true;for(const x of last.items)if(x.result===undefined)x.running=true;}}
   return out;
 }
 
-const icon=(k:Kind,size=14)=>k==='cmd'?<SquareTerminal size={size}/>:k==='read'?<FileText size={size}/>:k==='edit'?<Pencil size={size}/>:k==='search'?<Search size={size}/>:k==='web'?<Globe size={size}/>:<Wrench size={size}/>;
+const icon=(k:Kind,size=14)=>k==='cmd'?<SquareTerminal size={size}/>:k==='read'?<FileText size={size}/>:k==='view'?<ImageIcon size={size}/>:k==='edit'?<Pencil size={size}/>:k==='search'?<Search size={size}/>:k==='web'?<Globe size={size}/>:<Wrench size={size}/>;
 const plural=(n:number,one:string,many:string)=>n===1?`1 ${one}`:`${n} ${many}`;
 
 function summary(items:Step[]):string{
-  const c={cmd:0,read:0,edit:0,search:0,web:0,tool:0};items.forEach(i=>{c[i.kind]++;});
+  const c={cmd:0,read:0,view:0,edit:0,search:0,web:0,tool:0};const servers=new Set<string>();items.forEach(i=>{if(i.kind==='tool'&&i.server){servers.add(i.server);return;}c[i.kind]++;});
   const parts:string[]=[];
+  servers.forEach(n=>parts.push('used '+n+' integration'));
   if(c.cmd)parts.push('ran '+plural(c.cmd,'command','commands'));
   if(c.read)parts.push('read '+plural(c.read,'file','files'));
+  if(c.view)parts.push('viewed '+plural(c.view,'image','images'));
   if(c.edit)parts.push('edited '+plural(c.edit,'file','files'));
   if(c.search)parts.push('searched '+plural(c.search,'time','times'));
   if(c.web)parts.push('browsed '+plural(c.web,'page','pages'));
@@ -134,26 +145,27 @@ function summary(items:Step[]):string{
   return text.charAt(0).toUpperCase()+text.slice(1)+(failed?` (${failed} failed)`:'');
 }
 
-function StepRow({step}:{step:Step}){
+function StepRow({step,hidePics}:{step:Step;hidePics?:boolean}){
   const has=!!step.body||!!step.result;const pics=step.images??[];
   return <details className={`step ${step.failed?'is-failed':''} ${step.running?'is-running':''}`}>
-    <summary><span className="step-ico">{step.running?<LoaderCircle size={14} className="ui-spin"/>:step.failed?<AlertTriangle size={14}/>:icon(step.kind)}</span><span className="step-title">{step.title}</span>{step.failed&&<span className="step-bad">failed</span>}{step.file&&<FileLink path={step.file} className="step-open">Open</FileLink>}{pics.length>0&&<Thumbs images={pics} max={3}/>}{has&&<ChevronRight size={14} className="step-chev"/>}</summary>
-    {pics.length>0&&<div className="step-pics"><Thumbs images={pics} max={12} big/></div>}
+    <summary><span className="step-ico">{step.running?<LoaderCircle size={14} className="ui-spin"/>:step.failed?<AlertTriangle size={14}/>:icon(step.kind)}</span><span className="step-title">{step.title}</span>{step.failed&&<span className="step-bad">failed</span>}{step.file&&<FileLink path={step.file} className="step-open">Open</FileLink>}{has&&<ChevronRight size={14} className="step-chev"/>}</summary>
     {step.body&&<pre className="step-code">{step.body}</pre>}
     {step.result!==undefined&&step.result!==''&&<pre className={`step-out ${step.failed?'is-bad':''}`}>{step.result.length>6000?step.result.slice(0,6000)+'\n…':step.result}</pre>}
     {step.result==='' &&<p className="step-empty">No output.</p>}
   </details>;
 }
 
-export function Steps({items,running}:{items:Step[];running:boolean}){
-  if(items.length===1)return <div className="steps single"><StepRow step={items[0]}/></div>;
+const Pics=({images}:{images:ImgRef[]})=>images.length?<div className="steps-pics"><Thumbs images={images} max={6} big/></div>:null;
+
+export function Steps({items,running,label}:{items:Step[];running:boolean;label?:string}){
   const allPics=items.flatMap(i=>i.images??[]);
+  if(items.length===1)return <div className="steps single"><StepRow step={items[0]} hidePics/><Pics images={allPics}/></div>;
   const failed=items.some(i=>i.failed);
   const live=items.find(i=>i.running);
-  return <details className={`steps ${failed?'has-failed':''}`} open={running&&!!live}>
-    <summary><span className="step-ico">{live?<LoaderCircle size={14} className="ui-spin"/>:icon(items[0].kind)}</span><span className="step-title">{live?live.title:summary(items)}</span>{allPics.length>0&&<Thumbs images={allPics} max={3}/>}<ChevronRight size={14} className="step-chev"/></summary>
-    <div className="steps-list">{items.map((it,i)=><StepRow key={i} step={it}/>)}</div>
-  </details>;
+  return <div className="steps-wrap"><details className={`steps ${failed?'has-failed':''}`} open={running&&!!live}>
+    <summary><span className="step-ico">{live?<LoaderCircle size={14} className="ui-spin"/>:icon(items[0].kind)}</span><span className="step-title">{live?live.title:label?<>{label}<em className="step-sub"> · {summary(items)}</em></>:summary(items)}</span><ChevronRight size={14} className="step-chev"/></summary>
+    <div className="steps-list">{items.map((it,i)=><StepRow key={i} step={it} hidePics/>)}</div>
+  </details><Pics images={allPics}/></div>;
 }
 
 export const clock=(ms:number)=>{const t=Math.max(0,Math.round(ms/1000));const h=Math.floor(t/3600),m=Math.floor(t%3600/60),sec=t%60;return h?`${h}h ${m}m`:m?`${m}m ${sec}s`:`${sec}s`;};
@@ -171,6 +183,11 @@ const dirOf=(p:string)=>{const parts=p.split(/[\\/]/).filter(Boolean);return par
 
 /** One card per edited file, with how many lines were added and removed; open it to read the change. */
 export function FileCards({files}:{files:FileEdit[]}){
+  if(files.length>3){const add=files.reduce((n,f)=>n+f.add,0),del=files.reduce((n,f)=>n+f.del,0);
+    return <details className="file-group"><summary><FileCode2 size={15} className="fc-ico"/><span className="fc-name">Edited {files.length} files</span><span className="fc-stats">{add>0&&<b className="fc-add">+{add}</b>}{del>0&&<b className="fc-del">−{del}</b>}</span><ChevronRight size={14} className="step-chev"/></summary><FileCardList files={files}/></details>;}
+  return <FileCardList files={files}/>;
+}
+function FileCardList({files}:{files:FileEdit[]}){
   return <div className="file-cards">{files.map(f=><details key={f.file} className="file-card">
     <summary><FileCode2 size={15} className="fc-ico"/><span className="fc-name">{base(f.file)||'file'}</span>{dirOf(f.file)&&<span className="fc-dir">{dirOf(f.file)}</span>}{f.file&&<FileLink path={f.file} className="step-open">Open</FileLink>}
       <span className="fc-stats">{f.add>0&&<b className="fc-add">+{f.add}</b>}{f.del>0&&<b className="fc-del">−{f.del}</b>}{f.add===0&&f.del===0&&<em>{f.note??'Changed'}</em>}</span><ChevronRight size={14} className="step-chev"/></summary>
