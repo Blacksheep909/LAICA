@@ -18,7 +18,7 @@ Every release is made with `Release-Edition.ps1`, which builds, runs every test 
 - **Ponytail in the plugin library.** A new skill, based on [Ponytail](https://github.com/DietrichGebert/ponytail), that makes agents write the smallest complete change and keep replies short. Install it into Claude Code, Codex or both from Plugins.
 
 ### Fixed
-- **The Screen tab now follows Codex's own browser.** Codex's built-in browser and computer actions (which are not MCP calls) were never shown, so the Screen tab stayed empty. They now appear with the pictures they return, and the tab shows the address of the page the agent is on.
+- **The Screen tab follows an agent's built-in browser, not only MCP browser servers.** Codex's built-in browser and computer actions are not MCP calls, so they were never shown and the tab stayed empty. They now appear with the pictures they return, and the tab shows the address of the page the agent is on. Which tools count as a browser is matched by name for every agent alike (Playwright, Chrome DevTools, Claude in Chrome, the computer-use tool and so on); agents that only print plain text (see below) have no tool events to show.
 
 ## [0.22.2]
 

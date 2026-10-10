@@ -7,8 +7,9 @@ import type {HEvent} from './harness-store';
 import {imageUrl,refsOf,Thumbs} from './Images';
 import type {ImgRef} from './Images';
 
-/** Tools that drive a browser or the computer: Playwright, Chrome DevTools, other browser MCP servers and LAICA computer use. */
-export const SCREEN_TOOL=/(playwright|browser|chrome|puppeteer|laica-computer|computer[_.-]use|computer__|screenshot|navigate)/i;
+/** Tools that drive a browser or the computer, whichever vendor made them: Playwright, Chrome DevTools, Claude in Chrome, Codex's in-app browser, Gemini's browser agent,
+    the computer-use tool, LAICA computer use and any other browser MCP server. Matched on the tool's own name so every agent's events (and imported history) are treated alike. */
+export const SCREEN_TOOL=/(playwright|puppeteer|selenium|browser|chrome|firefox|webview|devtools|laica-computer|computer[_.-]?use|computer__|(^|[._:-])computer($|[._:-])|screenshot|screen_?capture|navigate|new_page|open_page|goto|click|snapshot)/i;
 const parse=(d?:string|null):Record<string,unknown>=>{if(!d||d[0]!=='{')return {};try{return JSON.parse(d) as Record<string,unknown>;}catch{return {};}};
 const bare=(t:string)=>t.replace(/^mcp__[^_]*(?:_[^_]+)*?__/,'').replace(/^[^.]*\./,'');
 
