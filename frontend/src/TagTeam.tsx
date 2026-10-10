@@ -4,7 +4,7 @@ import {ArrowRightLeft,ChevronDown,Clock,FileText,Save} from 'lucide-react';
 import {request,isDesktop} from './bridge';
 import {Select} from './GlassSelect';
 import type {GlassOption} from './GlassSelect';
-import {useHarness,effortLabel} from './harness-store';
+import {useHarness,effortLabel,modeLabel,modeHelp} from './harness-store';
 import type {HSession,HEvent} from './harness-store';
 import {useClaudeModels} from './ClaudeModels';
 import {Markdown} from './markdown';
@@ -12,7 +12,7 @@ import {FileLink} from './fileLinks';
 import type {Model} from './types';
 
 export interface PairSide { Key:string; Name:string; Model:string; Effort?:string; Percent:number; Limited:boolean; ResetsUtc:string; Ran:boolean; Busy:boolean; Mode?:string; Writable?:boolean }
-export interface PairInfo { Id:string; Mode:'off'|'assisted'|'automatic'; ChatMode:string; Active:'primary'|'partner'; ActiveName:string; Primary:PairSide; Partner:PairSide; HasPartner:boolean; AutoSwitch:boolean; SwitchBack:boolean; Halted:string; WaitUntilUtc:string; Preview:string; EstTokens:number; EstCost:number; Currency:string; HandoffFile:string; LastSwitchUtc:string; Switches:{TimeUtc:string;Text:string;Detail:string}[]; ReturnThreshold:number; Summary?:PairSummary|null }
+export interface PairInfo { Id:string; Mode:'off'|'assisted'|'automatic'; ChatMode:string; Active:'primary'|'partner'; ActiveName:string; Primary:PairSide; Partner:PairSide; HasPartner:boolean; AutoSwitch:boolean; SwitchBack:boolean; Halted:string; WaitUntilUtc:string; Preview:string; EstTokens:number; EstCost:number; Currency:string; HandoffFile:string; LastSwitchUtc:string; Switches:{TimeUtc:string;Text:string;Detail:string}[]; ReturnThreshold:number; PartnerMode?:string; Summary?:PairSummary|null }
 export interface PairSummary { Target:string; From:string; Fresh:boolean; Request:string; Unfinished:boolean; LastReply:string; Turns:number; Files:string[]; FilesTotal:number; Verify:string[]; Commands:string[]; Problems:string[]; Stage:string }
 export interface Continuity { Mode:'off'|'assisted'|'automatic'; PartnerHarness:string; PartnerService:string; PartnerModel:string; AutoSwitch:boolean; SwitchBack:boolean; MinGapMinutes:number; ThrashSwitches:number; ThrashMinutes:number; ReturnThreshold:number; ReturnAtBoundary:boolean; HandoffPath:string; AgentNote:boolean; Harnesses:{Id:string;Name:string}[] }
 
@@ -120,11 +120,13 @@ export function SignInButton({harness,onStarted}:{harness:string;onStarted?:()=>
   return <button type="button" className="tt-signin" onClick={e=>{e.stopPropagation();request('agentSignIn',{Harness:harness}).then(()=>{toast({title:'Finish signing in',description:'A sign-in window opened. When it says you are signed in, come back here.',duration:9000});onStarted?.();}).catch(err=>toast({title:'Could not start sign-in',description:(err as Error).message,duration:7000}));}}>Sign in</button>;
 }
 /** One pill, one small panel: who the partner is, how hard it thinks, and when the work moves. */
-export function PartnerPicker({options,models,value,onPick,effort,onEffort,rules,onRules}:{options:GlassOption[];models:Model[];value:string;onPick:(v:string)=>void;effort:string;onEffort:(e:string)=>void;rules:PairRules;onRules:(r:PairRules)=>void}){
+export function PartnerPicker({options,models,value,onPick,effort,onEffort,rules,onRules,permission,onPermission}:{options:GlassOption[];models:Model[];value:string;onPick:(v:string)=>void;effort:string;onEffort:(e:string)=>void;rules:PairRules;onRules:(r:PairRules)=>void;permission:string;onPermission:(m:string)=>void}){
   const [open,setOpen]=useState(false);const box=useRef<HTMLSpanElement>(null);
   useEffect(()=>{if(!open)return;const away=(e:PointerEvent)=>{const el=e.target as HTMLElement;if(box.current?.contains(el)||el.closest('.gs-pop,[role=listbox],[role=option]'))return;setOpen(false);};const esc=(e:KeyboardEvent)=>{if(e.key==='Escape')setOpen(false);};document.addEventListener('pointerdown',away);document.addEventListener('keydown',esc);return()=>{document.removeEventListener('pointerdown',away);document.removeEventListener('keydown',esc);};},[open]);
+  const {harnesses}=useHarness();
   const p=value?splitPartner(value):null;const auth=useAgentAuth(open);const unsigned=p?auth.list.find(a=>a.Id===p.harness&&a.SignedIn===false):undefined;
   const levels=useMemo<string[]>(()=>{if(!p)return [];if(p.harness==='claude')return ['low','medium','high','xhigh','max'];if(p.harness==='codex')return (models.find(m=>m.ConnectionId==='codex'&&m.Id===(p.model||''))?.Efforts??models.find(m=>m.ConnectionId==='codex')?.Efforts??[]).filter(l=>l!=='default'&&effortLabel[l]);return [];},[p?.harness,p?.model,models]); // eslint-disable-line react-hooks/exhaustive-deps
+  const partnerModes=p?(harnesses.find(h=>h.Id===p.harness)?.Modes??[]):[];
   const name=value?options.find(o=>o.value===value)?.label??p!.harness:'';
   const label=value?'Tag-team · '+name+(effort&&levels.includes(effort)?' · '+(effortLabel[effort]??effort):''):'Tag-team · Off';
   return <span className="tt-picker" ref={box}>
@@ -134,6 +136,7 @@ export function PartnerPicker({options,models,value,onPick,effort,onEffort,rules
       <Select label="Partner" value={value} options={[{value:'',label:'Off',description:'One agent works alone'},...options]} onChange={e=>onPick(e.target.value)} searchable={options.length>9} menuWidth={320}/>
       {unsigned&&<p className="tt-warn">{unsigned.Name} isn't signed in on this computer, so it can't take over yet. <SignInButton harness={unsigned.Id} onStarted={auth.load}/></p>}
       {value&&levels.length>0&&<Select label="Reasoning effort" value={levels.includes(effort)?effort:''} options={[{value:'',label:'Default',description:'Let the model decide'},...levels.map(l=>({value:l,label:effortLabel[l]??l}))]} onChange={e=>onEffort(e.target.value)} menuWidth={260}/>}
+      {value&&partnerModes.length>1&&<Select label="Partner permissions" value={permission} options={[{value:'',label:'Same level as this chat',description:'Approve for me here means Auto-approve there; Ask first means Ask first'},...partnerModes.map(m=>({value:m,label:modeLabel[m]??m,description:modeHelp[m]}))]} onChange={e=>onPermission(e.target.value)} menuWidth={340}/>}
       {value&&<Select label="When to switch" value={rules} options={rulesOptions} onChange={e=>onRules(e.target.value as PairRules)} menuWidth={340}/>}
     </div>}
   </span>;
@@ -148,7 +151,7 @@ export function TagTeamPills({session,models}:{session:HSession;models:Model[]})
   const value=on?info!.Partner.Key+':'+(info!.Partner.Model||'default'):'';
   const apply=(patch:Record<string,unknown>)=>request('pairSet',{Id:session.Id,...patch}).then(()=>{void load();void reload();}).catch(e=>toast({title:'Could not change that',description:(e as Error).message,duration:6500}));
   const pick=(v:string)=>{if(!v){void apply({Mode:'assisted'});return;}const p=splitPartner(v);void apply({Mode:'automatic',PartnerHarness:p.harness,PartnerModel:p.model||'default'});};
-  return <PartnerPicker options={options} models={models} value={value} onPick={pick} effort={info?.Partner.Effort??''} onEffort={e=>void apply({PartnerEffort:e||'default'})} rules={rulesOf(info?.AutoSwitch??true,info?.SwitchBack??true)} onRules={r=>void apply(rulesPatch(r))}/>;
+  return <PartnerPicker options={options} models={models} value={value} onPick={pick} effort={info?.Partner.Effort??''} onEffort={e=>void apply({PartnerEffort:e||'default'})} permission={info?.PartnerMode??''} onPermission={m=>void apply({PartnerMode:m})} rules={rulesOf(info?.AutoSwitch??true,info?.SwitchBack??true)} onRules={r=>void apply(rulesPatch(r))}/>;
 }
 const num=(v:string,d:number)=>{const n=parseInt(v,10);return Number.isFinite(n)?n:d;};
 

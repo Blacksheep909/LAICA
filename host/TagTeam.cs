@@ -83,8 +83,30 @@ namespace Laica
                 var pick = all.FirstOrDefault(x => x.Available && (x.Id == "codex" || x.Id == "claude") && x.Id != own) ?? all.FirstOrDefault(x => x.Available && x.Id != "workflow" && x.Id != "laica" && x.Id != own);
                 if (pick == null) return null; h = pick.Id; svc = ""; model = "";
             }
-            var info = all.First(x => x.Id == h); string mode = root.Pair.PMode != "" && info.Modes.Contains(root.Pair.PMode) ? root.Pair.PMode : info.DefaultMode;
+            var info = all.First(x => x.Id == h); string mode = root.Pair.PMode != "" && info.Modes.Contains(root.Pair.PMode) ? root.Pair.PMode : MapMode(root.Harness, root.Mode, info);
             return new Dictionary<string, object> { { "Harness", h }, { "ServiceId", svc ?? "" }, { "Model", model ?? "" }, { "Effort", root.Pair.PEffort }, { "Mode", mode } };
+        }
+        /// <summary>How much an agent may do on its own, as one of five levels, whichever words its own CLI uses for it.</summary>
+        static string ModeLevel(string harness, string mode)
+        {
+            switch (mode)
+            {
+                case "ask-first": case "default": return "ask";
+                case "approve-for-me": case "auto": return "review";
+                case "workspace-write": case "acceptEdits": case "accept-edits": return "edit";
+                case "read-only": case "plan": return "read";
+                case "danger-full-access": case "bypassPermissions": case "yolo": return "full";
+            }
+            return "";
+        }
+        /// <summary>The partner works under the same level of trust as the chat itself: if you let Codex approve for you, Claude runs in auto mode; if you chose Ask first, so does Claude.</summary>
+        static string MapMode(string fromHarness, string fromMode, HarnessInfo to)
+        {
+            string level = ModeLevel(fromHarness, fromMode); string want = "";
+            if (to.Id == "codex") want = level == "ask" ? "ask-first" : level == "review" ? "approve-for-me" : level == "read" ? "read-only" : level == "full" ? "danger-full-access" : level == "edit" ? "workspace-write" : "";
+            else if (to.Id == "claude") want = level == "ask" ? "default" : level == "review" ? "auto" : level == "read" ? "plan" : level == "full" ? "bypassPermissions" : level == "edit" ? "acceptEdits" : "";
+            else if (to.Modes.Contains("yolo")) want = level == "full" ? "yolo" : "default";
+            return want != "" && to.Modes.Contains(want) ? want : to.DefaultMode;
         }
         string SideKey(Session root, bool partner) { if (!partner) return VendorKey(root); var sp = PartnerSpec(root); return sp == null ? "" : KeyOfSpec(sp); }
         string ActiveKey(Session root) { return SideKey(root, root.Pair.Active == "partner"); }
@@ -375,6 +397,7 @@ namespace Laica
                 string req = request; if (String.IsNullOrEmpty(req)) req = LastUserRequest(root);
                 string text = BuildDelivery(root, toPartner, reason, req, unfinished, false);
                 Session target = toPartner ? EnsureChild(root) : root;
+                if (toPartner) { var ps = PartnerSpec(root); if (ps != null) lock (gate) target.Mode = Str(ps, "Mode"); }
                 long tokens = text.Length / 4 + 200; double cost = CostFor(target, tokens, false);
                 string why = reason == "limit" ? fromName + " ran out of usage" : reason == "manual" ? "you asked for it" : reason == "return" ? toName + " has reset" : reason == "resume" ? toName + " is available again" : fromName + " is nearly out of usage";
                 string stamp = HandoffBuilder.FolderStamp(root.Cwd);
@@ -618,7 +641,7 @@ namespace Laica
                 { "Id", root.Id }, { "Mode", mode }, { "ChatMode", root.Pair.Mode }, { "Active", root.Pair.Active }, { "ActiveName", ActiveKey(root) == "" ? "" : VendorName(ActiveKey(root)) },
                 { "Primary", SideDto(root, false) }, { "Partner", SideDto(root, true) }, { "HasPartner", spec != null }, { "AutoSwitch", AutoOn(root) }, { "SwitchBack", BackOn(root) },
                 { "Halted", root.Pair.Halted }, { "WaitUntilUtc", root.Pair.WaitUntil == DateTime.MinValue ? "" : root.Pair.WaitUntil.ToString("o") },
-                { "Preview", preview }, { "Summary", summary }, { "EstTokens", tokens }, { "EstCost", Math.Round(cost, 4) }, { "Currency", "USD" }, { "HandoffFile", HandoffName(root) },
+                { "Preview", preview }, { "Summary", summary }, { "PartnerMode", root.Pair.PMode }, { "EstTokens", tokens }, { "EstCost", Math.Round(cost, 4) }, { "Currency", "USD" }, { "HandoffFile", HandoffName(root) },
                 { "LastSwitchUtc", root.Pair.LastSwitch == DateTime.MinValue ? "" : root.Pair.LastSwitch.ToString("o") }, { "Switches", switches.Skip(Math.Max(0, switches.Count - 30)).ToArray() },
                 { "ReturnThreshold", ContInt("ReturnThreshold") } };
         }
@@ -647,7 +670,13 @@ namespace Laica
                 if (pe != "" && ValidEffort(pe) == null) throw new ArgumentException("That reasoning level isn't valid.");
                 lock (gate) { root.Pair.PEffort = pe; if (root.Child != null && !root.Child.Busy) root.Child.Effort = pe == "" ? null : pe; }
             }
-            if (d.ContainsKey("PartnerMode")) lock (gate) root.Pair.PMode = Str(d, "PartnerMode");
+            if (d.ContainsKey("PartnerMode"))
+            {
+                string pm = Str(d, "PartnerMode"); var sp0 = PartnerSpec(root);
+                if (pm != "" && sp0 != null) { var pinfo = Harnesses().First(x => x.Id == Str(sp0, "Harness")); if (!pinfo.Modes.Contains(pm)) throw new ArgumentException("That permission level isn't available for the partner."); }
+                lock (gate) root.Pair.PMode = pm;
+                var sp1 = PartnerSpec(root); if (sp1 != null) lock (gate) { if (root.Child != null && !root.Child.Busy) root.Child.Mode = Str(sp1, "Mode"); }
+            }
             if (d.ContainsKey("AutoSwitch")) lock (gate) root.Pair.AutoSwitch = Str(d, "AutoSwitch") == "" ? "" : (Str(d, "AutoSwitch") == "True" ? "True" : "False");
             if (d.ContainsKey("SwitchBack")) lock (gate) root.Pair.SwitchBack = Str(d, "SwitchBack") == "" ? "" : (Str(d, "SwitchBack") == "True" ? "True" : "False");
             SaveSession(root); Raise(); return PairInfo(root.Id);

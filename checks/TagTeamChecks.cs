@@ -141,6 +141,23 @@ public static class TagTeamChecks
                 Check(m.ArgumentPreview("claude", "auto", "", "", false).Contains("--permission-mode auto") && m.Harnesses().First(h => h.Id == "claude").Modes.Contains("auto") && m.Harnesses().First(h => h.Id == "codex").Modes.Contains("approve-for-me"), "approve for me: Claude's auto mode and Codex's approve-for-me are offered as permission levels");
             }
         }
+        {
+            using (var m = new HarnessManager(Path.Combine(root, "data-pmode")))
+            {
+                string wk = Path.Combine(root, "pmodework"); Directory.CreateDirectory(wk);
+                if (m.Harnesses().Any(h => h.Id == "codex" && h.Available) && m.Harnesses().Any(h => h.Id == "claude" && h.Available))
+                {
+                    string cid = (string)((Dictionary<string, object>)m.Create("codex", wk, "approve-for-me", null, null, "perm chat"))["Id"];
+                    m.PairConfigure(cid, new Dictionary<string, object> { { "Mode", "automatic" }, { "PartnerHarness", "claude" } });
+                    Check((string)((Dictionary<string, object>)Info(m, cid)["Partner"])["Mode"] == "auto", "partner permissions: Claude runs in auto mode when the chat uses Codex's Approve for me");
+                    m.Configure(cid, "ask-first", null, null);
+                    Check((string)((Dictionary<string, object>)Info(m, cid)["Partner"])["Mode"] == "default", "partner permissions: the partner follows the chat when its level changes (Ask first -> Claude asks)");
+                    m.PairConfigure(cid, new Dictionary<string, object> { { "PartnerMode", "acceptEdits" } });
+                    Check((string)((Dictionary<string, object>)Info(m, cid)["Partner"])["Mode"] == "acceptEdits" && (string)Info(m, cid)["PartnerMode"] == "acceptEdits", "partner permissions: a level chosen for the partner wins over following the chat");
+                }
+                else Console.WriteLine("SKIP partner permissions: Codex and Claude aren't both installed here");
+            }
+        }
         // ---------- settings: gentle migration ----------
         {
             string legacy = Path.Combine(root, "data-legacy", "harness"); Directory.CreateDirectory(legacy);

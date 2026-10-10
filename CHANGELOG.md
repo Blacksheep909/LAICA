@@ -3,6 +3,11 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.22.2]
+
+### Fixed
+- **The working mark always turns.** The little orbiting arc beside "Working" (and the spinners on running steps) stood still when Windows had animations switched off. They now keep turning, because they are how you can tell an agent is alive.
+- **The tag-team partner works under the same level of trust as the chat.** If the chat uses Codex's **Approve for me**, Claude runs in **Auto-approve**; **Ask first** gives **Ask first**; Workspace write gives Accept edits, and so on, in both directions. It follows the chat when you change the level. The Tag-team panel has a new **Partner permissions** setting if you want the partner on a different level (it defaults to "Same level as this chat").
 ## [0.22.1]
 
 ### Fixed

@@ -636,3 +636,7 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .tt-signin:hover{background:linear-gradient(180deg,rgba(179,165,247,.55),rgba(150,130,235,.36))}
 .tt-warn{margin:0;padding:9px 11px;border-radius:12px;font-size:12px;line-height:1.5;color:#ffd9a0;background:rgba(255,184,77,.12)}
 .hmsg.error{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* the working mark always turns, even when Windows has animations turned off: it is the one thing that tells you an agent is alive */
+.work-glyph:not(.is-paused){animation:work-orbit 1.1s linear infinite!important}
+.ui-spin{animation:spin 1s linear infinite!important}
