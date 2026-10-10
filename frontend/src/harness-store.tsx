@@ -17,7 +17,8 @@ export interface CodexProject { Id:string; Name:string; Path:string; Roots:strin
 export interface CreateOptions { Harness:string; Cwd:string; Mode?:string; Assistant?:Assistant; Isolate?:boolean; Title?:string; ServiceId?:string; Model?:string; Effort?:string }
 
 export const effortLabel:Record<string,string>={minimal:'Minimal',low:'Low',medium:'Medium',high:'High',xhigh:'Extra high',max:'Max'};
-export const modeLabel:Record<string,string>={'read-only':'Read only','workspace-write':'Workspace write','danger-full-access':'Full access',plan:'Plan only',default:'Default',acceptEdits:'Accept edits',bypassPermissions:'YOLO',yolo:'YOLO','ask-first':'Ask first','accept-edits':'Accept edits'};
+export const modeLabel:Record<string,string>={'read-only':'Read only','workspace-write':'Workspace write','danger-full-access':'Full access',plan:'Plan only',default:'Default',acceptEdits:'Accept edits',bypassPermissions:'YOLO',yolo:'YOLO','ask-first':'Ask first','accept-edits':'Accept edits','approve-for-me':'Approve for me',auto:'Auto-approve'};
+export const modeHelp:Record<string,string>={'approve-for-me':'The Codex reviewer approves the safe requests and refuses the rest','auto':'Claude decides which requests are safe and asks you about the rest','ask-first':'Every command and edit waits for your yes','workspace-write':'Edits in the project folder without asking; asks for anything else','read-only':'Looks but never changes anything','plan':'Plans only, changes nothing','acceptEdits':'Edits files without asking; asks before running commands','default':'Asks before each action','bypassPermissions':'Never asks (risky)','danger-full-access':'Never asks and is not sandboxed (risky)',yolo:'Never asks (risky)'};
 
 interface Store {
   pinned:string[]; togglePin:(key:string,title?:string)=>void;

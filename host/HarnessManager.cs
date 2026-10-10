@@ -85,8 +85,8 @@ namespace Laica
         {
             string codex = ModelCatalog.FindCodex(), claude = FindClaude();
             var list = new List<HarnessInfo> {
-                new HarnessInfo { Id = "codex", Name = "Codex", Parser = "codex", Path = codex, Available = codex != null, Modes = new[] { "ask-first", "read-only", "workspace-write", "danger-full-access" }, DefaultMode = "workspace-write" },
-                new HarnessInfo { Id = "claude", Name = "Claude Code", Parser = "claude", Path = claude, Available = claude != null, Modes = new[] { "plan", "default", "acceptEdits", "bypassPermissions" }, DefaultMode = "acceptEdits" }
+                new HarnessInfo { Id = "codex", Name = "Codex", Parser = "codex", Path = codex, Available = codex != null, Modes = new[] { "ask-first", "approve-for-me", "read-only", "workspace-write", "danger-full-access" }, DefaultMode = "workspace-write" },
+                new HarnessInfo { Id = "claude", Name = "Claude Code", Parser = "claude", Path = claude, Available = claude != null, Modes = new[] { "plan", "default", "auto", "acceptEdits", "bypassPermissions" }, DefaultMode = "acceptEdits" }
             };
             var text = new[] { new[] { "gemini", "Gemini CLI", "gemini.cmd", "gemini.exe" }, new[] { "qwen", "Qwen Code", "qwen.cmd", "qwen.exe" }, new[] { "opencode", "OpenCode", "opencode.cmd", "opencode.exe" }, new[] { "goose", "Goose", "goose.exe" }, new[] { "kimi", "Kimi CLI", "kimi.exe", "kimi.cmd" }, new[] { "aider", "Aider", "aider.exe" }, new[] { "copilot", "GitHub Copilot CLI", "copilot.cmd", "copilot.exe" } };
             foreach (var t in text) { string p = FindAny(t.Skip(2).ToArray()); list.Add(new HarnessInfo { Id = t[0], Name = t[1], Parser = "text", Path = p, Available = p != null, Modes = new[] { "default", "yolo" }, DefaultMode = "default" }); }
@@ -327,7 +327,9 @@ namespace Laica
             if (s.Harness == "codex")
             {
                 string sandbox = s.Mode == "danger-full-access" ? "--dangerously-bypass-approvals-and-sandbox" : "-s " + (s.Mode == "read-only" ? "read-only" : "workspace-write");
-                return s.ExternalId != null ? "exec resume " + s.ExternalId + " --json --skip-git-repo-check -" : "exec --json --skip-git-repo-check " + (UseModel(s) ? "-m " + s.Model + " " : "") + (UseEffort(s) ? "-c model_reasoning_effort=" + s.Effort + " " : "") + sandbox + " -";
+                string review = s.Mode == "approve-for-me" ? "--approve-for-me " : "";   // Codex's own automatic reviewer approves the safe requests and refuses the rest
+                if (s.Mode == "approve-for-me") sandbox = "";
+                return s.ExternalId != null ? "exec " + review + "resume " + s.ExternalId + " --json --skip-git-repo-check -" : "exec " + review + "--json --skip-git-repo-check " + (UseModel(s) ? "-m " + s.Model + " " : "") + (UseEffort(s) ? "-c model_reasoning_effort=" + s.Effort + " " : "") + sandbox + " -";
             }
             if (s.Harness == "gemini" || s.Harness == "qwen") return "-p \" \"" + (UseModel(s) ? " -m " + s.Model : "") + (s.Mode == "yolo" ? " --yolo" : "");
             if (s.Harness == "opencode") return "run";

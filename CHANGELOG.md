@@ -3,6 +3,13 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.22.0]
+
+### Added
+- **"Approve for me" permission levels.** The permission pill now offers each agent's own automatic reviewer, so you aren't asked about every safe edit or command:
+  - **Codex: Approve for me** runs Codex with its built-in automatic review (`--approve-for-me`): a reviewer approves the requests it judges safe, refuses the rest, and the work is sandboxed to the project folder. It works for new chats and for resumed ones.
+  - **Claude Code: Auto-approve** runs Claude Code in its `auto` permission mode, where Claude's classifier approves safe actions and the requests it isn't sure about still come to you as normal approval cards.
+  - Each level has a one-line description in the menu. LAICA itself never approves anything on your behalf; the decision is made by the agent's own reviewer.
 ## [0.21.11]
 
 ### Fixed

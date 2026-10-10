@@ -6,7 +6,7 @@ import type {Flags} from './Composer';
 import PlusMenu from './PlusMenu';
 import {FolderOpen,FolderPlus,Pencil,GitBranch,X,Bot,Users,Workflow as WorkflowIcon } from 'lucide-react';
 import {request,isDesktop} from './bridge';
-import {useHarness,modeLabel,effortLabel} from './harness-store';
+import {useHarness,modeLabel,modeHelp,effortLabel} from './harness-store';
 import {buildProjects} from './projects';
 import {Select} from './GlassSelect';
 import type {GlassOption} from './GlassSelect';
@@ -99,7 +99,7 @@ export default function HomePage({workingDirectory,onOpened,onOpenTeam,services,
             <PlusMenu onPick={()=>{void files.pick();}} onFiles={f=>{void files.addFiles(f);}} flags={flags} setFlags={setFlags} insert={x=>setPrompt(d=>d+(d&&!/\s$/.test(d)?' ':'')+x)} disabled={!cwd}/>
             <Select variant="pill" aria-label="Model or team" value={current?.value??''} options={options} onChange={e=>choose(e.target.value)} searchable menuWidth={360} placeholder="Choose a model" triggerLabel={triggerLabel} emptyText="No agents or teams found yet." footer={<>Add API keys under <b>Services</b> and design teams in the <b>Workflow designer</b>.</>}/>
             {levels.length>0&&<Select variant="pill" aria-label="Reasoning effort" value={effort} options={[{value:'',label:'Default',description:'Let the model decide'},...levels.map(l=>({value:l,label:effortLabel[l]}))]} onChange={e=>setEffort(e.target.value)} triggerLabel={'Effort · '+(effort?effortLabel[effort]:'Default')} menuWidth={220}/>}
-            {modes.length>0&&<Select variant="pill" aria-label="Permissions" value={mode||defaultMode} options={modes.map(m=>({value:m,label:modeLabel[m]??m}))} onChange={e=>setMode(e.target.value)}/>}
+            {modes.length>0&&<Select variant="pill" aria-label="Permissions" value={mode||defaultMode} options={modes.map(m=>({value:m,label:modeLabel[m]??m,description:modeHelp[m]}))} onChange={e=>setMode(e.target.value)}/>}
             {kind==='m'&&harnessId!=='laica'&&partnerOptions.length>0&&<PartnerPicker options={partnerOptions} models={models} value={partnerValue} onPick={setPartner} effort={partnerEffort} onEffort={setPartnerEffort} rules={pairRules} onRules={setPairRules}/>}
           </div>
           <div className="composer-right"><MicButton onText={text=>setPrompt(d=>d+(d&&!/\s$/.test(d)?' ':'')+text)}/><SendButton label="Start chat" disabled={!current||(!prompt.trim()&&!files.items.length&&!flags.plan&&!flags.goal)||busy||(kind!=='t'&&(!cwd||repo?.Exists===false))} onSend={start}/></div>

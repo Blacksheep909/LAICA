@@ -132,6 +132,14 @@ public static class TagTeamChecks
             Check(HarnessManager.ParseAuth("claude", 1, "{ \"loggedIn\": false, \"authMethod\": \"none\" }") == false && HarnessManager.ParseAuth("claude", 0, "{ \"loggedIn\": true }") == true && HarnessManager.ParseAuth("claude", 0, "garbage") == null, "sign-in: Claude's own status output says whether it is signed in");
             Check(HarnessManager.ParseAuth("codex", 0, "Logged in using ChatGPT") == true && HarnessManager.ParseAuth("codex", 1, "Not logged in") == false, "sign-in: Codex's own status output says whether it is signed in");
         }
+        {
+            using (var m = new HarnessManager(Path.Combine(root, "data-modes")))
+            {
+                string fresh = m.ArgumentPreview("codex", "approve-for-me", "", "", false), resumed = m.ArgumentPreview("codex", "approve-for-me", "", "", true);
+                Check(fresh.Contains("--approve-for-me") && !fresh.Contains("-s workspace-write") && resumed.StartsWith("exec --approve-for-me resume "), "approve for me: Codex runs with its own automatic reviewer (new and resumed chats)");
+                Check(m.ArgumentPreview("claude", "auto", "", "", false).Contains("--permission-mode auto") && m.Harnesses().First(h => h.Id == "claude").Modes.Contains("auto") && m.Harnesses().First(h => h.Id == "codex").Modes.Contains("approve-for-me"), "approve for me: Claude's auto mode and Codex's approve-for-me are offered as permission levels");
+            }
+        }
         // ---------- settings: gentle migration ----------
         {
             string legacy = Path.Combine(root, "data-legacy", "harness"); Directory.CreateDirectory(legacy);
