@@ -6,6 +6,7 @@ import {Markdown} from './markdown';
 import ChangesPanel from './ChangesPanel';
 import {HandoffPanel} from './TagTeam';
 import ScreenPanel,{useScreenActivity} from './ScreenPanel';
+import BrowserPanel,{useLocalUrls} from './BrowserPanel';
 
 interface Entry { Name:string; Path:string; Dir:boolean; Size:number }
 interface Sheet { Name:string; Rows:string[][]; Truncated:boolean }
@@ -56,9 +57,11 @@ function Viewer({doc,path,draft,setDraft,editing}:{doc:Doc;path:string;draft:str
 
 export default function PreviewPanel({sessionId,refreshKey,onClose}:{sessionId:string;refreshKey:number;onClose:()=>void}){
   const {toast}=useToast();
-  const [open,setOpen]=useState<Set<string>>(new Set()),[tabs,setTabs]=useState<Tab[]>([]),[current,setCurrent]=useState<string|null>(null),[version,setVersion]=useState(0),[editing,setEditing]=useState(false),[view,setView]=useState<'files'|'changes'|'screen'|'handoff'>('files');
-  const screen=useScreenActivity(sessionId);const shown=useRef(false);
-  useEffect(()=>{shown.current=false;},[sessionId]);
+  const [open,setOpen]=useState<Set<string>>(new Set()),[tabs,setTabs]=useState<Tab[]>([]),[current,setCurrent]=useState<string|null>(null),[version,setVersion]=useState(0),[editing,setEditing]=useState(false),[view,setView]=useState<'files'|'changes'|'screen'|'handoff'|'browser'>('files');
+  const screen=useScreenActivity(sessionId);const local=useLocalUrls(sessionId);const shown=useRef(false),shownLocal=useRef(false);
+  useEffect(()=>{shown.current=false;shownLocal.current=false;},[sessionId]);
+  const baseLocal=useRef(local.length);useEffect(()=>{baseLocal.current=local.length;},[sessionId]);// eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(local.length>baseLocal.current&&!shownLocal.current){shownLocal.current=true;setView('browser');}},[local.length]);
   useEffect(()=>{if(screen.live&&!shown.current){shown.current=true;setView('screen');}},[screen.live]);
   useEffect(()=>{const on=()=>setView('changes');window.addEventListener('laica-open-changes',on);return()=>window.removeEventListener('laica-open-changes',on);},[]);
   const pickRef=useRef<(p:string)=>void>(()=>undefined);
@@ -76,8 +79,8 @@ export default function PreviewPanel({sessionId,refreshKey,onClose}:{sessionId:s
   const save=async()=>{if(!tab||tab.draft===null)return;try{await request('harnessWriteFile',{Id:sessionId,Path:tab.path,Text:tab.draft});setTabs(t=>t.map(x=>x.path===tab.path?{...x,doc:{...x.doc!,Text:tab.draft!},draft:null}:x));toast({title:'Saved'});}catch(e){toast({title:'Could not save',description:(e as Error).message,duration:6000});}};
   const canEdit=tab?.doc?.Kind==='text';
   return <aside className="pv">
-    <div className="pv-head"><div className="pv-switch" role="tablist"><button role="tab" aria-selected={view==='files'} className={view==='files'?'on':''} onClick={()=>setView('files')}>Files</button><button role="tab" aria-selected={view==='changes'} className={view==='changes'?'on':''} onClick={()=>setView('changes')}>Changes</button><button role="tab" aria-selected={view==='handoff'} className={view==='handoff'?'on':''} onClick={()=>setView('handoff')}>Handoff</button>{screen.any&&<button role="tab" aria-selected={view==='screen'} className={(view==='screen'?'on':'')+(screen.live?' is-live':'')} onClick={()=>setView('screen')}>{screen.live&&<i className="live-dot"/>}Screen</button>}</div><div><IconButton size="small" variant="quiet" aria-label="Refresh files" onClick={()=>setVersion(v=>v+1)}><RefreshCw size={14}/></IconButton><IconButton size="small" variant="quiet" aria-label="Hide panel" onClick={onClose}><X size={14}/></IconButton></div></div>
-    {view==='handoff'?<HandoffPanel sessionId={sessionId} refreshKey={refreshKey}/>:view==='screen'?<ScreenPanel sessionId={sessionId}/>:view==='changes'?<ChangesPanel sessionId={sessionId} refreshKey={refreshKey}/>:<>
+    <div className="pv-head"><div className="pv-switch" role="tablist"><button role="tab" aria-selected={view==='files'} className={view==='files'?'on':''} onClick={()=>setView('files')}>Files</button><button role="tab" aria-selected={view==='changes'} className={view==='changes'?'on':''} onClick={()=>setView('changes')}>Changes</button><button role="tab" aria-selected={view==='browser'} className={view==='browser'?'on':''} onClick={()=>setView('browser')}>Browser</button><button role="tab" aria-selected={view==='handoff'} className={view==='handoff'?'on':''} onClick={()=>setView('handoff')}>Handoff</button>{screen.any&&<button role="tab" aria-selected={view==='screen'} className={(view==='screen'?'on':'')+(screen.live?' is-live':'')} onClick={()=>setView('screen')}>{screen.live&&<i className="live-dot"/>}Screen</button>}</div><div><IconButton size="small" variant="quiet" aria-label="Refresh files" onClick={()=>setVersion(v=>v+1)}><RefreshCw size={14}/></IconButton><IconButton size="small" variant="quiet" aria-label="Hide panel" onClick={onClose}><X size={14}/></IconButton></div></div>
+    {view==='browser'?<BrowserPanel sessionId={sessionId}/>:view==='handoff'?<HandoffPanel sessionId={sessionId} refreshKey={refreshKey}/>:view==='screen'?<ScreenPanel sessionId={sessionId}/>:view==='changes'?<ChangesPanel sessionId={sessionId} refreshKey={refreshKey}/>:<>
     <div className="pv-tree"><Tree id={sessionId} path="" depth={0} open={open} toggle={toggle} pick={pick} active={current} version={version}/></div>
     {tabs.length>0&&<div className="pv-tabs">{tabs.map(t=><button key={t.path} className={`pv-tab ${t.path===current?'on':''}`} onClick={()=>{setCurrent(t.path);setEditing(false);}}><span>{t.path.split('\\').pop()}{t.draft!==null?' •':''}</span><i role="button" aria-label="Close tab" onClick={e=>{e.stopPropagation();closeTab(t.path);}}><X size={11}/></i></button>)}</div>}
     {tab&&<div className="pv-body">

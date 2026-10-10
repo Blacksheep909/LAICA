@@ -18,6 +18,7 @@ import {TagTeamChip,SwitchRow,SignInButton} from './TagTeam';
 import {ProviderChip,providerOfSession} from './provider';
 import {useHarness,modeLabel,effortLabel} from './harness-store';
 import type {HEvent} from './harness-store';
+import {predictionFor} from './predict';
 
 export default function ChatView({models}:{models:Model[]}){
   const {toast}=useToast();
@@ -38,6 +39,8 @@ export default function ChatView({models}:{models:Model[]}){
   useEffect(()=>{stick.current=true;setAtBottom(true);endRef.current?.scrollIntoView({block:'end'});},[active]);
   useEffect(()=>{setQueue([]);},[active]);
   useEffect(()=>{if(current&&!current.Busy&&queue.length){const [next,...rest]=queue;setQueue(rest);send(current.Id,next).catch(e=>toast({title:'Could not send the queued message',description:(e as Error).message,duration:7000}));}},[current?.Busy,queue]); // eslint-disable-line react-hooks/exhaustive-deps
+  const guess=useMemo(()=>predictionFor(list,current?.Busy??false),[list,current?.Busy]);const [dismissed,setDismissed]=useState('');
+  const suggestion=guess.text&&guess.key!==dismissed&&!draft&&!files.items.length?guess.text:'';
   const resolved=useMemo(()=>{const m=new Map<string,string>();for(const e of list)if(e.Kind==='approval_result')m.set(e.Detail??'',e.Text);return m;},[list]);
   const rows=useMemo(()=>{const out:HEvent[]=[];for(const e of list){if(e.Kind==='approval_result')continue;const prev=out[out.length-1];if(e.Kind==='assistant'&&e.Detail==='append'&&prev&&prev.Kind==='assistant'&&prev.Detail==='append')out[out.length-1]={...prev,Text:prev.Text+'\n'+e.Text};else out.push(e);}return out;},[list]);
   const items=useMemo(()=>groupRows(rows,current?.Busy??false),[rows,current?.Busy]);
@@ -68,7 +71,7 @@ export default function ChatView({models}:{models:Model[]}){
       {!atBottom&&<button type="button" className="to-bottom" aria-label="Jump to the latest message" onClick={jumpDown}><ArrowDown size={16}/></button>}
       <div className="harness-compose">
         <FlagChips flags={flags} setFlags={setFlags}/><AttachChips items={files.items} busy={files.busy} onRemove={files.remove}/>
-        <div className="compose-field"><textarea aria-label="Message" rows={2} value={draft} placeholder={current.Busy?`${nameOf(current.Harness)} is working — type to queue your next message`:`Message ${nameOf(current.Harness)} — Enter to send, Shift+Enter for a new line, drop files to attach`} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();void doSend();}else if(e.key==='ArrowUp'&&!draft&&!files.items.length){const last=[...list].reverse().find(x=>x.Kind==='user');if(last){e.preventDefault();setDraft(splitPrompt(last.Text).body);}}}}/></div>
+        <div className="compose-field"><textarea aria-label="Message" rows={2} value={draft} placeholder={suggestion||(current.Busy?`${nameOf(current.Harness)} is working — type to queue your next message`:`Message ${nameOf(current.Harness)} — Enter to send, Shift+Enter for a new line, drop files to attach`)} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Tab'&&!e.shiftKey&&suggestion){e.preventDefault();setDraft(suggestion);}else if(e.key==='Escape'&&suggestion){e.preventDefault();setDismissed(guess.key);}else if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();void doSend();}else if(e.key==='ArrowUp'&&!draft&&!files.items.length){const last=[...list].reverse().find(x=>x.Kind==='user');if(last){e.preventDefault();setDraft(splitPrompt(last.Text).body);}}}}/>{suggestion&&<span className="predict-hint" aria-hidden="true"><kbd>Tab</kbd></span>}</div>
         <div className="compose-bar"><div className="compose-left"><PlusMenu onPick={()=>{void files.pick();}} onFiles={f=>{void files.addFiles(f);}} flags={flags} setFlags={setFlags} insert={x=>setDraft(d=>d+(d&&!/\s$/.test(d)?' ':'')+x)}/><ChatPills session={current} models={models}/></div><div className="compose-right"><MicButton onText={text=>setDraft(d=>d+(d&&!/\s$/.test(d)?' ':'')+text)}/>{current.Busy&&current.Harness!=='workflow'&&<IconButton size="small" variant="quiet" className={`pause-btn ${current.Paused?'is-paused':''}`} aria-label={current.Paused?'Resume':'Pause'} title={current.Paused?'Resume the work':'Pause the work (nothing is lost)'} onClick={()=>{void togglePause();}}>{current.Paused?<Play size={16} fill="currentColor"/>:<Pause size={16} fill="currentColor"/>}</IconButton>}<SendButton busy={current.Busy&&!draft.trim()&&!files.items.length} disabled={!draft.trim()&&!files.items.length&&!flags.plan&&!flags.goal} label={current.Busy?'Queue message':'Send'} onSend={()=>{void doSend();}} onStop={()=>stop(current.Id)}/></div></div>
       </div>
     </Glass>
