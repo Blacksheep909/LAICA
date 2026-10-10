@@ -3,6 +3,10 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.21.8]
+
+### Changed
+- **The navigation rows match New chat.** Scheduled tasks, Plugins, Workflow designer and Activity now rest with the same soft lavender fill and fine ring as New chat (brighter on hover, strongest for the page you are on), with even spacing between all five.
 ## [0.21.7]
 
 ### Added
