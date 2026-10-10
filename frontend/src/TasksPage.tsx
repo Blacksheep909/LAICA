@@ -20,8 +20,8 @@ export default function TasksPage({workingDirectory}:{workingDirectory:string}){
   const first=harnesses.find(h=>h.Available)?.Id??'codex';
   if(!isDesktop)return <div className="empty-state compact"><h2>Scheduled tasks need the desktop app</h2></div>;
   return <div className="settings-content page-pad">
-    <div className="section-heading"><div><h2>Scheduled tasks</h2><p>Run a prompt on a schedule while LAICA is open (it keeps running from the tray when the window is closed).</p></div><Button size="small" variant="primary" leadingIcon={<Plus size={15}/>} onClick={()=>setEdit(blank(workingDirectory,first))}>New task</Button></div>
-    {!tasks.length&&<div className="empty-state compact"><Clock size={24}/><h2>No scheduled tasks</h2><p>Create one to run Codex or Claude Code automatically.</p></div>}
+    <div className="section-heading"><div><p>Run a prompt on a schedule while LAICA is open. It keeps running from the tray when the window is closed.</p></div><Button size="small" variant="primary" leadingIcon={<Plus size={15}/>} onClick={()=>setEdit(blank(workingDirectory,first))}>New task</Button></div>
+    {!tasks.length&&<div className="empty-state compact"><Clock size={24}/><h2>No scheduled tasks</h2><p>Create one to have an agent run on a schedule, on its own.</p></div>}
     {tasks.map(t=><Glass key={t.Id} material="regular" className="list-row"><div className="grow"><strong>{t.Name}</strong><small>{describe(t)} · {harnesses.find(h=>h.Id===t.Harness)?.Name??t.Harness} · {t.Cwd}</small><small>{t.LastRunUtc?`Last run ${new Date(t.LastRunUtc).toLocaleString()}`:'Not run yet'}</small></div>
       <label className="chk"><input type="checkbox" checked={t.Enabled} onChange={e=>save({...t,Enabled:e.target.checked})}/> On</label>
       <Button size="small" variant="quiet" leadingIcon={<Play size={14}/>} onClick={()=>request('taskRun',{Id:t.Id}).then(()=>toast({title:'Task started'})).catch(fail('Could not run task'))}>Run now</Button>

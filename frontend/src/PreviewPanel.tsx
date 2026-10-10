@@ -7,6 +7,7 @@ import ChangesPanel from './ChangesPanel';
 import {HandoffPanel} from './TagTeam';
 import ScreenPanel,{useScreenActivity} from './ScreenPanel';
 import BrowserPanel,{useLocalUrls} from './BrowserPanel';
+import {useHarness} from './harness-store';
 
 interface Entry { Name:string; Path:string; Dir:boolean; Size:number }
 interface Sheet { Name:string; Rows:string[][]; Truncated:boolean }
@@ -58,10 +59,10 @@ function Viewer({doc,path,draft,setDraft,editing}:{doc:Doc;path:string;draft:str
 export default function PreviewPanel({sessionId,refreshKey,onClose}:{sessionId:string;refreshKey:number;onClose:()=>void}){
   const {toast}=useToast();
   const [open,setOpen]=useState<Set<string>>(new Set()),[tabs,setTabs]=useState<Tab[]>([]),[current,setCurrent]=useState<string|null>(null),[version,setVersion]=useState(0),[editing,setEditing]=useState(false),[view,setView]=useState<'files'|'changes'|'screen'|'handoff'|'browser'>('files');
-  const screen=useScreenActivity(sessionId);const local=useLocalUrls(sessionId);const shown=useRef(false),shownLocal=useRef(false);
+  const screen=useScreenActivity(sessionId);const local=useLocalUrls(sessionId);const busy=!!useHarness().sessions.find(x=>x.Id===sessionId)?.Busy;const shown=useRef(false),shownLocal=useRef(false);
   useEffect(()=>{shown.current=false;shownLocal.current=false;},[sessionId]);
   const baseLocal=useRef(local.length);useEffect(()=>{baseLocal.current=local.length;},[sessionId]);// eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(()=>{if(local.length>baseLocal.current&&!shownLocal.current){shownLocal.current=true;setView('browser');}},[local.length]);
+  useEffect(()=>{if(busy&&local.length>baseLocal.current&&!shownLocal.current){shownLocal.current=true;setView('browser');}},[local.length]);
   useEffect(()=>{if(screen.live&&!shown.current){shown.current=true;setView('screen');}},[screen.live]);
   useEffect(()=>{const on=()=>setView('changes');window.addEventListener('laica-open-changes',on);return()=>window.removeEventListener('laica-open-changes',on);},[]);
   const pickRef=useRef<(p:string)=>void>(()=>undefined);

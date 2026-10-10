@@ -3,6 +3,16 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.24.0]
+
+### Added
+- **Browser tab.** The panel beside a chat has a real browser: type an address (`localhost:3000` is enough) or click one an agent started, and use the page right there, with back, forward, reload and "open in your browser". When an agent starts a dev server (the `Local: http://localhost:5173/` line any of them prints), the tab opens by itself. It works with every agent because it only reads what they print. (Over remote access the page is on the PC, not the device you are using, so the tab says so instead of showing nothing.)
+- **Tab to accept the predicted reply.** When an agent ends with a question you can answer with a yes ("Want me to add a high-contrast option too?"), the message box shows `Yes, add a high-contrast option too.` as grey text with a Tab hint. Tab fills it in, Esc dismisses it, and typing replaces it. It stays quiet unless the question is clear.
+- **Gemini CLI and Qwen Code show their work.** When the installed version can stream JSON, their tool calls, file edits, results and token use appear as steps like Claude Code and Codex, instead of one block of text. Older versions keep the plain-text path automatically.
+
+### Changed
+- **Interface finish.** A final global layer makes the whole app behave like part of the operating system: controls and chrome use the arrow cursor and can't be selected, content can; scrollbars are thin and appear only when you hover; one keyboard-only focus ring; the system's reduced-motion setting is honoured everywhere; numbers line up. The sidebar is narrower by default (280 px, resizable from 240 px).
+
 ## [0.23.1]
 
 ### Fixed

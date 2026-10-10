@@ -31,7 +31,7 @@
 :root[data-backdrop="plain"] .app:before{opacity:.6!important}
 
 /* ---------- connected layout: the sidebar is part of the window ---------- */
-.app{--sbw:320px;padding:0!important;gap:0!important;grid-template-columns:var(--sbw) minmax(0,1fr)!important}
+.app{--sbw:280px;padding:0!important;gap:0!important;grid-template-columns:var(--sbw) minmax(0,1fr)!important}
 .app.sidebar-hidden{grid-template-columns:minmax(0,1fr)!important}
 .app.has-titlebar{padding-top:0!important}
 .main{padding:0!important}

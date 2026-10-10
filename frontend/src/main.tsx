@@ -8,6 +8,7 @@ import './GlassSelect.css';
 import './Polish.css';
 import './Liquid.css';
 import './ui/ui.css';
+import './Finish.css';
 import {installLens} from './lens';
 import {TooltipProvider} from './ui/kit';
 import {HarnessProvider} from './harness-store';

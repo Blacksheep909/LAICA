@@ -1,0 +1,37 @@
+/* The last layer: how the app behaves like part of the operating system rather than a web page.
+   Everything here is a global rule, so no screen has to remember to do it. */
+
+/* type rendering and selection */
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;font-synthesis:none;overscroll-behavior:none}
+body{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+::selection{background:rgba(179,165,247,.38);color:inherit}
+.tnum,time,.working-time,.elapsed,.fc-stats,.turn-summary{font-variant-numeric:tabular-nums}
+
+/* chrome behaves like chrome: it is not selectable and its controls use the arrow, as in native apps. Content stays selectable. */
+.sidebar,.pv-head,.harness-meta,.compose-bar,.step>summary,.steps>summary,.file-card>summary,.file-group>summary,.pv-switch,.titlebar,.app-status,button,[role=button],[role=tab],summary,label.chk{-webkit-user-select:none;user-select:none}
+button,[role=button],[role=tab],[role=menuitem],[role=option],summary,select,label.chk,.nav-item{cursor:default}
+a[href],.file-link,.side-resize{cursor:pointer}.side-resize{cursor:col-resize}
+input,textarea,.hmsg,.hmsg *,.markdown,.pv-code,pre,code{-webkit-user-select:text;user-select:text}
+img{-webkit-user-drag:none;user-drag:none}
+
+/* one focus ring everywhere, shown for the keyboard only */
+:focus{outline:none}
+:focus-visible{outline:2px solid rgba(179,165,247,.85);outline-offset:2px;border-radius:inherit}
+input:focus-visible,textarea:focus-visible{outline:none}
+
+/* scrollbars that stay out of the way: thin, rounded, and only visible while the pointer is over the area */
+*{scrollbar-width:thin;scrollbar-color:transparent transparent}
+*:hover{scrollbar-color:rgba(255,255,255,.2) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:transparent;border-radius:999px;border:3px solid transparent;background-clip:content-box}
+*:hover::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,.2)}
+::-webkit-scrollbar-thumb:hover{background-color:rgba(255,255,255,.34)!important}
+
+/* a press is felt: controls dip a little under the pointer, and let go with the same spring they pressed with */
+button:not(:disabled):active,[role=tab]:active,.nav-item:active{transform:scale(.975)}
+button,[role=tab],.nav-item,summary{transition-property:background-color,color,box-shadow,transform,opacity,border-color;transition-duration:.16s;transition-timing-function:cubic-bezier(.2,.8,.2,1)}
+button:disabled,[aria-disabled=true]{opacity:.45;cursor:default}
+
+/* motion respects the system setting everywhere, not screen by screen */
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}.ui-spin,.work-glyph,.live-dot,.screen-dot.live{animation-duration:2.4s!important;animation-iteration-count:infinite!important}}
