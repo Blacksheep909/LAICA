@@ -25,7 +25,7 @@ function editsOf(tool:string,detail:string|null|undefined,j:Record<string,unknow
   const out:FileEdit[]=[];
   const one=(file:string,o:string,n:string)=>{const d=lineDiff(o,n);out.push({file,add:d.add,del:d.del,text:cap(d.text)});};
   if(j){
-    const file=s(j.file_path)||s(j.path)||s(j.notebook_path);
+    const file=s(j.file_path)||s(j.absolute_path)||s(j.path)||s(j.notebook_path);
     if(Array.isArray(j.edits))for(const x of j.edits as Record<string,unknown>[])one(file,s(x.old_string),s(x.new_string));
     else if(s(j.old_string)||s(j.new_string))one(file,s(j.old_string),s(j.new_string));
     else if(s(j.content))one(file,'',s(j.content));
@@ -46,8 +46,8 @@ function kindOf(tool:string):Kind{
   const t=tool.toLowerCase();
   if(/^(bash|powershell|shell|command|run|exec)/.test(t)||/(^|[._])exec(_command)?$/.test(t))return 'cmd';
   if(/view_image|image_?view/.test(t))return 'view';
-  if(/^(read|ls|view|notebookread)/.test(t))return 'read';
-  if(/(edit|write|patch|file change|multiedit|notebookedit)/.test(t))return 'edit';
+  if(/^(read|ls|view|notebookread)/.test(t)||/^list_(directory|dir|files)/.test(t))return 'read';
+  if(/(edit|write|patch|file change|multiedit|notebookedit)/.test(t)||/^replace$/.test(t))return 'edit';
   if(/^(grep|glob|search|find|toolsearch)/.test(t))return 'search';
   if(/(web|fetch|browser|navigate)/.test(t))return 'web';
   return 'tool';
@@ -58,7 +58,7 @@ const pretty=(n:string)=>{const w=n.replace(/[-_]+/g,' ').trim();return w.charAt
 function serverOf(tool:string):string{const m=/^mcp__(.+?)__.+$/.exec(tool)??/^([^.\s]+)\..+$/.exec(tool);return m?pretty(m[1]):'';}
 export function stepOf(e:HEvent):Step{
   const tool=e.Text||'tool';const kind=kindOf(tool);const j=parse(e.Detail);const raw=j?'':(e.Detail??'');
-  const desc=s(j?.description),cmd=s(j?.command)||s(j?.cmd)||(kind==='cmd'?raw:''),file=s(j?.file_path)||s(j?.path)||s(j?.notebook_path)||(kind==='read'||kind==='edit'?raw:'');
+  const desc=s(j?.description),cmd=s(j?.command)||s(j?.cmd)||(kind==='cmd'?raw:''),file=s(j?.file_path)||s(j?.absolute_path)||s(j?.path)||s(j?.notebook_path)||(kind==='read'||kind==='edit'?raw:'');
   let title=desc;
   if(!title){
     if(kind==='cmd')title='Ran '+first(cmd||tool,80);

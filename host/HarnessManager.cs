@@ -273,7 +273,8 @@ namespace Laica
             if (s.Harness == "workflow") { RunWorkflowChat(s, prompt); return; }
             string exe = ResolveExe(info.Path);
             var psi = new ProcessStartInfo { FileName = exe, WorkingDirectory = s.Cwd, UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8 };
-            psi.Arguments = Arguments(s, info, sent); CoAuthorEnv(psi, s.Cwd);
+            string parser = StructuredParser(s, info, exe);
+            psi.Arguments = Arguments(s, info, sent) + (parser == "gemini" || parser == "sdk" ? " --output-format stream-json" : ""); CoAuthorEnv(psi, s.Cwd);
             if (exe.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase) || exe.EndsWith(".bat", StringComparison.OrdinalIgnoreCase)) { psi.Arguments = "/c \"\"" + exe + "\" " + psi.Arguments + "\""; psi.FileName = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe"; }
             var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
             lock (gate) { s.Busy = true; s.Ended = false; s.Proc = proc; s.HasSentRules = true; if (s.Title.EndsWith(" chat") || s.Title == "New chat") s.Title = prompt.Length > 40 ? prompt.Substring(0, 40).Replace("\n", " ") + "…" : prompt.Replace("\n", " "); }
@@ -281,13 +282,13 @@ namespace Laica
             Raise();
             try { proc.Start(); }
             catch (Exception ex) { Finish(s, "Could not start " + info.Name + ": " + ex.Message); return; }
-            if (info.Parser == "claude")
+            if (parser == "claude")
             {
                 // Interactive stream-json: the user message goes in as one JSON line and stdin stays open so permission answers can follow.
                 s.Interactive = true;
                 WriteLine(s, json.Serialize(new Dictionary<string, object> { { "type", "user" }, { "message", new Dictionary<string, object> { { "role", "user" }, { "content", sent } } } }));
             }
-            else if (info.Parser == "codex" && s.Mode == "ask-first")
+            else if (parser == "codex" && s.Mode == "ask-first")
             {
                 s.Interactive = true; s.TurnPrompt = sent;
                 WriteLine(s, json.Serialize(new Dictionary<string, object> { { "id", 1 }, { "method", "initialize" }, { "params", new Dictionary<string, object> { { "clientInfo", new Dictionary<string, object> { { "name", "laica" }, { "title", "LAICA" }, { "version", AppVersion.Value } } }, { "capabilities", new Dictionary<string, object> { { "experimentalApi", true } } } } } }));
@@ -303,13 +304,70 @@ namespace Laica
             proc.BeginErrorReadLine();
             var reader = new Thread(() =>
             {
-                try { string line; while ((line = proc.StandardOutput.ReadLine()) != null) { if (line.Length > 0) Parse(s, info.Parser, line); } } catch (Exception) { }
+                try { string line; while ((line = proc.StandardOutput.ReadLine()) != null) { if (line.Length > 0) Parse(s, parser, line); } } catch (Exception) { }
+                if (parser == "gemini") FlushText(s);
                 try { proc.WaitForExit(); } catch (Exception) { }
                 int code = 0; try { code = proc.ExitCode; } catch (Exception) { }
                 bool clean; lock (gate) clean = s.Ended;
                 Finish(s, clean ? null : code != 0 && errors.Length > 0 ? errors.ToString().Trim() : (code != 0 ? info.Name + " stopped (exit " + code + ")." : null));
             }) { IsBackground = true, Name = "harness-" + s.Id };
             reader.Start();
+        }
+
+
+        // ---------- agents that stream JSON (Gemini CLI, Qwen Code) ----------
+        static readonly Dictionary<string, bool> streamJson = new Dictionary<string, bool>();
+        /// <summary>Whether this installed CLI offers `--output-format stream-json`, asked once (its own --help) and remembered. Older versions keep the plain-text path.</summary>
+        static bool OffersStreamJson(string exe)
+        {
+            string key = exe + "|" + SafeStamp(exe); bool known;
+            lock (streamJson) if (streamJson.TryGetValue(key, out known)) return known;
+            bool ok = false;
+            try
+            {
+                string file = exe, args = "--help";
+                if (exe.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase) || exe.EndsWith(".bat", StringComparison.OrdinalIgnoreCase)) { file = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe"; args = "/c \"\"" + exe + "\" --help\""; }
+                var psi = new ProcessStartInfo { FileName = file, Arguments = args, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true, RedirectStandardInput = true, StandardOutputEncoding = Encoding.UTF8 };
+                using (var p = Process.Start(psi))
+                {
+                    p.StandardInput.Close(); var err = p.StandardError.ReadToEndAsync(); var task = p.StandardOutput.ReadToEndAsync();
+                    if (!p.WaitForExit(8000)) { try { p.Kill(); } catch (Exception) { } }
+                    else ok = (task.Result + " " + err.Result).IndexOf("stream-json", StringComparison.OrdinalIgnoreCase) >= 0;
+                }
+            }
+            catch (Exception) { }
+            lock (streamJson) streamJson[key] = ok; return ok;
+        }
+        static string SafeStamp(string path) { try { return File.GetLastWriteTimeUtc(path).Ticks.ToString(); } catch (Exception) { return ""; } }
+        /// <summary>The parser for this turn: the harness's own, or a structured one when the installed Gemini CLI / Qwen Code can stream JSON events.</summary>
+        string StructuredParser(Session s, HarnessInfo info, string exe)
+        {
+            if (info.Custom || info.Parser != "text") return info.Parser;
+            if ((s.Harness == "gemini" || s.Harness == "qwen") && OffersStreamJson(exe)) return s.Harness == "gemini" ? "gemini" : "sdk";
+            return info.Parser;
+        }
+        readonly Dictionary<string, StringBuilder> textBuf = new Dictionary<string, StringBuilder>();
+        /// <summary>Gemini streams its answer in small pieces; they are joined and shown as one message when the answer pauses for a tool or ends.</summary>
+        void FlushText(Session s)
+        {
+            string text; lock (textBuf) { StringBuilder b; if (!textBuf.TryGetValue(s.Id, out b)) return; text = b.ToString(); textBuf.Remove(s.Id); }
+            if (text.Trim() != "") Emit(s, "assistant", text.Trim(), null);
+        }
+        void ParseGemini(Session s, Dictionary<string, object> o, string type)
+        {
+            if (type == "init") { string sid = Str(o, "session_id"); if (sid != "") lock (gate) s.ExternalId = sid; return; }
+            if (type == "message")
+            {
+                if (Str(o, "role") != "assistant") return;
+                string piece = Str(o, "content"); if (piece == "") return;
+                if (Str(o, "delta") != "True") { FlushText(s); Emit(s, "assistant", piece, null); return; }
+                lock (textBuf) { StringBuilder b; if (!textBuf.TryGetValue(s.Id, out b)) textBuf[s.Id] = b = new StringBuilder(); b.Append(piece); }
+                return;
+            }
+            if (type == "tool_use") { FlushText(s); Emit(s, "tool", Str(o, "tool_name"), json.Serialize(o.ContainsKey("parameters") ? o["parameters"] : null)); return; }
+            if (type == "tool_result") { Emit(s, "tool_result", Trim(Str(o, "output")), Str(o, "status") == "error" ? "error" : null); return; }
+            if (type == "error") { if (Str(o, "severity") != "warning") { FlushText(s); Emit(s, "error", Str(o, "message"), null); } return; }
+            if (type == "result") { FlushText(s); AddTokens(s, Obj(o, "stats")); }
         }
 
         static string Quote(string v) { return "\"" + v.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\""; }
@@ -358,7 +416,7 @@ namespace Laica
             Dictionary<string, object> o;
             try { o = json.Deserialize<Dictionary<string, object>>(line); } catch (Exception) { Emit(s, "log", line, null); return; }
             string type = Str(o, "type");
-            if (parser == "claude") ParseClaude(s, o, type); else if (s.Mode == "ask-first" && parser == "codex") ParseCodexApp(s, o); else ParseCodex(s, o, type);
+            if (parser == "claude" || parser == "sdk") ParseClaude(s, o, type); else if (parser == "gemini") ParseGemini(s, o, type); else if (s.Mode == "ask-first" && parser == "codex") ParseCodexApp(s, o); else ParseCodex(s, o, type);
         }
 
         void WriteLine(Session s, string line)
