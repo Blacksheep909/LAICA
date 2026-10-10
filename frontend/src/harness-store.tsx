@@ -7,7 +7,7 @@ import {builtinAssistants} from './assistants-data';
 import type {Assistant} from './assistants-data';
 
 export interface HarnessInfo { Id:string; Name:string; Path:string|null; Available:boolean; Custom:boolean; Modes:string[]; DefaultMode:string }
-export interface HSession { Id:string; Harness:string; Title:string; Cwd:string; Project:string; Mode:string; Busy:boolean; BusySince?:string; UpdatedUtc?:string; Paused?:boolean; AssistantId?:string; Isolated?:boolean; Branch?:string; Effort?:string; ServiceId?:string; Model?:string; TeamId?:string; Continuity?:string; TagTeam?:string; Waiting?:boolean }
+export interface HSession { Id:string; Harness:string; Title:string; Cwd:string; Project:string; Mode:string; Busy:boolean; BusySince?:string; UpdatedUtc?:string; Paused?:boolean; AssistantId?:string; Isolated?:boolean; Branch?:string; Effort?:string; ServiceId?:string; Model?:string; TeamId?:string; Continuity?:string; TagTeam?:string; Waiting?:boolean; PartnerHarness?:string }
 export interface HEvent { SessionId:string; Kind:string; Text:string; Detail?:string|null; TimeUtc:string; Images?:string[]; By?:string }
 export interface TeamRun { Id:string; Title:string; Running:boolean; Paused?:boolean; Cwd:string; Leader:string; Members:{Name:string;Harness:string;Role:string}[]; Goal:string; Phase:string }
 export interface HistoryItem { Source:'codex'|'claude'; ExternalId:string; Title:string; Project:string; ProjectName:string; ProjectId:string; UpdatedUtc:string; SessionId:string }

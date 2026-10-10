@@ -86,6 +86,15 @@ namespace Laica
         }
         string SideKey(Session root, bool partner) { if (!partner) return VendorKey(root); var sp = PartnerSpec(root); return sp == null ? "" : KeyOfSpec(sp); }
         string ActiveKey(Session root) { return SideKey(root, root.Pair.Active == "partner"); }
+        /// <summary>The partner agent to show next to a tag-team chat's name ("" when the chat is not a tag-team).</summary>
+        static string PartnerShown(Session s)
+        {
+            if (s.Parent != null) return "";
+            if (s.Child != null) return s.Child.Harness;
+            if (s.Pair.Mode != "automatic") return "";
+            if (s.Pair.PHarness != "") return s.Pair.PHarness;
+            return s.Harness == "codex" ? "claude" : s.Harness == "claude" ? "codex" : "";
+        }
         static bool IsBusy(Session s) { return s.Busy || (s.Child != null && s.Child.Busy); }
         /// <summary>The session that is really doing the work right now: the partner while it holds the work, else the chat itself.</summary>
         Session Live(Session s) { if (s.Child != null && (s.Child.Busy || (s.Pair.Active == "partner" && !s.Busy))) return s.Child; return s; }

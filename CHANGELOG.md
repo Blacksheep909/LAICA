@@ -3,6 +3,10 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.21.10]
+
+### Changed
+- **Tag-team chats show both agents.** In the sidebar and in the chat header the label reads **GPT + CLAUDE** (whichever pair the chat uses) instead of just the first agent, and the one working right now is shown in full strength while the other is dimmed. Hover it for the full names.
 ## [0.21.9]
 
 ### Fixed

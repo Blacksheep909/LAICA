@@ -623,3 +623,11 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .sidebar .side-nav .nav-item.active:hover{background:linear-gradient(180deg,rgba(179,165,247,.26),rgba(150,130,235,.16))!important}
 .sidebar .side-nav .nav-item:focus-visible{box-shadow:none!important;outline:0!important}.sidebar .side-nav .nav-item::before,.sidebar .side-nav .nav-item::after,.sidebar .side-nav .nav-item:hover::before,.sidebar .side-nav .nav-item:hover::after{display:none!important;content:none!important;border:0!important;box-shadow:none!important;background:none!important}
 
+
+/* tag-team chats show both agents: GPT + CLAUDE, the one working now in full strength */
+.prov-duo{display:inline-flex;align-items:center;gap:3px;background:none!important;padding:0!important;box-shadow:none!important}
+.prov-duo b{font:inherit;font-weight:700;opacity:.55}.prov-duo b.now{opacity:1}
+.prov-duo i{font-style:normal;opacity:.45}
+.prov-duo .prov-gpt{color:#7fd8a6}.prov-duo .prov-claude{color:#e8956a}.prov-duo .prov-gemini{color:#8fb4ff}.prov-duo .prov-other,.prov-duo .prov-team{color:var(--ink-2)}
+.prov-duo b{background:none!important;padding:0!important;box-shadow:none!important}
+
