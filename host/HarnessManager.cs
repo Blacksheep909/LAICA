@@ -484,7 +484,7 @@ namespace Laica
             string tool = Str(item, "tool"); if (tool == "") tool = Str(item, "action") != "" && Obj(item, "action") == null ? Str(item, "action") : it;
             string ns = Str(item, "namespace"); if (ns == "") ns = Str(item, "server");
             string name = (ns != "" ? ns + "." : "") + tool; if (!SCREEN_NAME.IsMatch(name)) name = "browser." + name;
-            object args = item.ContainsKey("arguments") ? item["arguments"] : item.ContainsKey("action") ? item["action"] : null;
+            object args = item.ContainsKey("arguments") ? item["arguments"] : Obj(item, "action") != null ? item["action"] : null;
             if (args == null) { var d = new Dictionary<string, object>(); foreach (string k in new[] { "url", "query", "title", "text", "x", "y" }) if (item.ContainsKey(k)) d[k] = item[k]; args = d; }
             var images = new List<string>(); object res = item.ContainsKey("contentItems") ? item["contentItems"] : item.ContainsKey("content") ? item["content"] : item.ContainsKey("output") ? item["output"] : item.ContainsKey("result") ? item["result"] : null;
             images.AddRange(SaveImages(s, res)); foreach (string n in ImagesFromItem(s, item)) if (!images.Contains(n)) images.Add(n);
