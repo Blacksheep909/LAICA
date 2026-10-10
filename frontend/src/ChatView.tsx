@@ -41,6 +41,8 @@ export default function ChatView({models}:{models:Model[]}){
   const resolved=useMemo(()=>{const m=new Map<string,string>();for(const e of list)if(e.Kind==='approval_result')m.set(e.Detail??'',e.Text);return m;},[list]);
   const rows=useMemo(()=>{const out:HEvent[]=[];for(const e of list){if(e.Kind==='approval_result')continue;const prev=out[out.length-1];if(e.Kind==='assistant'&&e.Detail==='append'&&prev&&prev.Kind==='assistant'&&prev.Detail==='append')out[out.length-1]={...prev,Text:prev.Text+'\n'+e.Text};else out.push(e);}return out;},[list]);
   const items=useMemo(()=>groupRows(rows,current?.Busy??false),[rows,current?.Busy]);
+  useEffect(()=>{const on=(e:Event)=>{setPanel(true);const d=(e as CustomEvent).detail;setTimeout(()=>window.dispatchEvent(new CustomEvent('laica-show-file',{detail:d})),80);};window.addEventListener('laica-open-file',on);return()=>window.removeEventListener('laica-open-file',on);},[]);
+  useEffect(()=>{const on=()=>{setPanel(true);setTimeout(()=>window.dispatchEvent(new Event('laica-show-handoff')),80);};window.addEventListener('laica-open-handoff',on);return()=>window.removeEventListener('laica-open-handoff',on);},[]);
   const openChanges=()=>{setPanel(true);setTimeout(()=>window.dispatchEvent(new Event('laica-open-changes')),60);};
   if(!current)return <div className="empty-state compact"><Bot size={26}/><h2>Pick a conversation</h2><p>Choose one from the sidebar, or start a new chat.</p></div>;
   const assistant=assistants.find(a=>a.Id===current.AssistantId);

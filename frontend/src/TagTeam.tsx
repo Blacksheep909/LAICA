@@ -8,6 +8,7 @@ import {useHarness,effortLabel} from './harness-store';
 import type {HSession,HEvent} from './harness-store';
 import {useClaudeModels} from './ClaudeModels';
 import {Markdown} from './markdown';
+import {FileLink} from './fileLinks';
 import type {Model} from './types';
 
 export interface PairSide { Key:string; Name:string; Model:string; Effort?:string; Percent:number; Limited:boolean; ResetsUtc:string; Ran:boolean; Busy:boolean; Mode?:string; Writable?:boolean }
@@ -66,11 +67,11 @@ function RunDown({info,target}:{info:PairInfo;target:string}){
     {s?<ul>
       <li><i>{s.Unfinished?'Carries on with':'Next request'}</i><span>{short(s.Request)||'Waiting for your next message'}</span></li>
       {s.LastReply&&<li><i>{s.From} last said</i><span>{short(s.LastReply)}</span></li>}
-      {s.FilesTotal>0&&<li><i>Files changed ({s.FilesTotal})</i><span>{s.Files.join(', ')}{s.FilesTotal>s.Files.length?' …':''}</span></li>}
-      {s.Verify.length>0&&<li className="warn"><i>Check first</i><span>{s.Verify.join(', ')} (may be half-written)</span></li>}
+      {s.FilesTotal>0&&<li><i>Files changed ({s.FilesTotal})</i><span>{s.Files.map((f,i)=><span key={f}>{i>0&&', '}<FileLink path={f.replace(/ \((?:[^)]*)\)$/,'')}>{f.replace(/ \((?:[^)]*)\)$/,'')}</FileLink></span>)}{s.FilesTotal>s.Files.length?' …':''}</span></li>}
+      {s.Verify.length>0&&<li className="warn"><i>Check first</i><span>{s.Verify.map((f,i)=><span key={f}>{i>0&&', '}<FileLink path={f}>{f}</FileLink></span>)} (may be half-written)</span></li>}
       {s.Commands.length>0&&<li><i>Recent commands</i><span>{s.Commands.map(c=>short(c,70)).join(' · ')}</span></li>}
       {s.Problems.length>0&&<li className="warn"><i>Problems</i><span>{s.Problems.map(c=>short(c,100)).join(' · ')}</span></li>}
-      <li><i>Background</i><span>{s.Turns} earlier turn{s.Turns===1?'':'s'} summarised in {info.HandoffFile}</span></li>
+      <li><i>Background</i><span>{s.Turns} earlier turn{s.Turns===1?'':'s'} summarised in <button type="button" className="tt-link" onClick={e=>{e.stopPropagation();window.dispatchEvent(new Event('laica-open-handoff'));}}>{info.HandoffFile}</button> <small>(click to read it)</small></span></li>
     </ul>:<p className="tt-none">Nothing to hand over yet.</p>}
     <details><summary>Show the exact text it receives</summary><pre>{info.Preview?info.Preview.slice(0,6000)+(info.Preview.length>6000?'\n…':''):'Nothing yet.'}</pre></details>
   </div>;

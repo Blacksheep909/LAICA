@@ -1,10 +1,11 @@
 import {CopyBtn} from './Composer';
 import type {ReactNode} from 'react';
+import {FileLink,looksLikeFile} from './fileLinks';
 
 function inline(text:string,key:string):ReactNode[]{
   const out:ReactNode[]=[];const re=/(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*\s][^*]*\*)|(\[[^\]]+\]\((https?:\/\/[^)\s]+)\))/g;let last=0,m:RegExpExecArray|null,i=0;
   while((m=re.exec(text))){if(m.index>last)out.push(text.slice(last,m.index));const k=`${key}-${i++}`;
-    if(m[1])out.push(<code key={k}>{m[1].slice(1,-1)}</code>);
+    if(m[1]){const c=m[1].slice(1,-1);out.push(looksLikeFile(c)?<FileLink key={k} path={c.trim()} className="md-file"><code>{c}</code></FileLink>:<code key={k}>{c}</code>);}
     else if(m[2])out.push(<strong key={k}>{m[2].slice(2,-2)}</strong>);
     else if(m[3])out.push(<em key={k}>{m[3].slice(1,-1)}</em>);
     else if(m[4]){const label=m[4].slice(1,m[4].indexOf(']'));out.push(<span key={k} className="md-link" title={m[5]}>{label}</span>);}

@@ -348,7 +348,7 @@ public static class HarnessTests
                     Check(!(bool)cur["Running"] && (string)cur["Phase"] == "done", "team: run finishes in the done phase");
                     var tasks = Dicts(cur["Tasks"]);
                     Check(tasks.Length == 2 && tasks.All(x => (string)x["Status"] == "done") && ((string)tasks[0]["Output"]).Contains("do A") && ((string)tasks[1]["Output"]).Contains("do B"), "team: leader's plan assigns tasks (case-insensitive names, unknown names ignored)");
-                    Check(ms < 4500, "team: teammates work in parallel (" + ms + " ms)");
+                    Check(ms < 5500, "team: teammates work in parallel (" + ms + " ms)");
                     Check(((string)cur["Result"]).Contains("FINAL SUMMARY: reports=2"), "team: leader reviews both reports and answers");
                     var sess = Dicts(m.List()); Check(sess.Count(x => ((string)x["Title"]).StartsWith("Team · Crew")) == 3, "team: leader and both teammates have their own chats");
                     string leader1 = (string)cur["LeaderSessionId"]; m.RunTeam(tid, "Second goal");

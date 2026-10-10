@@ -3,6 +3,10 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.21.7]
+
+### Added
+- **File names are links.** Anywhere LAICA names a file, clicking it opens the file in the chat's side panel (the panel opens by itself if it was hidden): file names in the agent's replies (anything in code quotes that looks like a file, such as `src/App.tsx`), an **Open** button on every file card and on every "Read" and "Edited" step, the files and "check first" files in the tag-team hover rundown, and the paths in the Handoff tab. In the rundown, **HANDOFF.md** itself is a link that opens the Handoff tab. HANDOFF.md now writes its paths in code quotes so they read well in an editor too.
 ## [0.21.6]
 
 ### Changed

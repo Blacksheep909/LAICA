@@ -605,3 +605,13 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .handoff-panel .hp-managed{font-size:12.5px;line-height:1.55;white-space:normal}
 .handoff-panel .hp-managed h1{font-size:15px}.handoff-panel .hp-managed h3{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);margin:14px 0 4px}
 .handoff-panel .hp-managed hr{border:0;border-top:1px solid rgba(255,255,255,.08);margin:12px 0}
+
+.tt-link{border:0;background:none;padding:0;font:inherit;color:var(--accent);text-decoration:underline;text-underline-offset:2px;cursor:pointer}.tt-link:hover{color:var(--ink)}.tt-run li small{color:var(--ink-3)}
+
+
+/* links to files */
+.file-link{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-align:left;text-decoration:underline;text-decoration-color:rgba(179,165,247,.4);text-underline-offset:2px}
+.file-link:hover{color:var(--ink);text-decoration-color:currentColor}
+.file-link.md-file code{color:inherit}
+.file-link.step-open{margin-left:auto;margin-right:6px;padding:1px 9px;border-radius:999px;font-size:11px;text-decoration:none;background:rgba(179,165,247,.16);color:var(--ink-2)}
+.file-link.step-open:hover{background:rgba(179,165,247,.32);color:var(--ink)}

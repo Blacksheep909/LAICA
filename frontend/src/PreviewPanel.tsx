@@ -61,11 +61,15 @@ export default function PreviewPanel({sessionId,refreshKey,onClose}:{sessionId:s
   useEffect(()=>{shown.current=false;},[sessionId]);
   useEffect(()=>{if(screen.live&&!shown.current){shown.current=true;setView('screen');}},[screen.live]);
   useEffect(()=>{const on=()=>setView('changes');window.addEventListener('laica-open-changes',on);return()=>window.removeEventListener('laica-open-changes',on);},[]);
+  const pickRef=useRef<(p:string)=>void>(()=>undefined);
+  useEffect(()=>{const on=(e:Event)=>{const p=String((e as CustomEvent).detail?.path??'').replace(/\//g,'\\');if(!p)return;setView('files');pickRef.current(p);};window.addEventListener('laica-show-file',on);return()=>window.removeEventListener('laica-show-file',on);},[]);
+  useEffect(()=>{const on=()=>setView('handoff');window.addEventListener('laica-show-handoff',on);return()=>window.removeEventListener('laica-show-handoff',on);},[]);
   useEffect(()=>{setTabs([]);setCurrent(null);setOpen(new Set());setEditing(false);},[sessionId]);
   useEffect(()=>{setVersion(v=>v+1);},[refreshKey]);
   const load=useCallback((path:string)=>request<Doc>('harnessReadFile',{Id:sessionId,Path:path}).then(doc=>setTabs(t=>t.map(x=>x.path===path&&x.draft===null?{...x,doc}:x))).catch(e=>toast({title:'Could not open file',description:e.message})),[sessionId,toast]);
   useEffect(()=>{if(current&&!editing)load(current);},[refreshKey]);// eslint-disable-line react-hooks/exhaustive-deps
   const pick=(path:string)=>{setTabs(t=>t.some(x=>x.path===path)?t:[...t,{path,doc:null,draft:null}]);setCurrent(path);setEditing(false);load(path);};
+  pickRef.current=pick;
   const toggle=(p:string)=>setOpen(o=>{const n=new Set(o);n.has(p)?n.delete(p):n.add(p);return n;});
   const tab=tabs.find(t=>t.path===current)??null;
   const closeTab=(path:string)=>{setTabs(t=>t.filter(x=>x.path!==path));if(current===path){const rest=tabs.filter(x=>x.path!==path);setCurrent(rest.length?rest[rest.length-1].path:null);setEditing(false);}};

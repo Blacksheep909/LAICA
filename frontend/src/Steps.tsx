@@ -3,13 +3,14 @@ import {ChevronRight,SquareTerminal,FileText,Pencil,Search,Globe,Wrench,LoaderCi
 import type {HEvent} from './harness-store';
 import {WorkingGlyph} from './ui/kit';
 import {Thumbs,refsOf} from './Images';
+import {FileLink} from './fileLinks';
 import type {ImgRef} from './Images';
 
 /* The activity view: tool calls turned into plain sentences, grouped the way a person would describe them ("Ran 2 commands, edited a file"),
    with the exact command, edit or output one click away. Works for Claude Code, Codex, the built-in agent and imported history. */
 type Kind='cmd'|'read'|'edit'|'search'|'web'|'tool';
 export interface FileEdit { file:string; add:number; del:number; text:string; note?:string }
-export interface Step { edits?:FileEdit[]; tool:string; kind:Kind; title:string; body:string; result?:string; failed?:boolean; running?:boolean; time?:string; images?:ImgRef[] }
+export interface Step { file?:string; edits?:FileEdit[]; tool:string; kind:Kind; title:string; body:string; result?:string; failed?:boolean; running?:boolean; time?:string; images?:ImgRef[] }
 export type RowItem={type:'event';e:HEvent}|{type:'steps';items:Step[];running:boolean}|{type:'files';files:FileEdit[]}|{type:'summary';files:number;add:number;del:number}|{type:'worked';ms:number};
 
 /** Lines added and removed by one edit: the common start and end are trimmed, the rest is what changed. */
@@ -82,7 +83,7 @@ export function stepOf(e:HEvent):Step{
   else if(j)body=JSON.stringify(j,null,2);else body=raw;
   const edits=kind==='edit'?editsOf(tool,e.Detail,j):undefined;
   if(kind==='edit'&&(!desc)&&edits&&edits.length===1&&edits[0].file)title=(/write/i.test(tool)?'Wrote ':'Edited ')+base(edits[0].file);
-  return {tool,kind,title,body:body.length>6000?body.slice(0,6000)+'\n...':body,time:e.TimeUtc,edits,images:refsOf(e.SessionId,e.Images)};
+  return {tool,kind,title,body:body.length>6000?body.slice(0,6000)+'\n...':body,time:e.TimeUtc,edits,images:refsOf(e.SessionId,e.Images),file:(kind==='read'||kind==='edit')?(file||edits?.[0]?.file||''):undefined};
 }
 
 const failedText=(t:string)=>/^(error|fatal|exception|command failed)\b/i.test(t.trim())||/\bexit code:?\s*[1-9]\d*\b/i.test(t)||/\bexited with code [1-9]/i.test(t);
@@ -136,7 +137,7 @@ function summary(items:Step[]):string{
 function StepRow({step}:{step:Step}){
   const has=!!step.body||!!step.result;const pics=step.images??[];
   return <details className={`step ${step.failed?'is-failed':''} ${step.running?'is-running':''}`}>
-    <summary><span className="step-ico">{step.running?<LoaderCircle size={14} className="ui-spin"/>:step.failed?<AlertTriangle size={14}/>:icon(step.kind)}</span><span className="step-title">{step.title}</span>{step.failed&&<span className="step-bad">failed</span>}{pics.length>0&&<Thumbs images={pics} max={3}/>}{has&&<ChevronRight size={14} className="step-chev"/>}</summary>
+    <summary><span className="step-ico">{step.running?<LoaderCircle size={14} className="ui-spin"/>:step.failed?<AlertTriangle size={14}/>:icon(step.kind)}</span><span className="step-title">{step.title}</span>{step.failed&&<span className="step-bad">failed</span>}{step.file&&<FileLink path={step.file} className="step-open">Open</FileLink>}{pics.length>0&&<Thumbs images={pics} max={3}/>}{has&&<ChevronRight size={14} className="step-chev"/>}</summary>
     {pics.length>0&&<div className="step-pics"><Thumbs images={pics} max={12} big/></div>}
     {step.body&&<pre className="step-code">{step.body}</pre>}
     {step.result!==undefined&&step.result!==''&&<pre className={`step-out ${step.failed?'is-bad':''}`}>{step.result.length>6000?step.result.slice(0,6000)+'\n…':step.result}</pre>}
@@ -171,7 +172,7 @@ const dirOf=(p:string)=>{const parts=p.split(/[\\/]/).filter(Boolean);return par
 /** One card per edited file, with how many lines were added and removed; open it to read the change. */
 export function FileCards({files}:{files:FileEdit[]}){
   return <div className="file-cards">{files.map(f=><details key={f.file} className="file-card">
-    <summary><FileCode2 size={15} className="fc-ico"/><span className="fc-name">{base(f.file)||'file'}</span>{dirOf(f.file)&&<span className="fc-dir">{dirOf(f.file)}</span>}
+    <summary><FileCode2 size={15} className="fc-ico"/><span className="fc-name">{base(f.file)||'file'}</span>{dirOf(f.file)&&<span className="fc-dir">{dirOf(f.file)}</span>}{f.file&&<FileLink path={f.file} className="step-open">Open</FileLink>}
       <span className="fc-stats">{f.add>0&&<b className="fc-add">+{f.add}</b>}{f.del>0&&<b className="fc-del">−{f.del}</b>}{f.add===0&&f.del===0&&<em>{f.note??'Changed'}</em>}</span><ChevronRight size={14} className="step-chev"/></summary>
     {f.text?<DiffText text={f.text}/>:<p className="step-empty">The change itself was not recorded.</p>}
   </details>)}</div>;

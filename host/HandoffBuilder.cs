@@ -230,6 +230,9 @@ namespace Laica
             sb.Append("\r\n");
         }
 
+        /// <summary>"src/a.ts (edited)" -> "`src/a.ts` (edited)": a path in code quotes is shown as a link in LAICA and reads well in an editor.</summary>
+        static string TickPath(string s) { int i = s.LastIndexOf(" ("); return i > 0 ? "`" + s.Substring(0, i) + "`" + s.Substring(i) : "`" + s + "`"; }
+
         public static string RenderManaged(HandoffInfo h)
         {
             var sb = new StringBuilder();
@@ -244,8 +247,8 @@ namespace Laica
             if (h.Recent.Count > 0) { sb.Append("### Recent conversation (newest last)\r\n"); foreach (string r in h.Recent) sb.Append(r).Append("\r\n\r\n---\r\n\r\n"); }
             var next = new List<string>(h.InProgress); if (h.NextSteps != "") next.Add("Agent note: " + h.NextSteps);
             Section(sb, "In progress and next steps", next, "Nothing waiting.");
-            Section(sb, "Verify first (may be half-written)", h.VerifyFirst, "None.");
-            Section(sb, "Files touched", h.Files.Concat(h.FolderOnly.Select(f => f + " (changed in the folder)")), "No files changed yet.");
+            Section(sb, "Verify first (may be half-written)", h.VerifyFirst.Select(TickPath), "None.");
+            Section(sb, "Files touched", h.Files.Select(TickPath).Concat(h.FolderOnly.Select(f => TickPath(f + " (changed in the folder)"))), "No files changed yet.");
             Section(sb, "Recent commands", h.Commands, "None.");
             if (h.Problems.Count > 0) Section(sb, "Problems reported", h.Problems, "None.");
             sb.Append("### Active constraints\r\n").Append(h.Constraints == "" ? "_None recorded._" : h.Constraints).Append("\r\n").Append(EndMark);
