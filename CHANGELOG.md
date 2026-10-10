@@ -3,6 +3,10 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.21.9]
+
+### Fixed
+- **The navigation rows hover like New chat.** Scheduled tasks, Plugins, Workflow designer and Activity show nothing at rest; on hover they take on exactly New chat's soft lavender fill. The glassy outline and bright top edge that used to appear around them on hover and on the open page is gone, and the open page has a slightly stronger fill with no outline. (0.21.8 tried to give the rows a permanent fill; that is undone, and New chat is back to how it was.)
 ## [0.21.8]
 
 ### Changed
