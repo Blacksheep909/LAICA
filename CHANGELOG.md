@@ -5,6 +5,9 @@ Every release is made with `Release-Edition.ps1`, which builds, runs every test 
 
 ## [0.23.1]
 
+### Fixed
+- **"Worked for 46h" under a turn.** The time was measured up to the next message you sent (or to now, for the last turn of an imported chat), so any gap between turns counted as work. It now stops at the last thing the agent did.
+
 ### Changed
 - **The activity view is shorter and closer to Codex's.** Empty "Thinking" pills are gone, and a thinking summary now becomes the title of the steps that follow it ("Repositioning the bridge · ran 3 commands, edited 2 files") instead of splitting them into many small groups. MCP tools are grouped by server ("used Fusion integration"). When more than three files were edited they fold into one "Edited N files" card.
 - **"Viewed an image".** Pictures an agent looks at (Codex's view image, or any tool that returns one) now show as a "Viewed an image" step with the thumbnail underneath, so you can see it without opening anything.

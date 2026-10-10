@@ -116,8 +116,9 @@ export function groupRows(events:HEvent[],busy:boolean):RowItem[]{
     }
     else if(e.Kind==='done'){
       flush();
-      let started=0;for(let i=events.indexOf(e)-1;i>=0;i--){if(events[i].Kind==='user'){started=Date.parse(events[i].TimeUtc)||0;break;}}
-      const ms=started?Date.parse(e.TimeUtc)-started:0;if(ms>=8000)out.push({type:'worked',ms});
+      // imported history stamps a turn's end with the time the next message arrived (or with now), so measure to the last thing the agent actually did
+      let started=0,ended=0;const at=events.indexOf(e);for(let i=at-1;i>=0;i--){if(!ended&&events[i].Kind!=='done')ended=Date.parse(events[i].TimeUtc)||0;if(events[i].Kind==='user'){started=Date.parse(events[i].TimeUtc)||0;break;}}
+      const ms=started&&ended?ended-started:0;if(ms>=8000)out.push({type:'worked',ms});
       summarize();
     }
     else{flush();if(think){out.push({type:'event',e:think});think=null;}if(e.Kind==='user')summarize();out.push({type:'event',e});}
