@@ -9,8 +9,7 @@ body{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
 
 /* chrome behaves like chrome: it is not selectable and its controls use the arrow, as in native apps. Content stays selectable. */
 .sidebar,.pv-head,.harness-meta,.compose-bar,.step>summary,.steps>summary,.file-card>summary,.file-group>summary,.pv-switch,.titlebar,.app-status,button,[role=button],[role=tab],summary,label.chk{-webkit-user-select:none;user-select:none}
-button,[role=button],[role=tab],[role=menuitem],[role=option],summary,select,label.chk,.nav-item{cursor:default}
-a[href],.file-link,.side-resize{}.side-resize{cursor:col-resize}
+button,[role=button],[role=tab],[role=menuitem],[role=option],summary,select,label.chk,.nav-item{cursor:default}.side-resize{cursor:col-resize}
 input,textarea,.hmsg,.hmsg *,.markdown,.pv-code,pre,code{-webkit-user-select:text;user-select:text}
 img{-webkit-user-drag:none;user-drag:none}
 
@@ -33,3 +32,9 @@ button,[role=tab],.nav-item,summary{transition-property:background-color,color,b
 button:disabled,[aria-disabled=true]{opacity:.45;cursor:default}
 
 /* motion respects the system setting everywhere, not screen by screen */
+
+/* every control uses the arrow, as native apps do; only real links show the hand */
+[class*="ogui-"]{cursor:default}
+a[href],.file-link{cursor:pointer}
+.side-resize{cursor:col-resize}
+.img-thumb{cursor:zoom-in}
