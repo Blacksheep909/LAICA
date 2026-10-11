@@ -37,3 +37,7 @@ Thumbs.db
 .vscode/
 .idea/
 server/bin/
+
+checks/bin/
+checks/obj/
+server/obj/

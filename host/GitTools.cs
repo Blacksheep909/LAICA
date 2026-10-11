@@ -23,7 +23,7 @@ namespace Laica
             {
                 try
                 {
-                    candidates.Add(Path.Combine(d.Trim(), "git.exe"));
+                    candidates.Add(Path.Combine(d.Trim(), Path.DirectorySeparatorChar == '/' ? "git" : "git.exe"));
                 }
                 catch (Exception swallowed)
                 {
@@ -33,6 +33,12 @@ namespace Laica
             string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
                 local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (Path.DirectorySeparatorChar == '/')
+            {
+                candidates.Add("/usr/bin/git");
+                candidates.Add("/usr/local/bin/git");
+                candidates.Add("/opt/homebrew/bin/git");
+            }
             candidates.Add(Path.Combine(pf, "Git", "cmd", "git.exe"));
             candidates.Add(Path.Combine(local, "Programs", "Git", "cmd", "git.exe"));
             try

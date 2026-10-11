@@ -139,6 +139,22 @@ namespace Laica
     /// <summary>Writes a file so that a crash or a full disk leaves the old content or the new one, never half of either.</summary>
     public static class Disk
     {
+        /// <summary>Marks a script executable on macOS and Linux (Windows has no such bit).</summary>
+        public static void MakeExecutable(string path)
+        {
+            if (Path.DirectorySeparatorChar != '/')
+                return;
+            try
+            {
+                using (var chmod = System.Diagnostics.Process.Start("chmod", "755 \"" + path + "\""))
+                    chmod.WaitForExit(5000);
+            }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
+        }
+
         public static void WriteText(string path, string text)
         {
             WriteBytes(path, new UTF8Encoding(false).GetBytes(text ?? ""));

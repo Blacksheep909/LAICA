@@ -183,7 +183,16 @@ namespace Laica
             return list.ToArray();
         }
 
+        /// <summary>Finds a program by its Windows file name ("claude.exe", "gemini.cmd"); on macOS and Linux the same program has no extension.</summary>
         static string FindOnPath(string file)
+        {
+            if (Path.DirectorySeparatorChar != '/')
+                return FindOnPathExact(file);
+            string bare = Regex.Replace(file, @"\.(exe|cmd|bat)$", "", RegexOptions.IgnoreCase);
+            return FindOnPathExact(bare);
+        }
+
+        static string FindOnPathExact(string file)
         {
             foreach (string d in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
             {
@@ -211,6 +220,11 @@ namespace Laica
                     Path.Combine(local, "Volta", "bin"),
                     Path.Combine(local, "pnpm"),
                     Path.Combine(local, "Programs", "gemini-cli"),
+                    "/usr/local/bin",
+                    "/opt/homebrew/bin",
+                    Path.Combine(home, ".npm-global", "bin"),
+                    Path.Combine(home, ".volta", "bin"),
+                    Path.Combine(home, ".cargo", "bin"),
                 }
             )
             {
@@ -962,8 +976,24 @@ namespace Laica
             }
         }
 
+        /// <summary>Stops an agent and everything it started. (Windows has taskkill; macOS and Linux walk the children with pgrep and kill them with kill.)</summary>
         static void KillTree(int pid)
         {
+            if (Path.DirectorySeparatorChar == '/')
+            {
+                try
+                {
+                    var found = new List<int>();
+                    CollectChildren(pid, found, 0);
+                    found.Reverse(); // the children first
+                    RunQuiet("kill", "-9 " + String.Join(" ", found.Select(x => x.ToString()).ToArray()));
+                }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
+                return;
+            }
             try
             {
                 using (
@@ -980,6 +1010,40 @@ namespace Laica
             catch (Exception swallowed)
             {
                 Log.Swallowed(swallowed);
+            }
+        }
+
+        static void CollectChildren(int pid, List<int> into, int depth)
+        {
+            into.Add(pid);
+            if (depth > 8)
+                return;
+            foreach (
+                string t in RunQuiet("pgrep", "-P " + pid)
+                    .Split(new[] { '\n', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+            )
+            {
+                int child;
+                if (Int32.TryParse(t, out child))
+                    CollectChildren(child, into, depth + 1);
+            }
+        }
+
+        static string RunQuiet(string exe, string args)
+        {
+            var psi = new ProcessStartInfo(exe, args)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            using (var p = Process.Start(psi))
+            {
+                var output = p.StandardOutput.ReadToEndAsync();
+                p.StandardError.ReadToEndAsync();
+                p.WaitForExit(5000);
+                return output.IsCompleted ? output.Result : "";
             }
         }
 
@@ -2780,7 +2844,10 @@ namespace Laica
             string root = Path.GetFullPath(cwd).TrimEnd('\\', '/');
             for (string p = full; p.Length > root.Length; p = Path.GetDirectoryName(p))
             {
-                if ((File.Exists(p) || Directory.Exists(p)) && (File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0)
+                if (
+                    (File.Exists(p) || Directory.Exists(p))
+                    && (File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0
+                )
                     throw new ArgumentException("That path goes through a link, so it can't be written from here.");
             }
             return full;

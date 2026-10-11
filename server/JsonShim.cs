@@ -15,7 +15,7 @@ namespace System.Web.Script.Serialization
         readonly JsonSerializerOptions options;
         public JavaScriptSerializer()
         {
-            options = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = null, DictionaryKeyPolicy = null, MaxDepth = 256, NumberHandling = JsonNumberHandling.AllowReadingFromString, ReadCommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
+            options = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = null, DictionaryKeyPolicy = null, MaxDepth = 256, NumberHandling = JsonNumberHandling.AllowReadingFromString, ReadCommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
             options.Converters.Add(new NaturalConverter());
         }
         public string Serialize(object value) { return JsonSerializer.Serialize(value, options); }

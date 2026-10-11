@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -95,6 +96,18 @@ namespace Laica
 
         static void SuspendTree(int pid, bool suspend)
         {
+            if (Path.DirectorySeparatorChar == '/')
+            {
+                var found = new List<int>();
+                CollectChildren(pid, found, 0); // the process and every descendant, parents first
+                if (!suspend)
+                    found.Reverse();
+                RunQuiet(
+                    "kill",
+                    (suspend ? "-STOP " : "-CONT ") + String.Join(" ", found.Select(x => x.ToString()).ToArray())
+                );
+                return;
+            }
             var all = ProcessTree(pid);
             if (!suspend)
                 all.Reverse();

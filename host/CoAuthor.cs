@@ -24,7 +24,14 @@ namespace Laica
 name=$(basename ""$0"")
 common=$(git rev-parse --git-common-dir 2>/dev/null)
 repo=""$common/hooks/$name""
+run=0
 if [ -f ""$repo"" ] && [ ""$repo"" != ""$0"" ]; then
+  case ""$(uname -s)"" in
+    MINGW*|MSYS*|CYGWIN*) run=1 ;;
+    *) [ -x ""$repo"" ] && run=1 ;;
+  esac
+fi
+if [ ""$run"" = 1 ]; then
   ""$repo"" ""$@"" || exit $?
 fi
 if [ ""$name"" = ""commit-msg"" ] && [ -n ""$LAICA_COAUTHOR"" ]; then
@@ -124,7 +131,10 @@ exit 0
                 {
                     string p = Path.Combine(h, n);
                     if (!File.Exists(p) || !File.ReadAllBytes(p).SequenceEqual(bytes))
+                    {
                         File.WriteAllBytes(p, bytes);
+                        Disk.MakeExecutable(p); // git ignores a hook that is not executable
+                    }
                 }
             }
             catch (Exception swallowed)

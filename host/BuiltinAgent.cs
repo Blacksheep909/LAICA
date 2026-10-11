@@ -515,8 +515,18 @@ namespace Laica
                 ),
                 Tool(
                     "run_command",
-                    "Run a PowerShell command in the working folder (2 minute limit).",
-                    new Dictionary<string, object> { { "command", P("PowerShell command line") } },
+                    (
+                        Path.DirectorySeparatorChar == '/'
+                            ? "Run a shell command (sh) in the working folder (2 minute limit)."
+                            : "Run a PowerShell command in the working folder (2 minute limit)."
+                    ),
+                    new Dictionary<string, object>
+                    {
+                        {
+                            "command",
+                            P(Path.DirectorySeparatorChar == '/' ? "Shell command line" : "PowerShell command line")
+                        },
+                    },
                     "command"
                 ),
                 Tool(
@@ -747,19 +757,8 @@ namespace Laica
 
         static string RunPowerShell(string cwd, string command, CancellationToken token)
         {
-            string ps = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.System),
-                "WindowsPowerShell",
-                "v1.0",
-                "powershell.exe"
-            );
-            string enc = Convert.ToBase64String(
-                Encoding.Unicode.GetBytes("$ErrorActionPreference='Continue'; " + command)
-            );
             var psi = new ProcessStartInfo
             {
-                FileName = ps,
-                Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand " + enc,
                 WorkingDirectory = cwd,
                 UseShellExecute = false,
                 CreateNoWindow = true,
@@ -767,6 +766,24 @@ namespace Laica
                 RedirectStandardError = true,
                 RedirectStandardInput = true,
             };
+            if (Path.DirectorySeparatorChar == '/')
+            {
+                psi.FileName = File.Exists("/bin/sh") ? "/bin/sh" : "sh";
+                psi.Arguments = "-c " + Quote(command);
+            }
+            else
+            {
+                psi.FileName = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.System),
+                    "WindowsPowerShell",
+                    "v1.0",
+                    "powershell.exe"
+                );
+                string enc = Convert.ToBase64String(
+                    Encoding.Unicode.GetBytes("$ErrorActionPreference='Continue'; " + command)
+                );
+                psi.Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand " + enc;
+            }
             if (coEnv != null)
                 coEnv(psi, cwd);
             var sb = new StringBuilder();
