@@ -62,7 +62,12 @@ jobs:
           pnpm test
           pnpm exec vite build --base ./
           node ../checks/contract.mjs
-      - name: Engine (.NET 8)
+      - name: Formatting
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          dotnet tool restore
+          dotnet csharpier check host core checks server
+      - name: Engine (.NET 8, unused code is an error)
         run: dotnet build server/LAICA.Server.csproj -c Release -nologo
       - name: Engine checks
         run: dotnet run --project checks/LAICA.Checks.csproj -c Release

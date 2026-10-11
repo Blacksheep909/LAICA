@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -795,8 +794,8 @@ namespace Laica
             var spec = specs[rec];
             var tried = new HashSet<string> { KeyOfSpec(spec) };
             string sid = Str(rec, "SessionId"),
-                text = "",
-                status = "done";
+                text,
+                status;
             while (true)
             {
                 WaitIdle(sid, token);

@@ -683,19 +683,6 @@ namespace Laica
             return fam[PriceClass(model)];
         }
 
-        bool IsVerified(string model)
-        {
-            string key = PriceKey(model);
-            lock (anaGate)
-            {
-                if (official == null)
-                    return false;
-                if (official.ContainsKey(key))
-                    return true;
-                return official.Keys.Any(k => key.StartsWith(k + "-"));
-            }
-        }
-
         public object PricesGet()
         {
             LoadVerifiedOnce();

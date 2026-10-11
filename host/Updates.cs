@@ -370,11 +370,9 @@ namespace Laica
         {
             string c = Path.GetFileNameWithoutExtension((command ?? "").Replace('"', ' ').Trim()).ToLowerInvariant();
             int start = -1;
-            string runner = "";
             if (c == "npx" || c == "uvx")
             {
                 start = 0;
-                runner = c;
             }
             else if (c == "cmd" || c == "powershell" || c == "pwsh")
                 for (int i = 0; i < args.Count; i++)
@@ -383,7 +381,6 @@ namespace Laica
                     if (a == "npx" || a == "uvx")
                     {
                         start = i + 1;
-                        runner = a;
                         break;
                     }
                 }

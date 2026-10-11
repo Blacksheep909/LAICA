@@ -1,7 +1,6 @@
 // .NET 8 has no System.Web.Script.Serialization. This is the small part of it LAICA uses, on top of System.Text.Json, so the same
 // backend source builds for Windows (.NET Framework), macOS and Linux (.NET 8). Numbers come back as int, long or double, arrays as
 // object[] and objects as Dictionary<string, object>, as they did before.
-using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;

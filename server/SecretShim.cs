@@ -1,9 +1,7 @@
 // Windows protects saved API keys and tokens with DPAPI (ProtectedData). macOS and Linux have no equivalent in the runtime, so the same calls
 // are answered here with AES-GCM and a random key kept in the user's own config folder (mode 600). That keeps secrets off disk in plain text,
 // but it is not a keychain: anything running as the same user can read the key. A Keychain / libsecret backend is the next step.
-using System;
 using System.IO;
-using System.Security.Cryptography;
 
 namespace System.Security.Cryptography
 {

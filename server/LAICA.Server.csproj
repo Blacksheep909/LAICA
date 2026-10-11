@@ -9,8 +9,10 @@
     <LangVersion>latest</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <NoWarn>CS0219;CS0414;CS0168;CS0169;CS0649;CS0618;SYSLIB0014;SYSLIB0021;SYSLIB0023</NoWarn>
+    <NoWarn>SYSLIB0014;SYSLIB0021;SYSLIB0023;CS1591;CS1573;CS1572;CS1587;CS1570;CS1574;CS1584;CS1658</NoWarn>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="JsonShim.cs;SecretShim.cs;Program.cs;$(IntermediateOutputPath)Version.g.cs" />

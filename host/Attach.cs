@@ -409,7 +409,7 @@ namespace Laica
                 if (d == null)
                     continue;
                 string type = Str(d, "type");
-                string data = "";
+                string data;
                 if (type == "image")
                 {
                     var src = Obj(d, "source");

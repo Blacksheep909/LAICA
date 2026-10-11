@@ -95,11 +95,6 @@ namespace Laica
             RecoveryChunk = 1024 * 1024;
         readonly string home,
             sessionsRoot;
-        readonly JavaScriptSerializer json = new JavaScriptSerializer
-        {
-            MaxJsonLength = 2 * 1024 * 1024,
-            RecursionLimit = 40,
-        };
         readonly Dictionary<string, Tail> tails = new Dictionary<string, Tail>(StringComparer.OrdinalIgnoreCase);
         readonly Dictionary<string, ActivitySnapshot> snapshots = new Dictionary<string, ActivitySnapshot>(
             StringComparer.OrdinalIgnoreCase
@@ -467,12 +462,6 @@ namespace Laica
             }
             string value = Regex.Replace(b.ToString(), @"\s+", " ").Trim();
             return value.Length == 0 ? null : Limit(value, 240);
-        }
-
-        string SessionId(string file)
-        {
-            var c = ReadChoice(file, new Dictionary<string, string>());
-            return c == null ? null : c.Id;
         }
 
         List<string> Enumerate()
@@ -1625,14 +1614,6 @@ namespace Laica
                 : null;
         }
 
-        static string SafeLabelPart(string x)
-        {
-            if (String.IsNullOrWhiteSpace(x))
-                return null;
-            string y = Regex.Replace(x.Trim(), @"[^A-Za-z0-9_.-]", "_");
-            return Limit(y, 80);
-        }
-
         static string SafeFileName(string path)
         {
             if (String.IsNullOrWhiteSpace(path))
@@ -1678,39 +1659,6 @@ namespace Laica
         {
             string phase = Text(p, "phase");
             return !String.IsNullOrEmpty(x) && (phase == "commentary" || phase == "final");
-        }
-
-        string ClassifyTool(Dictionary<string, object> p)
-        {
-            string name = Text(p, "name") ?? "tool";
-            string input = Text(p, "arguments") ?? Text(p, "input") ?? "";
-            if (name.IndexOf("exec", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                string cmd = Regex
-                    .Match(input, "(?:cmd|command)\\s*[:=]\\s*[\\\"']([^\\\"']{1,500})", RegexOptions.IgnoreCase)
-                    .Groups[1]
-                    .Value;
-                if (cmd.Length == 0)
-                    cmd = input;
-                string patch = ExtractPatchPath(input);
-                if (patch != null)
-                    return "edit requested · " + patch;
-                string category =
-                    Regex.IsMatch(cmd, "\\b(test|check|build|compile)\\b", RegexOptions.IgnoreCase) ? "test"
-                    : Regex.IsMatch(cmd, "\\b(rg|findstr|Select-String|Get-ChildItem|dir)\\b", RegexOptions.IgnoreCase)
-                        ? "search"
-                    : Regex.IsMatch(
-                        cmd,
-                        "\\b(Set-Content|Out-File|Add-Content|Move-Item|Remove-Item)\\b",
-                        RegexOptions.IgnoreCase
-                    )
-                        ? "edit"
-                    : Regex.IsMatch(cmd, "\\b(Get-Content|type|cat)\\b", RegexOptions.IgnoreCase) ? "read"
-                    : "command";
-                string path = ExtractStructuredPath(input) ?? ExtractCommandPath(cmd);
-                return (category == "edit" ? "edit requested" : category) + (path == null ? "" : " · " + path);
-            }
-            return "tool: " + Limit(name, 80);
         }
 
         void AddFiles(ActivitySnapshot s, ActivityAgent a, Dictionary<string, object> p, DateTime tm)
@@ -1828,48 +1776,6 @@ namespace Laica
                     a.Role = x.Role ?? a.Role;
                     a.Action = "assignment updated";
                 }
-        }
-
-        void CorrelateOutput(Dictionary<string, object> p)
-        {
-            string call = Text(p, "call_id");
-            PendingAssignment x;
-            if (String.IsNullOrEmpty(call) || !pending.TryGetValue(call, out x))
-                return;
-            string output = Text(p, "output") ?? Text(p, "text") ?? OutputText(Get(p, "output"));
-            foreach (
-                Match m in Regex.Matches(
-                    output,
-                    @"(?:threadId|thread_id|agent_id)\s*[:=]\s*[""']?([A-Za-z0-9_-]{8,80})",
-                    RegexOptions.IgnoreCase
-                )
-            )
-                assignments[m.Groups[1].Value] = x;
-            foreach (
-                Match m in Regex.Matches(
-                    output,
-                    @"(?:agent_path|task_name)\s*[:=]\s*[""']?([A-Za-z0-9_/-]{2,120})",
-                    RegexOptions.IgnoreCase
-                )
-            )
-                assignments[Path.GetFileName(m.Groups[1].Value.Replace('/', '\\'))] = x;
-            pending.Remove(call);
-        }
-
-        static string OutputText(object value)
-        {
-            var sb = new StringBuilder();
-            var items = value as System.Collections.IEnumerable;
-            if (items == null)
-                return "";
-            foreach (object item in items)
-            {
-                var d = item as Dictionary<string, object>;
-                string t = Text(d, "text");
-                if (t != null && sb.Length < 4000)
-                    sb.Append(Limit(t, 1000));
-            }
-            return sb.ToString();
         }
 
         static string FirstLine(string x)
