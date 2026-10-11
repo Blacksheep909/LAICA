@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Laica</RootNamespace>
+    <AssemblyName>laica-server</AssemblyName>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>CS0219;CS0414;CS0168;CS0169;CS0649;CS0618;SYSLIB0014;SYSLIB0021;SYSLIB0023</NoWarn>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="JsonShim.cs;SecretShim.cs;Program.cs;$(IntermediateOutputPath)Version.g.cs" />
+    <Compile Include="../core/Laica.Runtime.cs;../core/Laica.Services.cs;../core/Laica.Profiles.cs;../core/Laica.Observer.cs" />
+    <Compile Include="../host/WorkspaceBackend.cs;../host/HarnessManager.cs;../host/GitTools.cs;../host/BuiltinAgent.cs;../host/Teams.cs;../host/Usage.cs;../host/Pause.cs;../host/Attach.cs;../host/Plugins.cs;../host/PlanUsage.cs;../host/Analytics.cs;../host/Handoff.cs;../host/HandoffBuilder.cs;../host/TagTeam.cs;../host/CoAuthor.cs;../host/Updates.cs;../host/Computer.cs;../host/Extensions.cs;../host/Channels.cs;../host/History.cs;../host/CliNodes.cs;../host/Workflows.cs;../host/RemoteServer.cs" />
+  </ItemGroup>
+  <Target Name="StampVersion" BeforeTargets="BeforeCompile;CoreCompile">
+    <ReadLinesFromFile File="../VERSION"><Output TaskParameter="Lines" PropertyName="LaicaVersion" /></ReadLinesFromFile>
+    <WriteLinesToFile File="$(IntermediateOutputPath)Version.g.cs" Overwrite="true" Lines="namespace Laica { public static class AppVersion { public const string Value = &quot;$(LaicaVersion)&quot;%3B } }" />
+  </Target>
+</Project>

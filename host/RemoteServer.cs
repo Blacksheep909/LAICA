@@ -125,8 +125,8 @@ namespace Laica
             if (r.Method != "GET" && r.Method != "HEAD") { Respond(s, 405, "text/plain", "Method not allowed"); return; }
             if (r.Path == "/remote-flag.js") { Respond(s, 200, "application/javascript", "window.__LAICA_REMOTE__=true;"); return; }
             string rel = r.Path == "/" ? "index.html" : r.Path.TrimStart('/');
-            string full; try { full = Path.GetFullPath(Path.Combine(assets, rel.Replace('/', '\\'))); } catch (Exception) { Respond(s, 400, "text/plain", "Bad path"); return; }
-            if (!full.StartsWith(assets + "\\", StringComparison.OrdinalIgnoreCase) || !File.Exists(full)) { Respond(s, 404, "text/plain", "Not found"); return; }
+            string full; try { full = Path.GetFullPath(Path.Combine(assets, rel.Replace('/', Path.DirectorySeparatorChar))); } catch (Exception) { Respond(s, 400, "text/plain", "Bad path"); return; }
+            if (!full.StartsWith(assets + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) || !File.Exists(full)) { Respond(s, 404, "text/plain", "Not found"); return; }
             Respond(s, 200, Mime(Path.GetExtension(full)), File.ReadAllBytes(full));
         }
         static string Mime(string ext)
