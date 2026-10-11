@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useMemo,useState} from 'react';
-import {Button,Glass,Dialog,useToast} from 'open-glass-ui';
+import {Button,Dialog,useToast} from 'open-glass-ui';
+import {Glass} from './ui/kit';
 import {Wrench,Bot,Sparkles,Code2,Globe,Palette,NotebookPen,Database,BookOpen,Search,Check,X,Download,Wand2,Monitor,TriangleAlert,Folder,FileText} from 'lucide-react';
 import type {ReactNode} from 'react';
 import {request,isDesktop,isRemote} from './bridge';

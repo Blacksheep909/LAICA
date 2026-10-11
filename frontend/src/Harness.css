@@ -47,12 +47,12 @@
 .pv-md{padding:4px 16px 16px;font-size:13px}.pv-html{width:100%;height:100%;border:0;background:#fff}.pv-image{padding:14px;display:grid;place-items:center}.pv-image img{max-width:100%;border-radius:8px}
 .page-pad{display:flex;flex-direction:column;gap:14px}
 .grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-.acard{padding:18px 18px 14px;border-radius:18px!important;display:flex;flex-direction:column;gap:8px;min-height:150px}.acard h3{font-size:14px}.acard p{font-size:12px;flex:1}.acard .row{display:flex;gap:8px;justify-content:flex-end}
+.acard{padding:18px 18px 14px;display:flex;flex-direction:column;gap:8px;min-height:150px}.acard h3{font-size:14px}.acard p{font-size:12px;flex:1}.acard .row{display:flex;gap:8px;justify-content:flex-end}
 .tag{font-size:10px;letter-spacing:1px;color:#aba0c0}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form-grid .full{grid-column:1/-1}
 .form-grid label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#c5d0df}.form-grid textarea{background:rgba(8,7,14,.45);border:1px solid #e7daff24;border-radius:10px;color:#f2f0fa;padding:9px 10px;font-size:12px;line-height:1.55;min-height:90px;resize:vertical}
-.chk{flex-direction:row!important;align-items:center;gap:8px!important}
-.list-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:16px!important}.list-row .grow{flex:1;min-width:0}.list-row strong{display:block;font-size:13px}.list-row small{display:block;font-size:11px;color:#9a94ad;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chk{align-items:center}
+.list-row{display:flex;align-items:center;gap:12px;padding:13px 16px}.list-row .grow{flex:1;min-width:0}.list-row strong{display:block;font-size:13px}.list-row small{display:block;font-size:11px;color:#9a94ad;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pill{font-size:10px;padding:2px 8px;border-radius:99px;background:#ffffff12;color:#c9c3dc}.pill.ok{background:rgba(110,200,140,.18);color:#a8e0bd}.pill.no{background:rgba(230,110,110,.16);color:#f0b0b0}
 @media(max-width:1100px){.harness.with-panel{grid-template-columns:200px minmax(0,1fr)}.hpanel{display:none}}
 @media(max-width:850px){.harness{grid-template-columns:minmax(0,1fr)}.hside{max-height:200px}}

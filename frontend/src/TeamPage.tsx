@@ -1,7 +1,8 @@
 import {TeamHandoffSelect,TeamContinue} from './Handoff';
 import type {HandoffChoice} from './Handoff';
 import {useEffect,useMemo,useState} from 'react';
-import {Button,Glass,useToast} from 'open-glass-ui';
+import {Button,useToast} from 'open-glass-ui';
+import {Glass} from './ui/kit';
 import {Select} from './GlassSelect';
 import {Plus,Play,Pause,Square,Trash2,Users,MessageSquare,Pencil,GitBranch,ArrowRightLeft} from 'lucide-react';
 import {request,isDesktop} from './bridge';
@@ -9,7 +10,6 @@ import {pushUndo,runUndo} from './undo';
 import {Markdown} from './markdown';
 import {useHarness,modeLabel} from './harness-store';
 import type {Service,Model} from './types';
-import './Harness.css';
 
 interface Spec { Harness:string; Mode:string; ServiceId:string; Model:string }
 interface Member extends Spec { Name:string; Role:string }

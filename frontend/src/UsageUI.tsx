@@ -1,11 +1,11 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {Button,Glass,useToast} from 'open-glass-ui';
+import {Button,useToast} from 'open-glass-ui';
 import {Gauge,AlertTriangle,ArrowRightLeft,Check,ChevronRight,Info} from 'lucide-react';
 import {Select} from './GlassSelect';
 import {request,isDesktop} from './bridge';
 import {useHarness} from './harness-store';
 import type {VendorUsage,PlanWindow} from './harness-store';
-import {Progress,Tip} from './ui/kit';
+import {Progress,Tip,Glass} from './ui/kit';
 
 const fmt=(n:number)=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?Math.round(n/1e3)+'k':String(n);
 const tone=(p:number)=>p>=95?'bad':p>=80?'warn':'ok';

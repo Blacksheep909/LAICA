@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react';
 import type {ReactNode} from 'react';
-import {Button,Glass} from 'open-glass-ui';
+import {Button} from 'open-glass-ui';
+import {Glass} from './ui/kit';
 import {Lock} from 'lucide-react';
 import {isRemote,hasToken,remoteLogin} from './bridge';
 

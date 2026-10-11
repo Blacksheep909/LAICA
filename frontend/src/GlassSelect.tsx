@@ -1,7 +1,7 @@
 import {useCallback,useEffect,useId,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import type {ReactNode} from 'react';
 import {createPortal} from 'react-dom';
-import {Glass} from 'open-glass-ui';
+import {Glass} from './ui/kit';
 import {Check,ChevronDown,Search} from 'lucide-react';
 
 export interface GlassOption { value:string; label:string; description?:string; group?:string; icon?:ReactNode; disabled?:boolean }

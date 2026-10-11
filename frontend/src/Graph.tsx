@@ -1,9 +1,8 @@
 import {useCallback,useEffect,useId,useMemo,useRef,useState} from 'react';
-import {Button,Glass,IconButton} from 'open-glass-ui';
+import {Button,IconButton,Glass} from 'open-glass-ui';
 import {ArrowDownToLine,Trash2,Copy,Focus,Frame,GitBranch,Grid2X2,Minus,MousePointer2,Plus,Redo2,Search,Undo2,Waypoints,Link2} from 'lucide-react';
 import type {AgentPlan} from './types';
 import {allEdges,clonePlan,defaultLayout,deleteWorker,disconnectLink,hiddenLink,isStage,linkKey,linksAt,MAX_NODES,NODE_H,NODE_W,reconnectLink,remapDuplicate,sideAllows,snapped,stagePoint,STAGE_IDS,type EndpointSide,type StageId} from './graph-model';
-import './Graph.css';
 type Props={plan:AgentPlan;onChange:(plan:AgentPlan)=>void;selectedId:string;onSelect:(id:string)=>void;locked:boolean;snap:boolean;onHint:(message:string)=>void;nodeStates:Record<string,string>;solo:boolean};
 type Point={x:number;y:number};
 type Edge={from:string;to:string};

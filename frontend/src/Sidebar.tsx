@@ -1,10 +1,10 @@
 import {useMemo,useState} from 'react';
-import {Button,Glass} from 'open-glass-ui';
+import {Button} from 'open-glass-ui';
 import {Pin,PinOff,Pencil,Download,FolderSearch,Trash2,Store,Plus,SquarePen,Search,CalendarClock,Sparkles,Workflow,Activity as ActivityIcon,FolderOpen,Folder,MessageSquare,X,Settings,Plug,BookOpen,GitBranch,ChevronDown,ChevronRight,Minus,Users,RefreshCw,FolderPlus,History as HistoryIcon} from 'lucide-react';
 import {useHarness} from './harness-store';
 import type {TeamRun} from './harness-store';
 import {request,isRemote} from './bridge';
-import {ContextMenu,ContextMenuTrigger,ContextMenuContent,ContextMenuItem,ContextMenuSeparator,Dialog,DialogContent,DialogTitle,DialogDescription,Tip,WorkingGlyph} from './ui/kit';
+import {ContextMenu,ContextMenuTrigger,ContextMenuContent,ContextMenuItem,ContextMenuSeparator,Dialog,DialogContent,DialogTitle,DialogDescription,Tip,WorkingGlyph,Glass} from './ui/kit';
 import {Elapsed} from './Steps';
 import AnalyticsButton from './Analytics';
 import {buildProjects,projectOf} from './projects';

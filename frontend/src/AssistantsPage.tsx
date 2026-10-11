@@ -1,12 +1,12 @@
 import {useEffect,useState} from 'react';
-import {Button,Glass,Dialog,useToast} from 'open-glass-ui';
+import {Button,Dialog,useToast} from 'open-glass-ui';
+import {Glass} from './ui/kit';
 import {Select} from './GlassSelect';
 import {Plus,Play,Pencil,Trash2} from 'lucide-react';
 import {request,isDesktop} from './bridge';
 import {builtinAssistants} from './assistants-data';
 import type {Assistant} from './assistants-data';
 import type {HarnessInfo} from './harness-store';
-import './Harness.css';
 
 export default function AssistantsPage({workingDirectory,onStarted}:{workingDirectory:string;onStarted:(id:string)=>void}){
   const {toast}=useToast();

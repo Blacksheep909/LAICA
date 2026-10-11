@@ -7,13 +7,13 @@ import {loadLook,saveLook,DEFAULT_LOOK,ACCENTS,type Look,type GlassKind} from '.
 import {getDictationMode,setDictationMode} from './Composer';
 import type {DictationMode} from './Composer';
 import {useCallback,useEffect,useState} from 'react';
-import {Button,Glass,Dialog,Switch,useToast} from 'open-glass-ui';
+import {Button,Dialog,Switch,useToast} from 'open-glass-ui';
+import {Glass} from './ui/kit';
 import {Select} from './GlassSelect';
 import {Plus,Trash2,Pencil,Send,Globe,ShieldAlert,Copy} from 'lucide-react';
 import {request,subscribe,isDesktop,isRemote} from './bridge';
 import {useHarness,modeLabel} from './harness-store';
 import type {Service,Model} from './types';
-import './Harness.css';
 
 export const CSS_KEY='laica-custom-css';
 interface Item { Name:string; Source:string; Target:string; Detail:string }

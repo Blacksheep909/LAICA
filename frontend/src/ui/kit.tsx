@@ -102,3 +102,9 @@ export const Empty=({icon,title,children}:{icon?:React.ReactNode;title:string;ch
 export const WorkingGlyph=({size=14,paused}:{size?:number;paused?:boolean})=>paused
   ?<span className="work-glyph is-paused" style={{width:size,height:size}} role="img" aria-label="Paused"><i/><i/></span>
   :<span className="work-glyph" style={{width:size,height:size}} role="img" aria-label="Working"/>;
+/** A surface of the app's own glass look. The library's Glass writes background, blur and shadow as inline styles, which no stylesheet
+    can override without !important; this one is a plain element, and every pixel of its look comes from the stylesheet. */
+export interface SurfaceProps extends React.HTMLAttributes<HTMLElement> { as?:keyof React.JSX.IntrinsicElements; material?:string; tone?:string; interactive?:boolean; optics?:unknown; renderer?:string; source?:string; look?:unknown; geometry?:unknown; filterId?:string }
+export const Glass=React.forwardRef<HTMLElement,SurfaceProps>(function Glass({as='div',material:_m,tone:_t,interactive:_i,optics:_o,renderer:_r,source:_s,look:_l,geometry:_g,filterId:_f,children,...rest},ref){
+  return React.createElement(as as string,{...rest,ref,'data-ogui-glass':''},children);
+});

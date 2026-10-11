@@ -26,7 +26,6 @@ input:focus-visible,textarea:focus-visible{outline:none}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:transparent;border-radius:999px;border:3px solid transparent;background-clip:content-box}
 *:hover::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,.2)}
-::-webkit-scrollbar-thumb:hover{background-color:rgba(255,255,255,.34)!important}
 
 /* a press is felt: controls dip a little under the pointer, and let go with the same spring they pressed with */
 button:not(:disabled):active,[role=tab]:active,.nav-item:active{transform:scale(.975)}
@@ -34,4 +33,3 @@ button,[role=tab],.nav-item,summary{transition-property:background-color,color,b
 button:disabled,[aria-disabled=true]{opacity:.45;cursor:default}
 
 /* motion respects the system setting everywhere, not screen by screen */
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}.ui-spin,.work-glyph,.live-dot,.screen-dot.live{animation-duration:2.4s!important;animation-iteration-count:infinite!important}}

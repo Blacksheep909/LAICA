@@ -1,6 +1,6 @@
 import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Glass} from 'open-glass-ui';
+import {Glass} from './ui/kit';
 import {Minus,Square,Copy,X,ArrowLeft,ArrowRight,PanelLeft} from 'lucide-react';
 import {request,subscribe} from './bridge';
 

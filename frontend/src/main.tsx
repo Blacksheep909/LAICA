@@ -1,14 +1,7 @@
 import React,{useEffect,useMemo,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {GlassSystemProvider} from 'open-glass-ui';
-import 'open-glass-ui/styles.css';
-import './workspace.css';
-import './Shell.css';
-import './GlassSelect.css';
-import './Polish.css';
-import './Liquid.css';
-import './ui/ui.css';
-import './Finish.css';
+import './styles.css';
 import {installLens} from './lens';
 import {TooltipProvider} from './ui/kit';
 import {HarnessProvider} from './harness-store';

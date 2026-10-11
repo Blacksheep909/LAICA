@@ -1,11 +1,11 @@
 import {useEffect,useMemo,useState} from 'react';
-import {Button,Glass,SegmentedControl,useToast} from 'open-glass-ui';
+import {Button,SegmentedControl,useToast} from 'open-glass-ui';
+import {Glass} from './ui/kit';
 import {Select} from './GlassSelect';
 import {Activity as ActivityIcon,ArrowUpRight,Check,ChevronRight,Clock,Copy,Download,FileCode2,GitBranch,Globe,Layers,Search,Terminal,Workflow,X} from 'lucide-react';
 import {isDesktop,request} from './bridge';
 import type {Activity,ActivityAgent,ActivityEvent,Session,TeamSummary,WorkspaceState} from './types';
 import {concreteEvent,crewFor,eventTitle,eventsFor,recordedWorking,stateLabel,timestamp,workArea,type WorkArea} from './activity-model';
-import './Activity.css';
 
 const areaNames:Record<WorkArea,string>={terminal:'Commands',files:'Files',browser:'Browser & computer',handoff:'Handoffs',update:'Updates'};
 const areaIcons={terminal:Terminal,files:FileCode2,browser:Globe,handoff:GitBranch,update:ActivityIcon};

@@ -1,10 +1,10 @@
 import {useCallback,useEffect,useState} from 'react';
-import {Button,Glass,Dialog,useToast} from 'open-glass-ui';
+import {Button,Dialog,useToast} from 'open-glass-ui';
+import {Glass} from './ui/kit';
 import {Select} from './GlassSelect';
 import {Plus,Play,Pencil,Trash2,Clock} from 'lucide-react';
 import {request,subscribe,isDesktop} from './bridge';
 import type {HarnessInfo} from './harness-store';
-import './Harness.css';
 
 interface Task { Id:string; Name:string; Kind:'interval'|'cron'|'once'; Prompt:string; Harness:string; Cwd:string; Mode:string; Cron:string; Minutes:number; RunAt:string; Enabled:boolean; NewSession:boolean; Isolate:boolean; SessionId:string; LastRunUtc:string }
 const blank=(cwd:string,harness:string):Task=>({Id:'',Name:'',Kind:'interval',Prompt:'',Harness:harness,Cwd:cwd,Mode:'',Cron:'0 9 * * 1-5',Minutes:60,RunAt:'',Enabled:true,NewSession:true,Isolate:false,SessionId:'',LastRunUtc:''});

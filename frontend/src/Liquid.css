@@ -19,131 +19,72 @@
 }
 
 /* ---------- scene: a luminous, slow backdrop so glass has something to bend ---------- */
-.app{background:radial-gradient(120% 90% at 50% -10%,#14102b 0%,#08071a 55%,#05040f 100%)!important}
-.app:before{inset:-10%!important;opacity:1!important;animation:scene-a 70s ease-in-out infinite alternate!important;will-change:transform;
-  background:
-    radial-gradient(38% 34% at 14% 10%,rgba(124,92,255,.17),transparent 68%),
-    radial-gradient(34% 32% at 88% 14%,rgba(52,140,255,.11),transparent 70%),
-    radial-gradient(40% 36% at 78% 96%,rgba(255,92,180,.09),transparent 70%),
-    radial-gradient(32% 32% at 26% 92%,rgba(40,210,190,.07),transparent 70%)!important}
+.app:before{will-change:transform}
 @keyframes scene-a{from{transform:translate3d(-2%,-1%,0) scale(1)}to{transform:translate3d(2.5%,2%,0) scale(1.08)}}
 .starfield{opacity:.55}
-:root[data-backdrop="plain"] .app:before{opacity:.6!important}
 
 /* ---------- connected layout: the sidebar is part of the window ---------- */
-.app{--sbw:280px;padding:0!important;gap:0!important;grid-template-columns:var(--sbw) minmax(0,1fr)!important}
-.app.sidebar-hidden{grid-template-columns:minmax(0,1fr)!important}
-.app.has-titlebar{padding-top:0!important}
-.main{padding:0!important}
-.app.has-titlebar .main{padding-top:40px!important}
-.page-header{padding:6px 28px 0!important}
+.app{--sbw:280px}
 
 .sidebar.navigation{
-  height:100%;margin:0!important;border:0!important;border-radius:0!important;padding:14px 10px 8px!important;
-  background:var(--glass-sheen),rgba(14,12,30,.42)!important;
-  backdrop-filter:blur(34px) saturate(1.7) brightness(1.04)!important;-webkit-backdrop-filter:blur(34px) saturate(1.7) brightness(1.04)!important;
-  box-shadow:inset -1px 0 0 var(--hair),18px 0 50px -30px rgba(0,0,0,.65)!important}
-.app.has-titlebar .sidebar.navigation{padding-top:46px!important}
-.sidebar.navigation::after,[data-ogui-glass]::after{display:none!important}
+  height:100%}
 
-.sidebar .brand{margin:0 6px 10px!important;gap:10px}
+.sidebar .brand{gap:10px}
 .sidebar .brand>div span{display:none}
 .sidebar .brand strong{font-size:15px;font-weight:640;letter-spacing:-.02em}
 .sidebar .brand-mark{width:26px;height:26px;border-radius:8px}
-.sidebar .new-chat-btn,.sidebar .side-search,.sidebar .side-nav .nav-item,.sidebar .side-item{
-  border:0!important;box-shadow:none!important;border-radius:11px!important;background:transparent!important;color:var(--ink-2);font-size:13px;font-weight:500}
-.sidebar .new-chat-btn{height:34px;margin:0 0 2px;padding:0 10px;color:var(--ink)!important;gap:11px}
+.sidebar .new-chat-btn,.sidebar .side-search,.sidebar .side-nav .nav-item,.sidebar .side-item{color:var(--ink-2);font-size:13px;font-weight:500}
+.sidebar .new-chat-btn{height:34px;margin:0 0 2px;padding:0 10px;gap:11px}
 .sidebar .new-chat-btn .nc-plus{display:none}
 .sidebar .new-chat-btn svg{color:var(--accent)}
-.sidebar .side-search{height:34px;margin:0 0 6px;padding:0 10px;background:rgba(255,255,255,.05)!important}
+.sidebar .side-search{height:34px;margin:0 0 6px;padding:0 10px}
 .sidebar .side-search input{font-size:13px}
-.sidebar .side-nav .nav-item{height:34px!important;min-height:34px!important;padding:0 10px!important;gap:11px!important}
-.sidebar .new-chat-btn:hover,.sidebar .side-nav .nav-item:hover,.sidebar .side-item:hover{background:rgba(255,255,255,.07)!important;color:var(--ink)}
-.sidebar .side-nav .nav-item.active,.sidebar .side-item.on{background:rgba(255,255,255,.115)!important;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.1)!important}
+.sidebar .new-chat-btn:hover,.sidebar .side-nav .nav-item:hover,.sidebar .side-item:hover{color:var(--ink)}
+.sidebar .side-nav .nav-item.active,.sidebar .side-item.on{color:#fff}
 .sidebar .side-nav .nav-item svg,.sidebar .side-item>svg{color:var(--ink-3);stroke-width:1.75}
 .sidebar .side-nav .nav-item.active svg,.sidebar .side-item.on>svg{color:var(--accent)}
-.sidebar .side-section{margin:16px 8px 4px!important;font-size:12px!important;font-weight:560;letter-spacing:0!important;text-transform:none!important;color:var(--ink-3)!important}
+.sidebar .side-section{font-weight:560}
 .sidebar .side-section span:first-child{font-size:12px}
-.sidebar .side-item{min-height:30px;padding:0 8px!important;gap:9px}
+.sidebar .side-item{min-height:30px;gap:9px}
 .sidebar .side-item.project{font-weight:560;color:var(--ink)}
 .sidebar .side-chev{display:none}
-.sidebar .side-item.thread.nested{margin-left:12px;padding-left:12px!important;position:relative}
+.sidebar .side-item.thread.nested{margin-left:12px;position:relative}
 .sidebar .side-item.thread.nested:before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:1px;background:var(--hair)}
 .sidebar .thread-ico{display:none}
 .sidebar .side-item.thread{color:var(--ink-2)}
 .sidebar .side-title{font-weight:inherit}
 .sidebar .side-item small{font-size:11px;color:var(--ink-3)}
-.sidebar .prov{background:transparent!important;padding:0 2px!important;font-size:9px!important;opacity:.8;letter-spacing:.07em}
+.sidebar .prov{opacity:.8;letter-spacing:.07em}
 .sidebar .thread-age{display:none}
 .sidebar .side-item.thread:hover .thread-age{display:none}
-.sidebar .side-foot{border-top:1px solid var(--hair)!important;margin:8px -10px 0!important;padding:8px 14px 4px!important}
-.sidebar .side-icons .ogui-button{border-radius:10px!important}
 .sidebar .side-scroll{margin:0 -4px;padding:0 4px}
 
 /* ---------- content layer: calm, flat, no glass ---------- */
-.setting-card,.acard,.connection-row,.plugin-card,.assistant-card,.hside,.card{
-  background:rgba(255,255,255,.04)!important;border:1px solid var(--hair)!important;border-radius:20px!important;box-shadow:none!important;
-  backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-.plugin-card:hover,.assistant-card:hover,.acard:hover{background:rgba(255,255,255,.065)!important;border-color:var(--hair-2)!important}
-.settings-content,.plugins-page,.home{padding-left:28px!important;padding-right:28px!important}
-.hpanel{background:rgba(255,255,255,.028)!important;border:0!important;border-left:1px solid var(--hair)!important;border-radius:0!important;box-shadow:none!important;
-  backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 
 /* ---------- chat: content flows edge to edge, glass floats above it ---------- */
-.chat{gap:0!important;height:100%}
-.harness-stream{position:relative;background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;
-  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;padding:0!important}
-.harness-log{position:absolute!important;inset:0;overflow-y:auto;
-  padding:84px max(28px,calc((100% - 820px)/2)) 170px!important;gap:16px!important;
+.chat{height:100%}
+.harness-stream{position:relative}
+.harness-log{inset:0;overflow-y:auto;
   -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 78px,#000 calc(100% - 150px),transparent calc(100% - 28px));
   mask-image:linear-gradient(to bottom,transparent 0,#000 78px,#000 calc(100% - 150px),transparent calc(100% - 28px))}
-.harness-meta{position:absolute;top:12px;left:20px;right:20px;z-index:6;padding:9px 14px!important;border-bottom:0!important}
-.harness-compose{position:absolute;left:max(20px,calc((100% - 840px)/2));right:max(20px,calc((100% - 840px)/2));bottom:18px;z-index:6;padding:10px 12px 10px!important;gap:6px!important;border-top:0!important}
-.harness-compose textarea{background:transparent!important;border:0!important;box-shadow:none!important;padding:8px 6px!important;min-height:44px}
-.harness-compose textarea:focus{background:transparent!important;box-shadow:none!important}
-.harness-compose:focus-within{box-shadow:0 1px 1px rgba(0,0,0,.35),0 0 0 4px rgba(160,140,255,.14),0 22px 54px -16px rgba(0,0,0,.65)!important}
+.harness-meta{position:absolute;top:12px;left:20px;right:20px;z-index:6}
+.harness-compose{position:absolute;left:max(20px,calc((100% - 840px)/2));right:max(20px,calc((100% - 840px)/2));bottom:18px;z-index:6}
+.harness-compose textarea{min-height:44px}
 
 /* ---------- the glass layer ---------- */
 .harness-meta,.harness-compose,.composer,.gs-pop,.palette,.usage-pop,.ogui-toast,.ogui-dialog,[role=dialog].ogui-glass,.menu-pop{
-  position:relative;
-  background:var(--pointer),var(--glass-sheen),var(--glass-tint)!important;background-attachment:fixed,scroll,scroll!important;
-  backdrop-filter:var(--lens,blur(0px)) blur(var(--blur,22px)) saturate(1.9) brightness(1.1)!important;
-  -webkit-backdrop-filter:var(--lens,blur(0px)) blur(var(--blur,22px)) saturate(1.9) brightness(1.1)!important;
-  border:0!important;
-  box-shadow:0 1px 1px rgba(0,0,0,.4),0 22px 54px -18px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.1),inset 0 -14px 24px -18px rgba(255,255,255,.05)!important}
-.harness-meta,.harness-compose,.composer{border-radius:26px!important}
-.harness-meta{border-radius:22px!important}
-.gs-pop,.palette,.ogui-toast,.menu-pop{border-radius:22px!important}
+  position:relative}
 .harness-meta::before,.harness-compose::before,.composer::before,.gs-pop::before,.palette::before,.usage-pop::before,.ogui-toast::before,.ogui-dialog::before,.menu-pop::before,.sidebar.navigation::before{
   content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:var(--rim);pointer-events:none;z-index:2;
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 .sidebar.navigation::before{border-radius:0;background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,.04) 30%,rgba(255,255,255,.02) 70%,rgba(255,255,255,.12));padding:0 1px 0 0;inset:0 0 0 auto;width:1px}
-.composer:focus-within{box-shadow:0 1px 1px rgba(0,0,0,.35),0 0 0 4px rgba(160,140,255,.14),0 26px 60px -18px rgba(0,0,0,.7)!important}
-.composer textarea{background:transparent!important}
-.solid-material .harness-meta,.solid-material .harness-compose,.solid-material .composer,.solid-material .gs-pop,.solid-material .palette,.solid-material .usage-pop,.solid-material .ogui-toast{
-  background:#1b1830!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-@media (prefers-reduced-transparency:reduce){.harness-meta,.harness-compose,.composer,.gs-pop,.palette,.usage-pop,.ogui-toast,.sidebar.navigation{background:#1b1830!important;backdrop-filter:none!important}}
 
 /* ---------- controls: capsules, springy ---------- */
-.gs-trigger,.ogui-button:not(.ogui-button--primary):not(.ogui-button--quiet),.pfilter,.look-tile{
-  border:0!important;border-radius:999px!important;background:rgba(255,255,255,.075)!important;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.09),inset 0 1px 0 rgba(255,255,255,.12)!important}
-.gs-trigger:hover,.ogui-button:not(.ogui-button--primary):not(.ogui-button--quiet):hover{background:rgba(255,255,255,.12)!important}
-.look-tile{border-radius:18px!important}
-.ogui-button,.gs-trigger,.send-btn,.mic-btn,.pause-btn,.pfilter,.new-chat-btn,.side-item,.nav-item{transition:transform .35s var(--ease-spring),background .2s var(--ease-out),box-shadow .2s,color .2s!important}
 .ogui-button:active,.gs-trigger:active,.send-btn:active,.mic-btn:active,.pause-btn:active,.pfilter:active{transform:scale(.95)}
-.ogui-button--primary,.send-btn:not(:disabled){
-  background:linear-gradient(180deg,#c9bdff,#9b86f5)!important;color:#17102e!important;border:0!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 4px rgba(80,50,200,.25),0 8px 22px -8px rgba(140,110,255,.7)!important}
 .ogui-button--primary:hover,.send-btn:not(:disabled):hover{filter:brightness(1.06) saturate(1.05)}
-.send-btn:disabled{background:rgba(255,255,255,.08)!important;color:var(--ink-3)!important;box-shadow:inset 0 0 0 1px var(--hair)!important}
 svg.lucide{stroke-width:1.75}
 
 /* ---------- messages ---------- */
-.hmsg.user{background:linear-gradient(180deg,rgba(181,166,255,.26),rgba(150,128,240,.16))!important;border:0!important;
-  box-shadow:inset 0 0 0 1px rgba(210,198,255,.2),inset 0 1px 0 rgba(255,255,255,.16),0 12px 30px -16px rgba(120,90,255,.5)!important;border-radius:22px 22px 8px 22px!important}
-.hmsg.assistant{max-width:100%!important}
-.hmsg{font-size:14.5px!important}
 .limit-title strong{font-weight:620}
 
 /* ---------- motion ---------- */
@@ -153,8 +94,8 @@ svg.lucide{stroke-width:1.75}
 /* ---- layout fixes ---- */
 .chat{grid-template-rows:minmax(0,1fr)}
 .harness-stream{height:100%;min-height:0}
-.sidebar .brand-mark{width:28px!important;height:28px!important;flex:none;display:grid;place-items:center}
-.sidebar .brand-mark img{width:28px!important;height:28px!important;object-fit:contain}
+.sidebar .brand-mark{flex:none;display:grid;place-items:center}
+.sidebar .brand-mark img{object-fit:contain}
 .sidebar .brand{align-items:center}
 /* ---- floating glass wins over the generic "position: relative" ---- */
 .harness-stream>.harness-meta{position:absolute}
@@ -163,14 +104,13 @@ svg.lucide{stroke-width:1.75}
 /* ---- + menu ---- */
 .plus-btn{display:grid;place-items:center;flex:none;width:34px;height:34px;border:0;border-radius:50%;background:rgba(255,255,255,.075);box-shadow:inset 0 0 0 1px rgba(255,255,255,.09),inset 0 1px 0 rgba(255,255,255,.12);color:var(--ink-2);cursor:pointer;transition:transform .35s var(--ease-spring),background .2s,color .2s}
 .plus-btn:hover{background:rgba(255,255,255,.13);color:#fff}.plus-btn:active{transform:scale(.92) rotate(45deg)}.plus-btn[data-state=open]{transform:rotate(45deg);background:rgba(255,255,255,.15);color:#fff}
-.plus-pop{width:min(380px,calc(100vw - 32px));padding:6px 6px 8px!important}
+.plus-pop{width:min(380px,calc(100vw - 32px))}
 .plus-pop .ui-command-list{max-height:min(420px,56vh)}
 .plus-pop .ui-item .ui-grow{display:flex;flex-direction:column;align-items:flex-start;gap:1px}.plus-pop .ui-item .ui-grow small{margin-left:0}
 .plus-pop .ui-item{min-height:38px}.plus-pop .ui-item[aria-disabled=true]{opacity:.55}
 .file-chip.is-flag{background:rgba(181,166,255,.16);box-shadow:inset 0 0 0 1px rgba(210,198,255,.25);color:#e8e0ff}
 .file-chip.has-thumb{height:44px;padding-left:5px}.file-thumb{width:34px;height:34px;border-radius:9px;object-fit:cover;box-shadow:0 0 0 1px var(--hair)}
 .msg-tags{display:flex;gap:6px;margin-bottom:6px}
-.sketch-dialog{width:min(1040px,calc(100vw - 32px))!important}
 .sketch-canvas{display:block;width:100%;aspect-ratio:1000/560;border-radius:18px;background:#14112a;box-shadow:inset 0 0 0 1px var(--hair);touch-action:none;cursor:crosshair}
 .sketch-tools{display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap}.sketch-inks{display:flex;align-items:center;gap:8px}
 .sketch-ink{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);transition:transform .3s var(--ease-spring)}.sketch-ink.on{border-color:#fff;transform:scale(1.15)}
@@ -178,8 +118,6 @@ svg.lucide{stroke-width:1.75}
 .sketch-size{max-width:180px}.sketch-text{border:0;background:transparent;color:var(--ink-2);cursor:pointer;font:inherit}.sketch-text:hover{color:#fff}
 .sketch-go{margin-left:auto;height:36px;padding:0 18px;border:0;border-radius:999px;font:inherit;font-weight:600;color:#17102e;cursor:pointer;background:linear-gradient(180deg,#c9bdff,#9b86f5);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 8px 22px -8px rgba(140,110,255,.7)}
 /* ---- legibility safeguard: menus and sheets stay readable even if the backdrop blur is unavailable ---- */
-.ui-pop,.palette,.gs-pop,.usage-pop,.ogui-toast{background:var(--pointer),var(--glass-sheen),rgba(22,19,42,.66)!important;background-attachment:fixed,scroll,scroll!important}
-.harness-compose,.composer,.harness-meta{background:var(--pointer),var(--glass-sheen),rgba(20,18,38,.46)!important;background-attachment:fixed,scroll,scroll!important}
 /* ---- quality of life ---- */
 .to-bottom{position:absolute;left:50%;bottom:124px;transform:translateX(-50%);z-index:7;display:grid;place-items:center;width:38px;height:38px;border:0;border-radius:50%;cursor:pointer;color:var(--ink);
   background:var(--glass-sheen),rgba(30,26,56,.72);backdrop-filter:blur(18px) saturate(1.8);box-shadow:0 10px 28px -10px rgba(0,0,0,.7),inset 0 0 0 1px var(--hair-2),inset 0 1px 0 rgba(255,255,255,.14);animation:pop .3s var(--ease-spring) both;transition:transform .3s var(--ease-spring)}
@@ -189,7 +127,6 @@ svg.lucide{stroke-width:1.75}
 .md-code{position:relative}.md-code .copy-btn{right:10px;top:10px;bottom:auto;opacity:0}.md-code:hover .copy-btn{opacity:1;transform:none}
 .sidebar .side-item.thread:hover .prov{opacity:0}.sidebar .side-item.thread .side-x{margin-left:auto}
 /* ---- command palette dialog ---- */
-.palette-dialog{width:min(640px,calc(100vw - 32px))!important}
 .palette-dialog .ui-command-list{max-height:min(440px,60vh);padding:4px 6px 8px}
 .palette-dialog .ui-command-input{padding:16px 18px 12px;margin:0}
 .palette-dialog .ui-item .ui-grow{display:flex;align-items:baseline;gap:10px;flex:1;min-width:0}
@@ -214,7 +151,6 @@ details[open]>summary>.step-chev{transform:rotate(90deg)}
 .hmsg.working{gap:10px;color:var(--ink-3);font-size:13px}.working-time{font-variant-numeric:tabular-nums;color:var(--ink-2)}.working-what{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;opacity:.85}
 .working-what:before{content:"·";margin-right:10px;opacity:.6}
 /* ---- sidebar divider starts below the title bar so it never cuts through the menus ---- */
-.sidebar.navigation{box-shadow:18px 0 50px -30px rgba(0,0,0,.65)!important}
 .sidebar.navigation::before{content:"";position:absolute;top:0;right:0;bottom:0;left:auto;width:1px;padding:0;border-radius:0;pointer-events:none;
   background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.05) 30%,rgba(255,255,255,.04) 70%,rgba(255,255,255,.12));-webkit-mask:none;mask:none}
 .app.has-titlebar .sidebar.navigation::before{top:44px}
@@ -233,7 +169,7 @@ details[open]>summary>.step-chev{transform:rotate(90deg)}
 .ui-progress{height:7px}
 /* ---- usage popover sits above its pill ---- */
 .usage-wrap{position:relative}
-.usage-wrap .usage-pop{position:absolute!important;right:0;bottom:36px;z-index:80;transform-origin:100% 100%}
+.usage-wrap .usage-pop{right:0;bottom:36px;z-index:80;transform-origin:100% 100%}
 /* ---- files changed ---- */
 .file-cards{display:flex;flex-direction:column;gap:8px;align-self:stretch;max-width:100%}
 .file-card{border-radius:16px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--hair);overflow:hidden;transition:background .2s}
@@ -269,7 +205,7 @@ details[open]>summary>.step-chev{transform:rotate(90deg)}
 /* ---- analytics ---- */
 .an-btn{display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:10px;background:transparent;color:var(--ink);cursor:pointer;transition:background .15s,color .15s,transform .3s var(--ease-spring)}
 .an-btn:hover{background:rgba(255,255,255,.08);color:#fff}.an-btn:active{transform:scale(.92)}.an-btn[data-state=open]{background:rgba(181,166,255,.18);color:#fff}
-.an-pop{width:min(580px,calc(100vw - 32px))!important;padding:16px!important;display:flex;flex-direction:column;gap:14px}
+.an-pop{display:flex;flex-direction:column;gap:14px}
 .an-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .an-note{margin:0;font-size:12.5px;color:var(--ink-3)}
 .an-index{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--ink-3)}
@@ -308,38 +244,30 @@ details[open]>summary>.step-chev{transform:rotate(90deg)}
 
 /* home */
 .home-title{font-size:32px;font-weight:600;letter-spacing:-.035em;margin-bottom:26px;color:#fff}
-.composer{border-radius:28px!important;
-  background:var(--pointer),linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.028) 60%,rgba(255,255,255,.02)),rgba(16,14,32,.26)!important;background-attachment:fixed,scroll,scroll!important;
-  box-shadow:0 1px 1px rgba(0,0,0,.3),0 34px 80px -30px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.07)!important}
-.composer textarea{font-size:15.5px!important;line-height:1.55;padding:20px 22px 6px!important;min-height:78px}
+.composer textarea{line-height:1.55;min-height:78px}
 .composer textarea::placeholder{color:rgba(255,255,255,.4)}
 .composer .composer-bar{padding:4px 12px 12px 14px}
 .composer-left{display:flex;align-items:center;gap:6px}
 
 /* buttons inside the composers: quiet icons, only "send" has presence */
-.plus-btn,.mic-btn{width:34px;height:34px;border:0!important;box-shadow:none!important;background:transparent!important;color:var(--ink-2)}
-.plus-btn:hover,.mic-btn:hover:not(:disabled){background:rgba(255,255,255,.09)!important;color:#fff}
-.mic-btn.is-listening{background:rgba(255,95,110,.22)!important;color:#ffb3ba}
+.plus-btn,.mic-btn{width:34px;height:34px;color:var(--ink-2)}
+.plus-btn:hover,.mic-btn:hover:not(:disabled){color:#fff}
+.mic-btn.is-listening{color:#ffb3ba}
 .send-btn{width:36px;height:36px}
-.send-btn:disabled{background:rgba(255,255,255,.07)!important;color:rgba(255,255,255,.4)!important;box-shadow:none!important}
-.pause-btn{border:0!important;box-shadow:none!important;background:rgba(255,255,255,.07)!important}
 
 /* pills (model, effort, permissions, folder): soft fill, no outline */
-.gs-trigger{height:32px;padding:0 12px 0 8px;border:0!important;box-shadow:none!important;background:rgba(255,255,255,.06)!important;font-size:13px;font-weight:520;color:var(--ink-2);gap:8px}
-.gs-trigger:hover{background:rgba(255,255,255,.11)!important;color:#fff}
-.gs-trigger[aria-expanded=true]{background:rgba(181,166,255,.18)!important;color:#fff}
+.gs-trigger{height:32px;padding:0 12px 0 8px;font-size:13px;font-weight:520;color:var(--ink-2);gap:8px}
+.gs-trigger:hover{color:#fff}
+.gs-trigger[aria-expanded=true]{color:#fff}
 .gs-trigger .gs-icon{background:transparent;color:var(--ink-3)}
 .project-row{margin-top:12px;padding-left:6px;gap:10px}
 
 /* the assistant cards below: flat, borderless, like the sidebar rows */
-.assistant-card{border:0!important;background:rgba(255,255,255,.035)!important;box-shadow:none!important;border-radius:20px!important}
-.assistant-card:hover{background:rgba(255,255,255,.075)!important;box-shadow:none!important;transform:translateY(-1px)}
+.assistant-card:hover{transform:translateY(-1px)}
 .assistant-card b{font-weight:600;letter-spacing:-.01em}
 .home-hint{color:var(--ink-3);font-size:12.5px}
 
 /* chat header and composer share the softer material */
-.harness-meta{box-shadow:0 1px 1px rgba(0,0,0,.3),0 18px 44px -22px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.07)!important}
-.harness-compose{box-shadow:0 1px 1px rgba(0,0,0,.3),0 24px 60px -26px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.07)!important}
 .harness-compose .compose-row{align-items:center}
 
 /* ---- analytics: charts and tabs ---- */
@@ -384,7 +312,7 @@ details[open]>summary>.step-chev{transform:rotate(90deg)}
 .coauthor-projects{display:flex;flex-direction:column;gap:8px;margin-top:10px}.handoff-note.bad{color:#ff9a9a}
 
 /* collapsible sidebar sections */
-.sidebar .side-section{justify-content:flex-start!important;gap:4px}
+.sidebar .side-section{gap:4px}
 .sidebar .side-section>.side-actions,.sidebar .side-section>button:not(.side-fold){margin-left:auto}
 .sidebar .side-section .side-fold{width:18px;height:18px;margin-left:-4px;border-radius:6px;color:var(--ink-2);opacity:.8;transition:opacity .15s,background .15s}
 .sidebar .side-section:hover .side-fold,.sidebar .side-section .side-fold:focus-visible{opacity:1}
@@ -396,9 +324,8 @@ details[open]>summary>.step-chev{transform:rotate(90deg)}
 .update-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap}.update-row small{display:block;color:var(--ink-3);margin-top:2px}.update-actions{display:flex;align-items:center;gap:8px}
 
 /* the chat list never scrolls sideways */
-.sidebar .side-scroll{overflow-x:hidden!important}
 
-.sidebar .side-item,.sidebar .side-section{width:auto!important;max-width:100%;box-sizing:border-box}
+.sidebar .side-item,.sidebar .side-section{max-width:100%;box-sizing:border-box}
 
 /* resizable sidebar: 320px by default (File Edit View Help sit inside it with room to spare), draggable from 320 to 460 */
 .side-resize{position:absolute;top:0;bottom:0;left:calc(var(--sbw) - 4px);width:8px;z-index:70;cursor:col-resize;touch-action:none}
@@ -409,16 +336,15 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 @media(max-width:850px){.side-resize{display:none}}
 
 /* analytics: a fixed-size panel, so switching app or tab never resizes it; the content scrolls inside */
-.an-pop{height:min(640px,calc(100vh - 110px))!important;overflow-y:auto!important;justify-content:flex-start}
-.an-pop .an-charts,.an-pop .an-teams,.an-pop .an-models,.an-pop .an-prices{max-height:none!important;overflow:visible!important}
+.an-pop{justify-content:flex-start}
 .an-pop>*{flex-shrink:0}
 
 /* the chosen option in a group of look-tiles must be visible (the shared button style used to hide it) */
-.look-tile[aria-pressed="true"]{background:rgba(181,166,255,.18)!important;box-shadow:inset 0 0 0 1.5px var(--accent)!important;color:#fff}
+.look-tile[aria-pressed="true"]{color:#fff}
 .look-tile{transition:background .15s,box-shadow .15s}
 
 /* dialog close button: draw the X instead of using the "×" character, whose font metrics sit it off centre */
-[role="dialog"] button[aria-label^="Close "]{font-size:0!important;position:relative;line-height:0}
+[role="dialog"] button[aria-label^="Close "]{position:relative;line-height:0}
 [role="dialog"] button[aria-label^="Close "]::before,[role="dialog"] button[aria-label^="Close "]::after{content:"";position:absolute;left:50%;top:50%;width:11px;height:1.6px;border-radius:2px;background:currentColor}
 [role="dialog"] button[aria-label^="Close "]::before{transform:translate(-50%,-50%) rotate(45deg)}
 [role="dialog"] button[aria-label^="Close "]::after{transform:translate(-50%,-50%) rotate(-45deg)}
@@ -444,21 +370,15 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .lb-count{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.12);font-size:12px;color:#fff}
 
 /* the workflow designer sits inside the same 28px gutters as the page title above it */
-.teams-workspace{padding:0 28px 22px!important}
-.workspace-top{margin:0 0 14px!important}
 
 /* graph "more tools" menu: one consistent row style */
-.laica-tools-pop{padding:6px!important;display:flex;flex-direction:column;gap:2px;min-width:200px}
-.laica-tools-pop .ogui-button,.laica-tools-pop button{width:100%;justify-content:flex-start!important;gap:9px!important;font-size:12px!important;border-radius:9px!important;min-height:30px!important;height:30px!important;color:var(--ink-2)!important}
-.laica-tools-pop .ogui-button:hover,.laica-tools-pop button:hover{background:rgba(255,255,255,.09)!important;color:#fff!important}
-.laica-tools-pop svg{width:14px!important;height:14px!important;flex:none}
+.laica-tools-pop{display:flex;flex-direction:column;gap:2px;min-width:200px}
+.laica-tools-pop .ogui-button,.laica-tools-pop button{width:100%}
+.laica-tools-pop svg{flex:none}
 .laica-tools-pop .laica-grid-state{display:flex;align-items:center;gap:9px;min-height:30px;padding:0 9px;font-size:12px;color:var(--ink-3)}
 
 /* every page uses the same 28px gutters, the same as the page title */
-.settings-content,.settings-content.page-pad{margin-left:0!important;margin-right:0!important;padding-left:28px!important;padding-right:28px!important}
-.activity-content{padding-left:28px!important;padding-right:28px!important}
-.settings-content>.section-heading,.settings-content>.setting-card{margin-left:0!important;margin-right:0!important}
-.settings-content,.settings-content.page-pad{max-width:none!important;width:auto!important;align-self:stretch!important;box-sizing:border-box}
+.settings-content,.settings-content.page-pad{box-sizing:border-box}
 
 /* prices table: no browser spinners */
 .an-prices input[type=number]{-moz-appearance:textfield;appearance:textfield}
@@ -476,34 +396,24 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 
 /* the open chat: one centred column for the header, the messages and the composer; the composer has the same toolbar as the new-chat screen */
 .harness-stream{--col:840px;--pad:max(22px,calc((100% - var(--col))/2))}
-.harness-meta{left:var(--pad)!important;right:var(--pad)!important}
-.harness-log{padding-left:var(--pad)!important;padding-right:var(--pad)!important;padding-top:84px!important;padding-bottom:200px!important}
-.harness-stream>.harness-compose{left:var(--pad)!important;right:var(--pad)!important}
-.hmsg{max-width:100%!important}
-.hmsg.user{max-width:86%!important}
-.harness-compose{flex-direction:column!important;align-items:stretch!important;gap:4px!important;padding:8px 12px 10px!important}
 .harness-compose .compose-field textarea{width:100%;min-height:46px;max-height:200px}
 .harness-compose .compose-bar{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .harness-compose .compose-left,.harness-compose .compose-right{display:flex;align-items:center;gap:6px;min-width:0}
 .harness-compose .compose-left{flex-wrap:wrap}
-.to-bottom{left:50%!important;right:auto!important;transform:translateX(-50%)}
+.to-bottom{transform:translateX(-50%)}
 
 /* the + menu: a denser, brighter panel so the rows are never mistaken for disabled ones */
-.plus-pop{background:rgba(20,17,38,.94)!important}
 .plus-pop .ui-item{color:#fff}.plus-pop .ui-item small{color:var(--ink-2)}
 .plus-pop .ui-item svg{color:var(--ink)}
 
 /* status bar: always at the bottom, never flush against the window edge */
-.app-status{margin-top:auto!important;flex-shrink:0;padding-bottom:12px!important}
+.app-status{flex-shrink:0}
 /* the message box grows with what you type instead of leaving a blank band */
-.harness-compose .compose-field textarea{field-sizing:content;min-height:28px!important;max-height:200px;padding-top:6px!important;padding-bottom:6px!important}
+.harness-compose .compose-field textarea{field-sizing:content;max-height:200px}
 /* the search sits under the nav, right above the chats */
-.sidebar .side-search{margin:8px 6px 2px!important}
 
 /* the selected page in the sidebar looks like New chat: a soft lavender fill, no outline or glass rim */
-.sidebar .side-nav .nav-item.active,.sidebar .side-nav .nav-item[aria-current=page],.sidebar .side-item.on{background:linear-gradient(180deg,rgba(179,165,247,.2),rgba(150,130,235,.12))!important;border:0!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.07)!important;color:#fff}
-.sidebar .side-nav .nav-item.active::before,.sidebar .side-nav .nav-item.active::after,.sidebar .side-nav .nav-item[aria-current=page]::before,.sidebar .side-nav .nav-item[aria-current=page]::after{display:none!important;content:none!important}
-.sidebar .side-nav .nav-item,.sidebar .side-nav .nav-item:hover{border:0!important}
+.sidebar .side-nav .nav-item.active,.sidebar .side-nav .nav-item[aria-current=page],.sidebar .side-item.on{color:#fff}
 
 /* the Screen tab: what an agent sees in a browser or on the computer */
 .pv-switch .live-dot,.screen-dot.live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 rgba(181,166,255,.6);animation:screen-pulse 1.6s ease-out infinite;margin-right:6px}
@@ -525,15 +435,8 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .computer-stopped{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:12px;background:rgba(255,154,154,.1);color:#ffb3b3;font-size:13px;margin-top:8px}
 
 /* one highlight for every sidebar row: hovering shows the same lavender as the selected row, a little softer */
-.sidebar .new-chat-btn:hover,.sidebar .side-nav .nav-item:hover,.sidebar .side-item:hover,.sidebar .side-foot .ogui-button:hover{background:linear-gradient(180deg,rgba(179,165,247,.13),rgba(150,130,235,.07))!important;box-shadow:none!important;border:0!important}
-.sidebar .side-item.on:hover,.sidebar .side-nav .nav-item.active:hover{background:linear-gradient(180deg,rgba(179,165,247,.24),rgba(150,130,235,.15))!important}
-.sidebar .side-item.on,.sidebar .side-item.nested.on,.sidebar .side-item.thread.on{border-radius:11px!important}
 
 /* 0.21: the nav rows and the search bar are one bar style - same height, radius, no outline, same hover/selected fill */
-.sidebar .side-search,.sidebar .side-nav .nav-item{height:34px!important;min-height:34px!important;border:0!important;outline:0!important;box-shadow:none!important;border-radius:11px!important;background:transparent!important}
-.sidebar .side-nav .nav-item:focus,.sidebar .side-nav .nav-item:focus-visible{outline:0!important;box-shadow:none!important}
-.sidebar .side-search:hover,.sidebar .side-search:focus-within{background:linear-gradient(180deg,rgba(179,165,247,.13),rgba(150,130,235,.07))!important}
-.sidebar .side-nav .nav-item.active,.sidebar .side-nav .nav-item[aria-current=page]{background:linear-gradient(180deg,rgba(179,165,247,.2),rgba(150,130,235,.12))!important;outline:0!important;box-shadow:none!important}
 
 /* ---- tag-team continuity ---- */
 .tt-chip{position:relative;display:inline-flex;align-items:center;gap:7px;height:24px;padding:0 4px 0 10px;border-radius:999px;font-size:12px;color:var(--ink-2);background:linear-gradient(180deg,rgba(179,165,247,.16),rgba(150,130,235,.08));white-space:nowrap;outline:0}
@@ -572,30 +475,27 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 
 
 /* polish: bars never push the send button over the edge; header controls keep their shape */
-.composer-bar,.compose-bar{align-items:flex-end!important}
 .composer-left,.harness-compose .compose-left{flex:1 1 0;min-width:0;flex-wrap:wrap;row-gap:6px}
 .composer-right,.harness-compose .compose-right{flex:none;align-self:flex-end}
 .composer .composer-right,.harness-compose .compose-right{padding-bottom:0}
 .harness-meta>*{flex-shrink:0}
 .harness-meta>b{flex:0 1 auto;min-width:56px}
-.harness-meta .hcwd{flex:1 1 40px!important;min-width:0}
+.harness-meta .hcwd{min-width:0}
 .harness-meta .ogui-icon-button,.harness-meta button{flex:none;min-width:28px}
 .harness-meta .tt-chip{flex:0 1 auto;min-width:0;max-width:56%}
 .harness-meta .tt-chip .tt-label{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .harness-meta .tt-chip .tt-go,.harness-meta .tt-chip .tt-pct,.harness-meta .tt-chip .tt-halt{flex:none}
 
 /* narrow windows: a smaller sidebar that still shows names, and headers that wrap instead of running off the edge */
-@media(max-width:900px){.app:not(.sidebar-hidden){grid-template-columns:240px minmax(0,1fr)!important}.page-header{flex-wrap:wrap!important;gap:10px 14px}.page-header .header-actions{flex-wrap:wrap;min-width:0;max-width:100%}}
+@media(max-width:900px){.page-header{gap:10px 14px}.page-header .header-actions{flex-wrap:wrap;min-width:0;max-width:100%}}
 
 .harness-meta .tt-chip~.hcwd{display:none}
 
 
 /* toasts: top right under the title bar, so they never cover the usage chip; calmer look */
-.ogui-toast-viewport{top:52px!important;bottom:auto!important;right:18px!important;width:min(22rem,calc(100vw - 2rem))!important}
-.ogui-toast{border-radius:16px!important;padding:.7rem .85rem!important;box-shadow:0 14px 36px -16px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.08)!important;transform-origin:100% 0!important}
 
 /* hover rundown */
-.tt-pop{width:460px!important;max-height:70vh;overflow:auto}
+.tt-pop{max-height:70vh;overflow:auto}
 .tt-run{display:flex;flex-direction:column;gap:8px}.tt-run>b{font-size:14px}
 .tt-run ul{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column;gap:7px}
 .tt-run li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:10px;font-size:12px;line-height:1.45}
@@ -618,19 +518,13 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .file-link.step-open:hover{background:rgba(179,165,247,.32);color:var(--ink)}
 
 /* navigation rows: nothing at rest; on hover exactly New chat's soft lavender fill; the open page keeps a slightly stronger fill. No outline anywhere. */
-.sidebar .side-nav .nav-item{background:transparent!important;border:0!important;outline:0!important;box-shadow:none!important}
-.sidebar .side-nav .nav-item:hover{background:linear-gradient(180deg,rgba(179,165,247,.13),rgba(150,130,235,.07))!important;box-shadow:none!important}
-.sidebar .side-nav .nav-item.active,.sidebar .side-nav .nav-item[aria-current=page]{background:linear-gradient(180deg,rgba(179,165,247,.2),rgba(150,130,235,.12))!important;box-shadow:none!important;border:0!important;outline:0!important}
-.sidebar .side-nav .nav-item.active:hover{background:linear-gradient(180deg,rgba(179,165,247,.26),rgba(150,130,235,.16))!important}
-.sidebar .side-nav .nav-item:focus-visible{box-shadow:none!important;outline:0!important}.sidebar .side-nav .nav-item::before,.sidebar .side-nav .nav-item::after,.sidebar .side-nav .nav-item:hover::before,.sidebar .side-nav .nav-item:hover::after{display:none!important;content:none!important;border:0!important;box-shadow:none!important;background:none!important}
 
 
 /* tag-team chats show both agents: GPT + CLAUDE, the one working now in full strength */
-.prov-duo{display:inline-flex;align-items:center;gap:3px;background:none!important;padding:0!important;box-shadow:none!important}
+.prov-duo{display:inline-flex;align-items:center;gap:3px}
 .prov-duo b{font:inherit;font-weight:700;opacity:.55}.prov-duo b.now{opacity:1}
 .prov-duo i{font-style:normal;opacity:.45}
 .prov-duo .prov-gpt{color:#7fd8a6}.prov-duo .prov-claude{color:#e8956a}.prov-duo .prov-gemini{color:#8fb4ff}.prov-duo .prov-other,.prov-duo .prov-team{color:var(--ink-2)}
-.prov-duo b{background:none!important;padding:0!important;box-shadow:none!important}
 
 
 .tt-signin{margin-left:10px;height:24px;padding:0 12px;border:0;border-radius:999px;font-size:12px;color:var(--ink);background:linear-gradient(180deg,rgba(179,165,247,.4),rgba(150,130,235,.26));cursor:pointer}
@@ -639,8 +533,6 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .hmsg.error{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 
 /* the working mark always turns, even when Windows has animations turned off: it is the one thing that tells you an agent is alive */
-.work-glyph:not(.is-paused){animation:work-orbit 1.1s linear infinite!important}
-.ui-spin{animation:spin 1s linear infinite!important}
 
 .steps-wrap{align-self:flex-start;max-width:100%}
 .step-sub{font-style:normal;opacity:.6}
@@ -649,7 +541,6 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .file-group{align-self:stretch;border-radius:14px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--hair)}
 .file-group>summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:36px;padding:0 14px;cursor:pointer;font-size:13px;user-select:none}.file-group>summary::-webkit-details-marker{display:none}
 .file-group>.file-cards{padding:0 8px 8px}
-.file-card>summary{min-height:34px!important}
 .bp{display:flex;flex-direction:column;min-height:0;flex:1}
 .bp-bar{display:flex;align-items:center;gap:4px;padding:8px 10px 6px}
 .bp-url{flex:1;min-width:0;height:30px;padding:0 12px;border:0;border-radius:999px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px var(--hair);color:var(--ink);font:inherit;font-size:12.5px;outline:none;transition:box-shadow .18s,background .18s}

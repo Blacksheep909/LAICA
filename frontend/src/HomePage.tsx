@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {Button,Glass,useToast} from 'open-glass-ui';
+import {Button,useToast} from 'open-glass-ui';
+import {Glass} from './ui/kit';
 import SendButton from './SendButton';
 import {useAttachments,useDropZone,AttachChips,DropOverlay,MicButton,FlagChips,usePasteFiles,composePrompt,noFlags} from './Composer';
 import type {Flags} from './Composer';
