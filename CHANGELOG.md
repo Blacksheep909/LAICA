@@ -5,6 +5,9 @@ Every release is made with `Release-Edition.ps1`, which builds, runs every test 
 
 ## [0.25.0]
 
+### Added
+- **Insomnia: keep the computer awake for a set time** (Settings > Agents), on Windows, macOS and Linux. Choose 30 minutes to 12 hours, optionally keep the screen on, keep running with the lid closed, and stop if the battery falls below a limit. Windows holds a power request, macOS runs `caffeinate`, Linux holds a systemd inhibitor lock. Lid-closed mode changes one system setting; it is written to a recovery file first and put back when the timer ends, when LAICA quits, or the next time LAICA starts after a crash.
+
 ### Changed
 - **LAICA no longer uses the open-glass-ui library.** Buttons, switches, tabs, text boxes, dialogs and notifications are now LAICA's own, built on Radix. The app loads about 70 KB less CSS and 30 KB less JavaScript, and small controls are crisp flat surfaces instead of blurred glass.
 - **Settings > Appearance loses the five glass styles** (accent, panel and text remain).

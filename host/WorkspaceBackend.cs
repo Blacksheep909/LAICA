@@ -41,6 +41,7 @@ namespace Laica
         object overview;
         public event Action<object> Changed;
         public readonly HarnessManager Harness;
+        public readonly KeepAwake Awake;
         public readonly ChannelManager Channels;
         public string WorkingDirectory
         {
@@ -69,6 +70,7 @@ namespace Laica
                         return services.Select(CloneService).ToArray();
                 }
             );
+            Awake = new KeepAwake(this.appDir, null);
             Channels = new ChannelManager(Harness, this.appDir);
             Harness.Completed += Channels.Notify;
             Harness.WorkflowRunner = RunWorkflowAsync;
@@ -424,6 +426,15 @@ namespace Laica
                         break;
                     case "harnessRestore":
                         result = Harness.RestoreClosed(Text(payload, "Id"));
+                        break;
+                    case "awakeGet":
+                        result = Awake.Get();
+                        break;
+                    case "awakeStart":
+                        result = Awake.Start(payload);
+                        break;
+                    case "awakeStop":
+                        result = Awake.Stop();
                         break;
                     case "harnessPause":
                         Harness.Pause(Text(payload, "Id"));
@@ -1840,6 +1851,7 @@ namespace Laica
                     runToken.Cancel();
             }
             observer.Dispose();
+            Awake.Dispose();
             Channels.Dispose();
             Harness.Dispose();
         }

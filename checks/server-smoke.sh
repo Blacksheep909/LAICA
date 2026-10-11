@@ -28,5 +28,6 @@ case "$(w a.txt)" in *'"Result":true'*) echo "PASS writes inside the project";; 
 case "$(w escape/f.txt)" in *Error*) echo "PASS refuses to write through a link";; *) echo "FAIL refuses to write through a link"; fail=1;; esac
 case "$(w ../outside/f.txt)" in *Error*) echo "PASS refuses ../ out of the project";; *) echo "FAIL refuses ../ out of the project"; fail=1;; esac
 [ "$(cat "$WORK/outside/f.txt")" = old ] && echo "PASS the file outside is untouched" || { echo "FAIL the file outside is untouched"; fail=1; }
+case "$(rpc '{"Method":"awakeGet","Payload":{}}')" in *'"Active":false'*) echo "PASS reports keep-awake state";; *) echo "FAIL reports keep-awake state"; fail=1;; esac
 ls "$DATA"/logs/laica-*.log >/dev/null 2>&1 && echo "PASS writes a log file" || { echo "FAIL writes a log file"; fail=1; }
 exit $fail

@@ -555,3 +555,4 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .psection:hover{color:var(--ink-2)}.psection.on{background:rgba(190,170,255,.22);color:#fff}
 .psection-n{min-width:18px;height:18px;padding:0 5px;border-radius:999px;display:inline-grid;place-items:center;background:rgba(179,165,247,.35);color:#fff;font-size:var(--text-xs);font-variant-numeric:tabular-nums}
 .plugins-blurb{margin:2px 2px 10px;color:var(--ink-3);font-size:var(--text-sm)}
+.awake-live{display:flex;align-items:center;gap:10px;font-size:var(--text-base)}.awake-live>span{flex:1}.awake-floor{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
