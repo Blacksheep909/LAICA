@@ -36,3 +36,4 @@ auth.json
 Thumbs.db
 .vscode/
 .idea/
+server/bin/
