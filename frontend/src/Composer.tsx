@@ -2,7 +2,7 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import type {DragEvent} from 'react';
 import {IconButton,useToast} from './ui/controls';
 import {Plus,Mic,Square,Paperclip,Image as ImageIcon,Folder,X,Copy,Check,LoaderCircle,Lightbulb,Target} from 'lucide-react';
-import {request,subscribe,isDesktop,isRemote,resolveDroppedFile} from './bridge';
+import {request,subscribe,isDesktop,isRemote,nativeDictation,resolveDroppedFile} from './bridge';
 import {pushUndo} from './undo';
 
 export interface Attachment { Name:string; Path:string; Size:number; Kind:'image'|'file'|'folder'; Thumb?:string }
@@ -130,7 +130,7 @@ export function MicButton({onText,disabled}:{onText:(text:string)=>void;disabled
   const [state,setState]=useState<'idle'|'listening'|'transcribing'>('idle'),[interim,setInterim]=useState(''),[cloud,setCloud]=useState(false);
   const how=useRef<'windows'|'cloud'>('windows');const recorder=useRef<MediaRecorder|null>(null);const off=useRef<(()=>void)|null>(null);const timer=useRef<ReturnType<typeof setTimeout>|null>(null);
   useEffect(()=>{if(isDesktop)request<{Cloud:boolean}>('speechStatus').then(s=>setCloud(!!s.Cloud)).catch(()=>{});},[]);
-  useEffect(()=>()=>{off.current?.();if(timer.current)clearTimeout(timer.current);try{recorder.current?.stop();}catch{/* already stopped */}if(isDesktop&&!isRemote)void request('dictateStop').catch(()=>{});},[]);
+  useEffect(()=>()=>{off.current?.();if(timer.current)clearTimeout(timer.current);try{recorder.current?.stop();}catch{/* already stopped */}if(nativeDictation)void request('dictateStop').catch(()=>{});},[]);
 
   const finish=useCallback(async()=>{
     if(timer.current){clearTimeout(timer.current);timer.current=null;}
@@ -165,10 +165,10 @@ export function MicButton({onText,disabled}:{onText:(text:string)=>void;disabled
     try{
       const pref=getDictationMode();const useCloud=pref==='cloud'||(pref==='auto'&&cloud);
       if(useCloud&&!cloud)throw new Error('Add an OpenAI or Groq service in Settings to dictate with the cloud.');
-      if(useCloud)await startCloud();else if(isDesktop&&!isRemote)await startWindows();else throw new Error('Dictation needs the LAICA desktop app, or an OpenAI or Groq service for browser use.');
+      if(useCloud)await startCloud();else if(nativeDictation)await startWindows();else throw new Error('Dictation needs the LAICA desktop app, or an OpenAI or Groq service for browser use.');
     }catch(e){setState('idle');toast({title:'Dictation unavailable',description:(e as Error).message,duration:8000});}
   };
-  const remoteWithoutCloud=isRemote&&!cloud;
+  const remoteWithoutCloud=!nativeDictation&&!cloud;
   if(!isDesktop||remoteWithoutCloud)return null;
   return <>
     {state==='listening'&&<div className="mic-caption" role="status"><span className="mic-bars" aria-hidden="true"><i/><i/><i/><i/><i/></span>{interim||'Listening…'}</div>}

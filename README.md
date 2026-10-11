@@ -16,7 +16,7 @@ Run Codex, Claude Code, Gemini and API models side by side, build teams that mix
 
 <p align="center"><img src="docs/images/home.jpg" alt="The LAICA home screen with the sidebar of teams and projects" width="900"></p>
 
-LAICA is a Windows desktop app built around one idea: the agent CLIs you already use (Codex, Claude Code, Gemini CLI and others) are better together than apart. It gives them one calm place to live, keeps your chats and projects in sync with the tools themselves, and lets you design **teams** of agents from different vendors and then measure which designs actually work.
+LAICA is a desktop app for Windows, macOS and Linux built around one idea: the agent CLIs you already use (Codex, Claude Code, Gemini CLI and others) are better together than apart. It gives them one calm place to live, keeps your chats and projects in sync with the tools themselves, and lets you design **teams** of agents from different vendors and then measure which designs actually work.
 
 It runs your own installed tools with your own logins. Nothing is proxied through a LAICA server, because there isn't one.
 
@@ -58,6 +58,8 @@ It runs your own installed tools with your own logins. Nothing is proxied throug
 2. Windows may show a SmartScreen warning because **the builds are not code-signed**. Choose *More info* then *Run anyway* if you trust this repository. You can verify the download against `SHA256SUMS-<version>.txt` on the release page, or build it yourself.
 3. Install at least one agent CLI, for example [Codex](https://github.com/openai/codex) or [Claude Code](https://docs.claude.com/en/docs/claude-code), and sign in to it as you normally would. LAICA finds it automatically.
 
+**macOS and Linux:** download the `.dmg` (Mac, Apple silicon or Intel) or the `.AppImage` / `.deb` (Linux) from the same release page. These builds are not signed or notarised either: on a Mac, right-click the app and choose *Open* the first time; on Linux, make the AppImage executable (`chmod +x`). The Mac and Linux apps are a window around the same engine and interface; Windows-only extras (the screen-control outline and Windows speech dictation) are not part of them yet.
+
 Prefer a zip? `LAICA-<version>-win-x64.zip` is the same program without the installer: unzip anywhere and run `LAICA.exe`.
 
 **Requirements:** Windows 10 or 11 (64-bit) with the Microsoft Edge WebView2 Runtime (already present on Windows 11 and current Windows 10). Git is needed for worktrees, diffs and commits.
@@ -75,6 +77,8 @@ You need Windows, the .NET Framework 4 compiler that ships with Windows (`csc.ex
 ```
 
 More in [docs/releases.md](docs/releases.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+
+To build the macOS and Linux app: `cd frontend && pnpm install && pnpm build`, then in `electron/` run `npm install`, `node scripts/prepare.mjs <rid>` (for example `linux-x64` or `osx-arm64`; needs the .NET 8 SDK) and `npx electron-builder`. `npm start` runs it from source.
 
 ## Privacy
 

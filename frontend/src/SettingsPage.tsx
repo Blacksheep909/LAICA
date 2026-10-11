@@ -12,7 +12,7 @@ import {Button,Modal,Switch,useToast} from './ui/controls';
 import {Glass} from './ui/kit';
 import {Select} from './GlassSelect';
 import {Plus,Trash2,Pencil,Send,Globe,ShieldAlert,Copy} from 'lucide-react';
-import {request,subscribe,isDesktop,isRemote} from './bridge';
+import {request,subscribe,isDesktop,viaHttp} from './bridge';
 import {useHarness,modeLabel} from './harness-store';
 import type {Service,Model} from './types';
 
@@ -32,7 +32,7 @@ export default function SettingsPage({onCss,workingDirectory,services,models,ani
   const fail=useCallback((title:string)=>(e:Error)=>toast({title,description:e.message,duration:7000}),[toast]);
   if(!isDesktop)return <div className="empty-state compact"><h2>Settings need the desktop app</h2></div>;
   return <div className="settings-content page-pad">
-    <div className="pv-switch settings-tabs" role="tablist">{tabs.filter(([id])=>!(isRemote&&(id==='remote'))).map(([id,label])=><button key={id} role="tab" aria-selected={tab===id} className={tab===id?'on':''} onClick={()=>setTab(id)}>{label}</button>)}</div>
+    <div className="pv-switch settings-tabs" role="tablist">{tabs.filter(([id])=>!(viaHttp&&(id==='remote'))).map(([id,label])=><button key={id} role="tab" aria-selected={tab===id} className={tab===id?'on':''} onClick={()=>setTab(id)}>{label}</button>)}</div>
     {tab==='agents'&&<><Glass material="regular" className="setting-card"><HandoffCard/></Glass><Glass material="regular" className="setting-card"><ContinuityCard/></Glass><Glass material="regular" className="setting-card"><CoAuthorCard/></Glass><Glass material="regular" className="setting-card"><UpdatesCard/></Glass><Glass material="regular" className="setting-card"><ComputerCard/></Glass><Glass material="regular" className="setting-card"><AwakeCard/></Glass><AgentsTab fail={fail}/></>}
     {tab==='mcp'&&<McpTab fail={fail}/>}
     {tab==='remote'&&<RemoteTab fail={fail}/>}

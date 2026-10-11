@@ -41,3 +41,4 @@ server/bin/
 checks/bin/
 checks/obj/
 server/obj/
+!electron/build/

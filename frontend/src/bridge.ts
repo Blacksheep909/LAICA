@@ -1,17 +1,26 @@
 import type { WorkspaceState } from './types';
 type HostMessage = { Type:string; State?:WorkspaceState; Page?:string; Id?:string; Result?:unknown; Error?:string; Text?:string; Final?:boolean };
-declare global { interface Window { __LAICA_REMOTE__?:boolean; chrome?:{webview?:{postMessage:(value:unknown)=>void;postMessageWithAdditionalObjects?:(value:unknown,objects:ArrayLike<unknown>)=>void;addEventListener:(name:string,fn:(event:{data:HostMessage})=>void)=>void}} } }
+/** What the Electron shell (macOS and Linux apps) adds: native dialogs and window control, which a browser does not have. */
+export interface LaicaShell { platform:string; handles:string[]; invoke:(method:string,payload:unknown)=>Promise<any>; onWindow:(cb:(state:{Maximized:boolean;Fullscreen:boolean})=>void)=>()=>void; pathsFor:(files:File[])=>string[] }
+declare global { interface Window { laicaShell?:LaicaShell; __LAICA_REMOTE__?:boolean; chrome?:{webview?:{postMessage:(value:unknown)=>void;postMessageWithAdditionalObjects?:(value:unknown,objects:ArrayLike<unknown>)=>void;addEventListener:(name:string,fn:(event:{data:HostMessage})=>void)=>void}} } }
 
-/** True when served by LAICA's own remote-access server (a browser on another device) instead of the desktop window. */
-export const isRemote = !!window.__LAICA_REMOTE__;
+const shell = window.laicaShell;
+/** True in the Electron desktop app. It talks to the same engine over loopback HTTP as a remote browser, but has a real window. */
+export const isShell = !!shell;
+/** True when the page is served by LAICA's HTTP server (a remote browser, or the Electron window). */
+export const viaHttp = !!window.__LAICA_REMOTE__;
+/** True for a browser on another device: no native dialogs, no window of its own. The Electron app is not remote. */
+export const isRemote = viaHttp && !isShell;
+/** Dictation through Windows speech recognition exists only in the Windows app. */
+export const nativeDictation = !!window.chrome?.webview;
 /** True whenever a real LAICA backend is behind the page (desktop window or remote browser). */
-export const isDesktop = !!window.chrome?.webview || isRemote;
+export const isDesktop = !!window.chrome?.webview || viaHttp;
 const listeners = new Set<(message:HostMessage)=>void>();
 const pending = new Map<string,{resolve:(result:any)=>void;reject:(error:Error)=>void;timer:ReturnType<typeof setTimeout>}>();
 
 const TOKEN_KEY='laica-remote-token';
 const readToken=()=>{try{return sessionStorage.getItem(TOKEN_KEY);}catch{return null;}};
-let token:string|null=isRemote?readToken():null;
+let token:string|null=viaHttp?readToken():null;
 export const hasToken=()=>!!token;
 function dropToken(){token=null;try{sessionStorage.removeItem(TOKEN_KEY);}catch{/* storage unavailable */}window.dispatchEvent(new Event('laica-auth'));}
 export async function remoteLogin(password:string){
@@ -24,7 +33,7 @@ export async function remoteLogin(password:string){
 
 let eventsRunning=false;
 async function startEvents(){
-  if(!isRemote||eventsRunning||!token)return;eventsRunning=true;
+  if(!viaHttp||eventsRunning||!token)return;eventsRunning=true;
   try{
     while(token){
       try{
@@ -40,7 +49,8 @@ async function startEvents(){
     }
   }finally{eventsRunning=false;}
 }
-if(isRemote&&token)void startEvents();
+if(viaHttp&&token)void startEvents();
+shell?.onWindow(state=>listeners.forEach(l=>l({Type:'window',...state} as unknown as HostMessage)));
 
 window.chrome?.webview?.addEventListener('message',event=>{
   const message=event.data;
@@ -49,7 +59,8 @@ window.chrome?.webview?.addEventListener('message',event=>{
 });
 export function subscribe(listener:(message:HostMessage)=>void){listeners.add(listener);return ()=>{listeners.delete(listener);};}
 export function request<T=any>(Method:string,Payload:unknown={}):Promise<T>{
-  if(isRemote){
+  if(shell&&shell.handles.includes(Method))return shell.invoke(Method,Payload);
+  if(viaHttp){
     if(!token)return Promise.reject(new Error('Sign in again.'));
     return fetch('./api/rpc',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({Method,Payload})}).then(async response=>{
       const body=await response.json().catch(()=>({}));
@@ -63,6 +74,7 @@ export function request<T=any>(Method:string,Payload:unknown={}):Promise<T>{
 }
 /** Asks the desktop host for the real path of a file the user dropped (WebView2 hands the host the file itself). Empty when it has no path, e.g. a pasted image. */
 export function resolveDroppedFile(file:File):Promise<string[]>{
+  if(shell)return Promise.resolve(shell.pathsFor([file]));
   const wv=window.chrome?.webview;
   if(isRemote||!wv||!wv.postMessageWithAdditionalObjects)return Promise.resolve([]);
   const Id=crypto.randomUUID();

@@ -881,3 +881,17 @@
 .list-row {
     border-radius: var(--radius-3xl)
 }
+/* Electron shell: the window has no frame, so the bar is the drag area; macOS keeps its own traffic lights. */
+:root[data-shell] .titlebar-drag {
+    -webkit-app-region: drag
+}
+:root[data-shell] .titlebar button,
+:root[data-shell] .tb-menus {
+    -webkit-app-region: no-drag
+}
+:root[data-shell="darwin"] .titlebar {
+    padding-left: 84px
+}
+:root[data-shell="darwin"] .titlebar-controls {
+    display: none
+}

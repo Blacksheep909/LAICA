@@ -9,6 +9,8 @@ import RemoteGate from './RemoteGate';
 import App from './App';
 import {loadLook,LOOK_EVENT,type Look} from './look';
 
+if(window.laicaShell)document.documentElement.dataset.shell=window.laicaShell.platform;
+
 function Root(){
   const [look,setLook]=useState<Look>(loadLook);
   useEffect(()=>{const on=()=>setLook(loadLook());window.addEventListener(LOOK_EVENT,on);return()=>window.removeEventListener(LOOK_EVENT,on);},[]);

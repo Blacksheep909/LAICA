@@ -1,0 +1,42 @@
+{
+  "name": "laica-desktop",
+  "productName": "LAICA",
+  "version": "0.25.0",
+  "description": "LAICA for macOS and Linux: an Electron window around the same engine and interface as the Windows app.",
+  "main": "main.js",
+  "private": true,
+  "author": "LAICA",
+  "license": "Unlicense",
+  "scripts": {
+    "start": "electron .",
+    "prepare:app": "node scripts/prepare.mjs",
+    "dist": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "app.laica.desktop",
+    "productName": "LAICA",
+    "executableName": "laica",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "package.json"],
+    "extraResources": [
+      { "from": "stage/server", "to": "server" },
+      { "from": "stage/ui", "to": "ui" }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": ["dmg", "zip"],
+      "hardenedRuntime": false,
+      "identity": null
+    },
+    "linux": {
+      "category": "Development",
+      "target": ["AppImage", "deb"],
+      "maintainer": "LAICA",
+      "synopsis": "One desktop app for all your coding agents"
+    }
+  }
+}
