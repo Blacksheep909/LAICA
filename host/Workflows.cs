@@ -14,16 +14,50 @@ namespace Laica
         void RunWorkflowChat(Session s, string prompt)
         {
             var cts = new CancellationTokenSource();
-            lock (gate) { s.Busy = true; s.Ended = false; s.HasSentRules = true; s.Cts = cts; if (s.Title.EndsWith(" chat") || s.Title == "New chat") s.Title = prompt.Length > 40 ? prompt.Substring(0, 40).Replace("\n", " ") + "…" : prompt.Replace("\n", " "); }
-            Emit(s, "user", prompt, null); Raise();
+            lock (gate)
+            {
+                s.Busy = true;
+                s.Ended = false;
+                s.HasSentRules = true;
+                s.Cts = cts;
+                if (s.Title.EndsWith(" chat") || s.Title == "New chat")
+                    s.Title =
+                        prompt.Length > 40
+                            ? prompt.Substring(0, 40).Replace("\n", " ") + "…"
+                            : prompt.Replace("\n", " ");
+            }
+            Emit(s, "user", prompt, null);
+            Raise();
             new Thread(() =>
             {
                 string error = null;
-                try { string result = WorkflowRunner(s.ServiceId, prompt, s.Cwd, cts.Token, line => Emit(s, "log", line, null)).Result; Emit(s, "assistant", result, null); }
-                catch (OperationCanceledException) { Emit(s, "log", "Stopped.", null); }
-                catch (Exception ex) { error = Unwrap(ex); if (error.StartsWith("Model unavailable")) error += " Open Services and refresh models, then try again."; }
+                try
+                {
+                    string result = WorkflowRunner(
+                        s.ServiceId,
+                        prompt,
+                        s.Cwd,
+                        cts.Token,
+                        line => Emit(s, "log", line, null)
+                    ).Result;
+                    Emit(s, "assistant", result, null);
+                }
+                catch (OperationCanceledException)
+                {
+                    Emit(s, "log", "Stopped.", null);
+                }
+                catch (Exception ex)
+                {
+                    error = Unwrap(ex);
+                    if (error.StartsWith("Model unavailable"))
+                        error += " Open Services and refresh models, then try again.";
+                }
                 Finish(s, error);
-            }) { IsBackground = true, Name = "workflow-" + s.Id }.Start();
+            })
+            {
+                IsBackground = true,
+                Name = "workflow-" + s.Id,
+            }.Start();
         }
     }
 }
