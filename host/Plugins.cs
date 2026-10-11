@@ -19,7 +19,7 @@ namespace Laica
         sealed class Plug
         {
             public string Id, Name, Summary, Category, Kind = "mcp", Command, Url, Home, ServerName; public string[] Needs = new string[0], Tags = new string[0], Programs = new string[0]; public PlugInput[] Inputs = new PlugInput[0];
-            public string Body; public string Package, Manager;   // skills: SKILL.md body; agents: npm/pip package
+            public string Body; public string Package, Manager; public string Marketplace, PluginRef; public string[] Agents = new string[0];   // skills: SKILL.md body; agents: npm/pip package
         }
         static PlugInput In(string key, string label, string hint, string kind, bool secret = false, bool required = true) { return new PlugInput { Key = key, Label = label, Hint = hint, Kind = kind, Secret = secret, Required = required }; }
 
@@ -53,6 +53,9 @@ namespace Laica
             new Plug { Id = "brave-search", Kind = "mcp", Name = "Brave Search", Category = "Essentials", Summary = "Web search for agents. Needs a free Brave Search API key.", Command = "npx -y @modelcontextprotocol/server-brave-search", Needs = new[] { "node" }, Inputs = new[] { In("BRAVE_API_KEY", "Brave API key", "BSA...", "env", true) }, Home = "https://brave.com/search/api/" },
             new Plug { Id = "desktop-commander", Kind = "mcp", Name = "Desktop Commander", Category = "Developer", Summary = "Run terminal commands and edit files with long-running process support.", Command = "npx -y @wonderwhy-er/desktop-commander@latest", Needs = new[] { "node" }, Home = "https://github.com/wonderwhy-er/DesktopCommanderMCP" },
             new Plug { Id = "sentry", Kind = "mcp", Name = "Sentry", Category = "Developer", Summary = "Look into errors and issues from your Sentry projects. Sign in with your Sentry account when asked.", Url = "https://mcp.sentry.dev/mcp", Home = "https://docs.sentry.io/product/sentry-mcp/" },
+            // ---- plugins: bundles of skills, commands, agents and hooks that an agent installs from its own marketplace ----
+            new Plug { Id = "plugin-ecc", Kind = "plugin", Name = "ECC", Category = "Plugins", Marketplace = "affaan-m/ECC", PluginRef = "ecc@ecc", Agents = new[] { "claude", "codex" }, Summary = "A large toolkit that makes coding agents more reliable: 70+ specialist sub-agents, hundreds of skills, slash commands, hooks, language rules and a security scanner. Install it once per agent, not on top of a manual copy.", Home = "https://github.com/affaan-m/ECC", Tags = new[] { "Skills", "Agents", "Hooks" } },
+            new Plug { Id = "plugin-claude-mem", Kind = "plugin", Name = "Claude-Mem", Category = "Plugins", Marketplace = "thedotmack/claude-mem", PluginRef = "claude-mem", Agents = new[] { "claude" }, Needs = new[] { "node" }, Summary = "Persistent memory for Claude Code: it records what the agent does, summarises it, and brings the relevant parts back in later sessions. Restart Claude Code after installing.", Home = "https://github.com/thedotmack/claude-mem", Tags = new[] { "Memory" } },
             // ---- starter skills ----
             new Plug { Id = "skill-ponytail", Kind = "skill", Name = "Ponytail (write less code)", Category = "Skills", ServerName = "ponytail", Home = "https://github.com/DietrichGebert/ponytail", Summary = "Makes the agent think like the laziest senior dev: the smallest complete change, no extras nobody asked for, and a short reply.", Body = "You are a lazy senior developer. The best code is the code never written. You solve the whole problem with the least new code. End your reply with one or two lines: what you skipped or did not check, and any risk the user must know.\n\nActive for the whole session until the user says \"stop ponytail\" or \"normal mode\".\n\nBefore you write: read the task and the code it touches. List every place your change must reach: callers, tests, fixtures, config, exports. Check what your change could break for users. That is scope. Extra features are not.\n\nTake the first option that fully works:\n1. Does it need to exist? Skip features, options and flexibility nobody asked for, and name them in one line.\n2. Already in this codebase (a helper, component, service, pattern)? Use it the way the surrounding code does.\n3. Standard library or a platform feature? Use it, unless the project has its own.\n4. An installed dependency? Use it. Never add a dependency for a few lines.\n5. Can it be one line a reader gets at a glance? One line.\n6. Otherwise: the minimum code that works.\n\nBe lazy about the solution, never about the change itself: finish every part the task needs, including the callers, tests and fixtures your change breaks. No abstraction, wrapper, option, config or \"for later\" code nobody asked for. Deletion beats addition. Keep the structure the codebase already has. Comment only the why the code cannot show, in one line. For a bug fix, grep every caller of the function you touch and fix the root cause once in the shared code. Code you move or merge keeps its error handling and validation. New non-trivial logic leaves one small test or self-check. A shortcut with a known limit gets a comment: shortcut: <the limit>, <when to upgrade>.\n\nNever cut: validation at trust boundaries, error handling that prevents data loss, security, accessibility, anything the user asked for.\n\nLevels: lite = build what was asked and name the smaller option in one line; full = the rules above (default); ultra = also question the request and push back on any part the need does not justify.\n\nBased on Ponytail by Dietrich Gebert (MIT), https://github.com/DietrichGebert/ponytail" },
             new Plug { Id = "skill-code-review", Kind = "skill", Name = "Code review", Category = "Skills", ServerName = "code-review", Summary = "A checklist-driven review: correctness first, then risks, tests and clarity.", Body = "Review the changes the user points to. Work in this order:\n\n1. Correctness: logic errors, off-by-one, null handling, race conditions.\n2. Risk: security, data loss, breaking changes to public behaviour.\n3. Tests: what is untested, and which test would catch the bug you found.\n4. Clarity: naming, dead code, comments that lie.\n\nReport findings most severe first. For each: file and line, what is wrong, a concrete failing example, and a suggested fix. Say clearly when you found nothing serious." },
@@ -116,6 +119,35 @@ namespace Laica
             return found;
         }
 
+
+        // ---------- plugins installed through an agent's own marketplace ----------
+        static readonly Dictionary<string, KeyValuePair<DateTime, string>> pluginLists = new Dictionary<string, KeyValuePair<DateTime, string>>();
+        /// <summary>What `claude plugin list` / `codex plugin list` print, asked at most once a minute. Empty when the agent isn't installed or can't say.</summary>
+        string PluginList(string target)
+        {
+            lock (pluginLists) { KeyValuePair<DateTime, string> c; if (pluginLists.TryGetValue(target, out c) && (DateTime.UtcNow - c.Key).TotalSeconds < 60) return c.Value; }
+            string text = "";
+            try { string exe = target == "claude" ? FindClaude() : ModelCatalog.FindCodex(); if (exe != null) text = RunCli(exe, "plugin list --json", 15000); } catch (Exception) { }
+            lock (pluginLists) pluginLists[target] = new KeyValuePair<DateTime, string>(DateTime.UtcNow, text); return text;
+        }
+        bool HasPlugin(string target, Plug p) { string name = p.PluginRef.Split('@')[0]; return Regex.IsMatch(PluginList(target), "[\"/ @]" + Regex.Escape(name) + "[\"@ ,]", RegexOptions.IgnoreCase); }
+        void ForgetPluginLists() { lock (pluginLists) pluginLists.Clear(); }
+        /// <summary>Adds the marketplace (already being there is fine) and installs the plugin, with the agent's own command.</summary>
+        void PluginAdd(string target, Plug p)
+        {
+            string exe = CliFor(target);
+            try { RunCli(exe, "plugin marketplace add " + WinQuote(p.Marketplace), 120000); }
+            catch (InvalidOperationException ex) { if (ex.Message.IndexOf("already", StringComparison.OrdinalIgnoreCase) < 0) throw; }
+            RunCli(exe, (target == "claude" ? "plugin install " : "plugin add ") + WinQuote(p.PluginRef), 240000);
+            ForgetPluginLists();
+        }
+        void PluginDrop(string target, Plug p)
+        {
+            string exe = CliFor(target);
+            RunCli(exe, (target == "claude" ? "plugin uninstall " : "plugin remove ") + WinQuote(p.PluginRef), 120000);
+            ForgetPluginLists();
+        }
+
         // ---------- the library ----------
         public object PluginLibrary()
         {
@@ -134,15 +166,16 @@ namespace Laica
                 var installedOn = new List<string>();
                 foreach (string t in new[] { "claude", "codex", "shared" })
                 {
+                    if (p.Kind == "plugin" && t != "shared" && p.Agents.Contains(t) && (t == "claude" ? claude : codex) && HasPlugin(t, p)) installedOn.Add(t);
                     if (p.Kind == "mcp" && t != "shared" && mcpHave.Contains(t + "|" + name)) installedOn.Add(t);
                     if (p.Kind == "skill" && skillHave.Contains(t + "|" + name)) installedOn.Add(t);
                 }
                 items.Add(new Dictionary<string, object> {
-                    { "Id", p.Id }, { "Kind", p.Kind }, { "Name", p.Name }, { "Summary", p.Summary }, { "Category", p.Category }, { "Home", p.Home ?? "" },
-                    { "Needs", needsMissing }, { "Suggested", p.Kind == "runtime" ? !installedAgent && Catalog.Any(c => c.Needs.Contains(p.Id == "runtime-node" ? "node" : "uv") && c.Programs.Any(programs.ContainsKey)) : because.Length > 0 && !installedAgent && installedOn.Count == 0 },
-                    { "Because", p.Kind == "runtime" ? "Needed by tools that fit your programs" : because.Length > 0 ? String.Join(", ", because.Distinct()) + " is installed" : "" },
+                    { "Id", p.Id }, { "Kind", p.Kind }, { "Agents", p.Agents }, { "Name", p.Name }, { "Summary", p.Summary }, { "Category", p.Category }, { "Home", p.Home ?? "" },
+                    { "Needs", needsMissing }, { "Suggested", p.Kind == "plugin" ? (p.Agents.Any(a => a == "claude" ? claude : codex) && installedOn.Count == 0) : p.Kind == "runtime" ? !installedAgent && Catalog.Any(c => c.Needs.Contains(p.Id == "runtime-node" ? "node" : "uv") && c.Programs.Any(programs.ContainsKey)) : because.Length > 0 && !installedAgent && installedOn.Count == 0 },
+                    { "Because", p.Kind == "plugin" ? (!p.Agents.Any(a => a == "claude" ? claude : codex) ? "" : String.Join(" and ", p.Agents.Where(a => a == "claude" ? claude : codex).Select(a => a == "claude" ? "Claude Code" : "Codex")) + " is installed") : p.Kind == "runtime" ? "Needed by tools that fit your programs" : because.Length > 0 ? String.Join(", ", because.Distinct()) + " is installed" : "" },
                     { "Inputs", p.Inputs.Select(i => (object)new Dictionary<string, object> { { "Key", i.Key }, { "Label", i.Label }, { "Hint", i.Hint }, { "Kind", i.Kind }, { "Secret", i.Secret }, { "Required", i.Required } }).ToArray() },
-                    { "Preview", p.Manager == "winget" ? "winget install --id " + p.Package + " -e --silent" : p.Kind == "agent" ? (p.Manager == "npm" ? "npm install -g " + p.Package : "python -m pip install " + p.Package) : p.Kind == "skill" ? "Creates ~/.claude/skills/" + name + "/SKILL.md (or the Codex or shared skills folder)" : (p.Url ?? p.Command) },
+                    { "Preview", p.Manager == "winget" ? "winget install --id " + p.Package + " -e --silent" : p.Kind == "agent" ? (p.Manager == "npm" ? "npm install -g " + p.Package : "python -m pip install " + p.Package) : p.Kind == "plugin" ? "plugin marketplace add " + p.Marketplace + "  then  plugin install " + p.PluginRef + "  (with each agent's own command)" : p.Kind == "skill" ? "Creates ~/.claude/skills/" + name + "/SKILL.md (or the Codex or shared skills folder)" : (p.Url ?? p.Command) },
                     { "InstalledOn", installedOn.ToArray() }, { "AgentInstalled", installedAgent }
                 });
             }
@@ -172,7 +205,13 @@ namespace Laica
             if (missing.Length > 0 && p.Kind == "mcp") throw new InvalidOperationException("This needs " + String.Join(" and ", missing.Select(n => n == "node" ? "Node.js" : n == "uv" ? "uv" : n)) + " installed first.");
             foreach (var i in p.Inputs) if (i.Required && String.IsNullOrWhiteSpace(values.ContainsKey(i.Key) ? values[i.Key] : "")) throw new ArgumentException(i.Label + " is required.");
             var done = new List<string>();
-            if (p.Kind == "skill")
+            if (p.Kind == "plugin")
+            {
+                if (missing.Length > 0) throw new InvalidOperationException("This needs " + String.Join(" and ", missing.Select(n => n == "node" ? "Node.js" : n)) + " installed first.");
+                foreach (string t in targets.Where(t => p.Agents.Contains(t))) { PluginAdd(t, p); done.Add(t); }
+                if (done.Count == 0) throw new ArgumentException(p.Name + " installs into " + String.Join(" or ", p.Agents.Select(a => a == "claude" ? "Claude Code" : "Codex")) + ".");
+            }
+            else if (p.Kind == "skill")
             {
                 foreach (string t in targets) { SkillSave(t, p.ServerName, p.Summary, p.Body); done.Add(t); }
             }
@@ -189,7 +228,7 @@ namespace Laica
         public object PluginRemove(string id, string target)
         {
             var p = Catalog.FirstOrDefault(x => x.Id == id); if (p == null) throw new ArgumentException("That plugin isn't in the library.");
-            if (p.Kind == "mcp") McpRemove(target, p.Id); else if (p.Kind == "skill") SkillDelete(target, p.ServerName); else throw new ArgumentException("Uninstall agents from Windows settings.");
+            if (p.Kind == "mcp") McpRemove(target, p.Id); else if (p.Kind == "plugin") PluginDrop(target, p); else if (p.Kind == "skill") SkillDelete(target, p.ServerName); else throw new ArgumentException("Uninstall agents from Windows settings.");
             return true;
         }
 

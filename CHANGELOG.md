@@ -10,6 +10,8 @@ Every release is made with `Release-Edition.ps1`, which builds, runs every test 
 - **Tab to accept the predicted reply.** When an agent ends with a question you can answer with a yes ("Want me to add a high-contrast option too?"), the message box shows `Yes, add a high-contrast option too.` as grey text with a Tab hint. Tab fills it in, Esc dismisses it, and typing replaces it. It stays quiet unless the question is clear.
 - **Gemini CLI and Qwen Code show their work.** When the installed version can stream JSON, their tool calls, file edits, results and token use appear as steps like Claude Code and Codex, instead of one block of text. Older versions keep the plain-text path automatically.
 
+- **The library is split into Plugins, MCP servers and Agents & tools**, each with its own suggestions (a number on the tab shows how many fit this computer). The new **Plugins** tab installs bundles from an agent's own marketplace through its own commands: **ECC** (skills, sub-agents, commands, hooks and a security scanner, for Claude Code and Codex) and **Claude-Mem** (persistent memory for Claude Code). They are suggested when the agent they belong to is installed, shown as installed once the agent reports them, and removable from the same card.
+
 ### Changed
 - **Interface finish.** A final global layer makes the whole app behave like part of the operating system: controls and chrome use the arrow cursor and can't be selected, content can; scrollbars are thin and appear only when you hover; one keyboard-only focus ring; the system's reduced-motion setting is honoured everywhere; numbers line up. The sidebar is narrower by default (280 px, resizable from 240 px).
 

@@ -5,37 +5,46 @@ import type {ReactNode} from 'react';
 import {request,isDesktop,isRemote} from './bridge';
 
 interface Input { Key:string; Label:string; Hint:string; Kind:'folder'|'file'|'text'|'env'; Secret:boolean; Required:boolean }
-interface Plugin { Id:string; Kind:'mcp'|'skill'|'agent'|'runtime'; Name:string; Summary:string; Category:string; Home:string; Needs:string[]; Suggested:boolean; Because:string; Inputs:Input[]; Preview:string; InstalledOn:string[]; AgentInstalled:boolean }
+interface Plugin { Agents:string[]; Id:string; Kind:'plugin'|'mcp'|'skill'|'agent'|'runtime'; Name:string; Summary:string; Category:string; Home:string; Needs:string[]; Suggested:boolean; Because:string; Inputs:Input[]; Preview:string; InstalledOn:string[]; AgentInstalled:boolean }
 interface Library { Items:Plugin[]; Programs:string[]; Targets:{claude:boolean;codex:boolean} }
 
 const icons:Record<string,ReactNode>={Agents:<Bot size={20}/>,Essentials:<Sparkles size={20}/>,Developer:<Code2 size={20}/>,Browser:<Globe size={20}/>,Creative:<Palette size={20}/>,Productivity:<NotebookPen size={20}/>,Data:<Database size={20}/>,Skills:<BookOpen size={20}/>,Runtimes:<Wrench size={20}/>};
 const targetName:Record<string,string>={claude:'Claude Code',codex:'Codex',shared:'Shared skills'};
-const filters=['All','Suggested','Installed','Agents','Essentials','Developer','Browser','Creative','Productivity','Data','Skills','Runtimes'];
+type Section='plugins'|'mcp'|'tools';
+const sections:{id:Section;label:string;blurb:string;has:(p:Plugin)=>boolean}[]=[
+  {id:'plugins',label:'Plugins',blurb:'Bundles of skills, commands and sub-agents that your agent installs from its own marketplace, and starter skills.',has:p=>p.Kind==='plugin'||p.Kind==='skill'},
+  {id:'mcp',label:'MCP servers',blurb:'Tools an agent can call: browsers, documents, databases and apps on this computer.',has:p=>p.Kind==='mcp'},
+  {id:'tools',label:'Agents & tools',blurb:'Agent CLIs you can chat with and use in teams, and the runtimes they need.',has:p=>p.Kind==='agent'||p.Kind==='runtime'},
+];
 
 /** The plugin library: click Install to add MCP servers, skills and agents. Programs already on this computer are suggested first. */
 export default function PluginsPage(){
   const {toast}=useToast();
   const [lib,setLib]=useState<Library|null>(null),[error,setError]=useState(''),[q,setQ]=useState(''),[filter,setFilter]=useState('All');
-  const [open,setOpen]=useState<Plugin|null>(null);
+  const [open,setOpen]=useState<Plugin|null>(null),[section,setSection]=useState<Section>('plugins');
   const load=useCallback(()=>{request<Library>('pluginLibrary').then(l=>{setLib(l);setError('');}).catch(e=>setError((e as Error).message));},[]);
   useEffect(()=>{if(isDesktop)load();},[load]);
   const tool=(p:Plugin)=>p.Kind==='agent'||p.Kind==='runtime';
   const isInstalled=(p:Plugin)=>tool(p)?p.AgentInstalled:p.InstalledOn.length>0;
+  const here=sections.find(x=>x.id===section)!;
+  const inSection=useMemo(()=>lib?lib.Items.filter(here.has):[],[lib,here]);
+  const filters=useMemo(()=>['All','Suggested','Installed',...Array.from(new Set(inSection.map(p=>p.Category))).filter(c=>inSection.filter(p=>p.Category===c).length>0&&c!=='Plugins'&&(inSection.some(p=>p.Category!==c)||section==='mcp'))],[inSection,section]);
+  useEffect(()=>{if(!filters.includes(filter))setFilter('All');},[filters,filter]);
   const shown=useMemo(()=>{
     if(!lib)return [];const words=q.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    return lib.Items.filter(p=>{
+    return inSection.filter(p=>{
       if(filter==='Suggested'&&!p.Suggested)return false;if(filter==='Installed'&&!isInstalled(p))return false;
       if(!['All','Suggested','Installed'].includes(filter)&&p.Category!==filter)return false;
       return words.every(w=>(p.Name+' '+p.Summary+' '+p.Category+' '+p.Because).toLowerCase().includes(w));
     });
-  },[lib,q,filter]);
+  },[lib,inSection,q,filter]);
   const suggested=useMemo(()=>filter==='All'&&!q?shown.filter(p=>p.Suggested):[],[shown,filter,q]);
   const rest=useMemo(()=>shown.filter(p=>!suggested.includes(p)),[shown,suggested]);
   const remove=async(p:Plugin,t:string)=>{try{await request('pluginRemove',{Id:p.Id,Target:t});toast({title:`${p.Name} removed from ${targetName[t]}`});load();}catch(e){toast({title:'Could not remove',description:(e as Error).message,duration:7000});}};
   if(!isDesktop)return <div className="empty-state"><Bot size={26}/><h2>Open the desktop app</h2><p>The plugin library installs tools for the agents on this computer.</p></div>;
 
   const card=(p:Plugin)=><Glass key={p.Id} material="regular" className={`plugin-card ${isInstalled(p)?'is-installed':''}`}>
-    <div className="plugin-top"><span className="plugin-icon">{icons[p.Category]??<Wand2 size={20}/>}</span><div className="plugin-title"><b>{p.Name}</b><small>{p.Kind==='mcp'?'MCP server':p.Kind==='skill'?'Skill':p.Kind==='runtime'?'Runtime':'Agent'} · {p.Category}</small></div></div>
+    <div className="plugin-top"><span className="plugin-icon">{icons[p.Category]??<Wand2 size={20}/>}</span><div className="plugin-title"><b>{p.Name}</b><small>{p.Kind==='mcp'?'MCP server':p.Kind==='plugin'?'Plugin':p.Kind==='skill'?'Skill':p.Kind==='runtime'?'Runtime':'Agent'}{p.Kind==='plugin'?' · '+p.Agents.map(a=>targetName[a]).join(', '):' · '+p.Category}</small></div></div>
     <p className="plugin-sum">{p.Summary}</p>
     <div className="plugin-tags">
       {p.Because&&!isInstalled(p)&&<span className="ptag is-fit"><Monitor size={11}/>{p.Because}</span>}
@@ -48,8 +57,10 @@ export default function PluginsPage(){
 
   return <div className="plugins-page">
     <div className="plugins-tools">
-      <label className="palette-search plugins-search"><Search size={15}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search plugins, tools and agents" aria-label="Search plugins"/></label>
-      <div className="plugins-filters" role="tablist" aria-label="Filter plugins">{filters.map(f=><button key={f} type="button" role="tab" aria-selected={filter===f} className={`pfilter ${filter===f?'on':''}`} onClick={()=>setFilter(f)}>{f}</button>)}</div>
+      <label className="palette-search plugins-search"><Search size={15}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder={`Search ${here.label.toLowerCase()}`} aria-label="Search plugins"/></label>
+      <div className="plugins-sections" role="tablist" aria-label="Library">{sections.map(x=>{const n=lib?lib.Items.filter(x.has).filter(p=>p.Suggested).length:0;return <button key={x.id} type="button" role="tab" aria-selected={section===x.id} className={`psection ${section===x.id?'on':''}`} onClick={()=>setSection(x.id)}>{x.label}{n>0&&<span className="psection-n" title={`${n} suggested for this computer`}>{n}</span>}</button>;})}</div>
+      <p className="plugins-blurb">{here.blurb}</p>
+      <div className="plugins-filters" role="tablist" aria-label="Filter">{filters.map(f=><button key={f} type="button" role="tab" aria-selected={filter===f} className={`pfilter ${filter===f?'on':''}`} onClick={()=>setFilter(f)}>{f}</button>)}</div>
     </div>
     {lib&&lib.Programs.length>0&&<p className="plugins-found"><Monitor size={13}/> Found on this computer: {lib.Programs.join(', ')}</p>}
     {error&&<p className="error-text">{error}</p>}
@@ -63,7 +74,7 @@ export default function PluginsPage(){
 
 function InstallDialog({plugin,lib,onClose,onDone}:{plugin:Plugin;lib:Library;onClose:()=>void;onDone:()=>void}){
   const {toast}=useToast();
-  const choices=plugin.Kind==='mcp'?[['claude','Claude Code',lib.Targets.claude],['codex','Codex',lib.Targets.codex]]:plugin.Kind==='skill'?[['claude','Claude Code',true],['codex','Codex',true],['shared','Shared (works with both)',true]]:[];
+  const choices=plugin.Kind==='plugin'?plugin.Agents.map(a=>[a,targetName[a],a==='claude'?lib.Targets.claude:lib.Targets.codex]):plugin.Kind==='mcp'?[['claude','Claude Code',lib.Targets.claude],['codex','Codex',lib.Targets.codex]]:plugin.Kind==='skill'?[['claude','Claude Code',true],['codex','Codex',true],['shared','Shared (works with both)',true]]:[];
   const [targets,setTargets]=useState<string[]>(()=>choices.filter(c=>c[2]&&!plugin.InstalledOn.includes(c[0] as string)).map(c=>c[0] as string).slice(0,plugin.Kind==='skill'?1:2));
   const [values,setValues]=useState<Record<string,string>>({}),[busy,setBusy]=useState(false);
   const set=(k:string,v:string)=>setValues(cur=>({...cur,[k]:v}));
@@ -74,7 +85,7 @@ function InstallDialog({plugin,lib,onClose,onDone}:{plugin:Plugin;lib:Library;on
     setBusy(true);
     try{
       const r=await request<{Installed:string[];Output?:string}>('pluginInstall',{Id:plugin.Id,Targets:targets,Values:values});
-      toast({title:`${plugin.Name} installed`,description:plugin.Kind==='runtime'?'Tools that needed it can now be installed.':plugin.Kind==='agent'?'It now appears when you choose a model and in teams.':plugin.Kind==='mcp'?`Added to ${r.Installed.map(t=>targetName[t]).join(' and ')}. New chats will have it.`:`Added to ${r.Installed.map(t=>targetName[t]).join(' and ')}.`,duration:7000});
+      toast({title:`${plugin.Name} installed`,description:plugin.Kind==='runtime'?'Tools that needed it can now be installed.':plugin.Kind==='agent'?'It now appears when you choose a model and in teams.':plugin.Kind==='plugin'?`Added to ${r.Installed.map(t=>targetName[t]).join(' and ')}. Restart the agent to use it.`:plugin.Kind==='mcp'?`Added to ${r.Installed.map(t=>targetName[t]).join(' and ')}. New chats will have it.`:`Added to ${r.Installed.map(t=>targetName[t]).join(' and ')}.`,duration:7000});
       onDone();
     }catch(e){toast({title:'Could not install',description:(e as Error).message,duration:12000});setBusy(false);}
   };
