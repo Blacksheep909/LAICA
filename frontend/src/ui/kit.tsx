@@ -6,7 +6,6 @@ import * as ContextMenuPrimitive from '@radix-ui/react-context-menu';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
-import * as SwitchPrimitive from '@radix-ui/react-switch';
 import * as SliderPrimitive from '@radix-ui/react-slider';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import * as ToggleGroupPrimitive from '@radix-ui/react-toggle-group';
@@ -74,7 +73,6 @@ export const TabsTrigger=React.forwardRef<HTMLButtonElement,P<typeof TabsPrimiti
 export const TabsContent=React.forwardRef<HTMLDivElement,P<typeof TabsPrimitive.Content>>(({className,...p},ref)=><TabsPrimitive.Content ref={ref} className={cx('ui-tab-panel',className)} {...p}/>);
 
 /* ---------- Switch, Slider, Toggle group, Progress ---------- */
-export const Switch=React.forwardRef<HTMLButtonElement,P<typeof SwitchPrimitive.Root>>(({className,...p},ref)=><SwitchPrimitive.Root ref={ref} className={cx('ui-switch',className)} {...p}><SwitchPrimitive.Thumb className="ui-switch-thumb"/></SwitchPrimitive.Root>);
 export const Slider=React.forwardRef<HTMLSpanElement,P<typeof SliderPrimitive.Root>>(({className,...p},ref)=><SliderPrimitive.Root ref={ref} className={cx('ui-slider',className)} {...p}><SliderPrimitive.Track className="ui-slider-track"><SliderPrimitive.Range className="ui-slider-range"/></SliderPrimitive.Track>{(p.value??p.defaultValue??[0]).map((_,i)=><SliderPrimitive.Thumb key={i} className="ui-slider-thumb"/>)}</SliderPrimitive.Root>);
 export const ToggleGroup=React.forwardRef<HTMLDivElement,P<typeof ToggleGroupPrimitive.Root>>(({className,...p},ref)=><ToggleGroupPrimitive.Root ref={ref} className={cx('ui-segmented',className)} {...p}/>);
 export const ToggleGroupItem=React.forwardRef<HTMLButtonElement,P<typeof ToggleGroupPrimitive.Item>>(({className,...p},ref)=><ToggleGroupPrimitive.Item ref={ref} className={cx('ui-segment',className)} {...p}/>);
@@ -106,5 +104,5 @@ export const WorkingGlyph=({size=14,paused}:{size?:number;paused?:boolean})=>pau
     can override without !important; this one is a plain element, and every pixel of its look comes from the stylesheet. */
 export interface SurfaceProps extends React.HTMLAttributes<HTMLElement> { as?:keyof React.JSX.IntrinsicElements; material?:string; tone?:string; interactive?:boolean; optics?:unknown; renderer?:string; source?:string; look?:unknown; geometry?:unknown; filterId?:string }
 export const Glass=React.forwardRef<HTMLElement,SurfaceProps>(function Glass({as='div',material:_m,tone:_t,interactive:_i,optics:_o,renderer:_r,source:_s,look:_l,geometry:_g,filterId:_f,children,...rest},ref){
-  return React.createElement(as as string,{...rest,ref,'data-ogui-glass':''},children);
+  return React.createElement(as as string,{...rest,ref,'data-surface':''},children);
 });

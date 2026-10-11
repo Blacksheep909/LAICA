@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useState} from 'react';
-import {Button,SegmentedControl,useToast} from 'open-glass-ui';
+import {Button,SegmentedControl,useToast} from './ui/controls';
 import {Glass} from './ui/kit';
 import {Select} from './GlassSelect';
 import {Activity as ActivityIcon,ArrowUpRight,Check,ChevronRight,Clock,Copy,Download,FileCode2,GitBranch,Globe,Layers,Search,Terminal,Workflow,X} from 'lucide-react';

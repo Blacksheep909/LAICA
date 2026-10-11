@@ -37,7 +37,7 @@ h1,h2,h3,.home-title{letter-spacing:-.022em;font-weight:620}
 .harness-compose textarea:focus{outline:none}
 
 /* ---- controls: flat, quiet, springy ---- */
-.ogui-button:active{transform:scale(.97)}
+.btn:active{transform:scale(.97)}
 .assistant-card h3,.assistant-card strong{font-weight:620;letter-spacing:-.012em}
 
 /* ---- toasts and popovers ---- */

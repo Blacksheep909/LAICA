@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useState} from 'react';
-import {Switch,Button} from 'open-glass-ui';
+import {Switch,Button} from './ui/controls';
 import {ArrowUpCircle} from 'lucide-react';
 import {request,isRemote} from './bridge';
 

@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import type {DragEvent} from 'react';
-import {IconButton,useToast} from 'open-glass-ui';
+import {IconButton,useToast} from './ui/controls';
 import {Plus,Mic,Square,Paperclip,Image as ImageIcon,Folder,X,Copy,Check,LoaderCircle,Lightbulb,Target} from 'lucide-react';
 import {request,subscribe,isDesktop,isRemote,resolveDroppedFile} from './bridge';
 import {pushUndo} from './undo';

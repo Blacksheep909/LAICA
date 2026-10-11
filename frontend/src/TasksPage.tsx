@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useState} from 'react';
-import {Button,Dialog,useToast} from 'open-glass-ui';
+import {Button,Modal,useToast} from './ui/controls';
 import {Glass} from './ui/kit';
 import {Select} from './GlassSelect';
 import {Plus,Play,Pencil,Trash2,Clock} from 'lucide-react';
@@ -27,7 +27,7 @@ export default function TasksPage({workingDirectory}:{workingDirectory:string}){
       <Button size="small" variant="quiet" leadingIcon={<Play size={14}/>} onClick={()=>request('taskRun',{Id:t.Id}).then(()=>toast({title:'Task started'})).catch(fail('Could not run task'))}>Run now</Button>
       <Button size="small" variant="quiet" aria-label="Edit" onClick={()=>setEdit(t)}><Pencil size={14}/></Button>
       <Button size="small" variant="quiet" aria-label="Delete" onClick={()=>request('taskDelete',{Id:t.Id}).then(reload).catch(fail('Could not delete'))}><Trash2 size={14}/></Button></Glass>)}
-    <Dialog title={edit?.Id?'Edit task':'New task'} open={edit!==null} onOpenChange={o=>{if(!o)setEdit(null);}}>{edit&&<div className="form-grid">
+    <Modal title={edit?.Id?'Edit task':'New task'} open={edit!==null} onOpenChange={o=>{if(!o)setEdit(null);}}>{edit&&<div className="form-grid">
       <label className="full">Name<input className="hinput" value={edit.Name} onChange={e=>setEdit({...edit,Name:e.target.value})}/></label>
       <Select aria-label="Agent" label="Agent" value={edit.Harness} options={harnesses.map(h=>({value:h.Id,label:h.Name}))} onChange={e=>setEdit({...edit,Harness:e.target.value,Mode:''})}/>
       <label>Working folder<input className="hinput" value={edit.Cwd} onChange={e=>setEdit({...edit,Cwd:e.target.value})}/></label>
@@ -37,6 +37,6 @@ export default function TasksPage({workingDirectory}:{workingDirectory:string}){
       {edit.Kind==='once'&&<label>Run at<input className="hinput" type="datetime-local" value={edit.RunAt} onChange={e=>setEdit({...edit,RunAt:e.target.value})}/></label>}
       <label className="full">Prompt<textarea value={edit.Prompt} onChange={e=>setEdit({...edit,Prompt:e.target.value})} placeholder="What should the agent do each time?"/></label>
       <label className="full chk"><input type="checkbox" checked={edit.NewSession} onChange={e=>setEdit({...edit,NewSession:e.target.checked})}/> Start a fresh chat for every run (otherwise continue the same chat)</label>
-      <label className="full chk"><input type="checkbox" checked={edit.Isolate} disabled={!edit.NewSession} onChange={e=>setEdit({...edit,Isolate:e.target.checked})}/> Run each fresh chat in its own git worktree (git repositories only)</label><div className="full dialog-actions"><Button variant="quiet" onClick={()=>setEdit(null)}>Cancel</Button><Button variant="primary" onClick={()=>save(edit)}>Save task</Button></div></div>}</Dialog>
+      <label className="full chk"><input type="checkbox" checked={edit.Isolate} disabled={!edit.NewSession} onChange={e=>setEdit({...edit,Isolate:e.target.checked})}/> Run each fresh chat in its own git worktree (git repositories only)</label><div className="full dialog-actions"><Button variant="quiet" onClick={()=>setEdit(null)}>Cancel</Button><Button variant="primary" onClick={()=>save(edit)}>Save task</Button></div></div>}</Modal>
   </div>;
 }

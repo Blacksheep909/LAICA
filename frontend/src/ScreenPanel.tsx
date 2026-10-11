@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from 'react';
 import {Globe,MousePointerClick,Keyboard,Camera,Monitor,Square,Move,ArrowDownUp,Hourglass} from 'lucide-react';
-import {Button} from 'open-glass-ui';
+import {Button} from './ui/controls';
 import {request} from './bridge';
 import {useHarness} from './harness-store';
 import type {HEvent} from './harness-store';

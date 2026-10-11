@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {useToast} from 'open-glass-ui';
+import {useToast} from './ui/controls';
 import {Paperclip,PenLine,Lightbulb,Target,Plug,Sparkles,Store,Plus,Check,Eraser,Undo2,Image as ImageIcon} from 'lucide-react';
 import {Popover,PopoverTrigger,PopoverContent,Command,CommandInput,CommandList,CommandEmpty,CommandGroup,CommandItem,Dialog,DialogContent,DialogTitle,DialogDescription,Slider,Tip,Kbd} from './ui/kit';
 import {request,isDesktop} from './bridge';

@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {useToast} from 'open-glass-ui';
+import {useToast} from './ui/controls';
 import {request} from './bridge';
 import {useHarness} from './harness-store';
 import {runUndo,undoDepth} from './undo';

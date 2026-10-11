@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useState} from 'react';
-import {Button,useToast} from 'open-glass-ui';
+import {Button,useToast} from './ui/controls';
 import {GitBranch,GitMerge,Trash2,GitCommitHorizontal} from 'lucide-react';
 import {request} from './bridge';
 

@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {BarChart3} from 'lucide-react';
-import {Button} from 'open-glass-ui';
+import {Button} from './ui/controls';
 import {request,isDesktop} from './bridge';
 import {Popover,PopoverTrigger,PopoverContent,ToggleGroup,ToggleGroupItem,Progress,Tip} from './ui/kit';
 

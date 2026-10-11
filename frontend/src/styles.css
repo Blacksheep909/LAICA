@@ -17,7 +17,7 @@
             beats them and the declaration can move into app. */
 @layer tokens, app, pinned;
 @import './tokens.css' layer(tokens);
-@import 'open-glass-ui/styles.css' layer(app);
+@import './ui/controls.css' layer(app);
 @import './workspace.css' layer(app);
 @import './Shell.css' layer(app);
 @import './GlassSelect.css' layer(app);

@@ -1,6 +1,6 @@
 import {Thumbs,refsOf} from './Images';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {Button,IconButton,useToast} from 'open-glass-ui';
+import {Button,IconButton,useToast} from './ui/controls';
 import {Glass} from './ui/kit';
 import {Bot,Send,Square,Wrench,TerminalSquare,AlertTriangle,PanelRightOpen,ArrowDown,ArrowRightLeft,Pencil,Paperclip,GitBranch,Info,ShieldQuestion,Check,X,Pause,Play,Download,Clock} from 'lucide-react';
 import {useAttachments,useDropZone,AttachChips,DropOverlay,MicButton,CopyBtn,FlagChips,usePasteFiles,composePrompt,splitPrompt,noFlags} from './Composer';

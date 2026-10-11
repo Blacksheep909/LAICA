@@ -1,5 +1,5 @@
 import {useMemo,useState} from 'react';
-import {Button} from 'open-glass-ui';
+import {Button} from './ui/controls';
 import {Pin,PinOff,Pencil,Download,FolderSearch,Trash2,Store,Plus,SquarePen,Search,CalendarClock,Sparkles,Workflow,Activity as ActivityIcon,FolderOpen,Folder,MessageSquare,X,Settings,Plug,BookOpen,GitBranch,ChevronDown,ChevronRight,Minus,Users,RefreshCw,FolderPlus,History as HistoryIcon} from 'lucide-react';
 import {useHarness} from './harness-store';
 import type {TeamRun} from './harness-store';

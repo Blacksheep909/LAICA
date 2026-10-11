@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useState} from 'react';
-import {Button,Dialog,useToast} from 'open-glass-ui';
+import {Button,Modal,useToast} from './ui/controls';
 import {Glass} from './ui/kit';
 import {Wrench,Bot,Sparkles,Code2,Globe,Palette,NotebookPen,Database,BookOpen,Search,Check,X,Download,Wand2,Monitor,TriangleAlert,Folder,FileText} from 'lucide-react';
 import type {ReactNode} from 'react';
@@ -90,7 +90,7 @@ function InstallDialog({plugin,lib,onClose,onDone}:{plugin:Plugin;lib:Library;on
       onDone();
     }catch(e){toast({title:'Could not install',description:(e as Error).message,duration:12000});setBusy(false);}
   };
-  return <Dialog title={`Install ${plugin.Name}`} open onOpenChange={o=>{if(!o&&!busy)onClose();}}>
+  return <Modal title={`Install ${plugin.Name}`} open onOpenChange={o=>{if(!o&&!busy)onClose();}}>
     <div className="plugin-dialog">
       <p>{plugin.Summary}</p>
       {choices.length>0&&<fieldset className="plugin-targets"><legend>Install for</legend>{choices.map(([id,label,ok])=><label key={id as string} className={`chk ${ok?'':'is-off'}`}><input type="checkbox" disabled={!ok||busy} checked={targets.includes(id as string)} onChange={e=>setTargets(cur=>e.target.checked?[...cur,id as string]:cur.filter(x=>x!==id))}/>{label as string}{!ok&&<small> (not installed)</small>}{plugin.InstalledOn.includes(id as string)&&<small> (already added)</small>}</label>)}</fieldset>}
@@ -101,5 +101,5 @@ function InstallDialog({plugin,lib,onClose,onDone}:{plugin:Plugin;lib:Library;on
       {(plugin.Kind==='agent'||plugin.Kind==='runtime')&&<p className="plugin-note">{plugin.Preview.startsWith('winget')?'Windows downloads it with the Windows Package Manager and may ask for your permission. This can take a few minutes.':'Installing downloads the package from '+(plugin.Preview.startsWith('npm')?'npm':'PyPI')+' and can take a minute or two.'}</p>}
       <div className="dialog-actions"><Button variant="quiet" onClick={onClose} disabled={busy}>Cancel</Button><Button variant="primary" leadingIcon={<Download size={14}/>} disabled={!ready||busy} onClick={()=>{void install();}}>{busy?'Installing…':'Install'}</Button></div>
     </div>
-  </Dialog>;
+  </Modal>;
 }

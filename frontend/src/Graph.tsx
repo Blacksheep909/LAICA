@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useId,useMemo,useRef,useState} from 'react';
-import {Button,IconButton,Glass} from 'open-glass-ui';
+import {Button,IconButton} from './ui/controls';
+import {Glass} from './ui/kit';
 import {ArrowDownToLine,Trash2,Copy,Focus,Frame,GitBranch,Grid2X2,Minus,MousePointer2,Plus,Redo2,Search,Undo2,Waypoints,Link2} from 'lucide-react';
 import type {AgentPlan} from './types';
 import {allEdges,clonePlan,defaultLayout,deleteWorker,disconnectLink,hiddenLink,isStage,linkKey,linksAt,MAX_NODES,NODE_H,NODE_W,reconnectLink,remapDuplicate,sideAllows,snapped,stagePoint,STAGE_IDS,type EndpointSide,type StageId} from './graph-model';

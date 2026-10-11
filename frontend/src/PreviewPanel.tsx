@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {Button,IconButton,useToast} from 'open-glass-ui';
+import {Button,IconButton,useToast} from './ui/controls';
 import {Folder,File as FileIcon,ChevronRight,ChevronDown,RefreshCw,Save,X,Pencil,Eye} from 'lucide-react';
 import {request} from './bridge';
 import {Markdown} from './markdown';

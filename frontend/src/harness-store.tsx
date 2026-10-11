@@ -1,6 +1,6 @@
 import {createContext,useCallback,useContext,useEffect,useMemo,useRef,useState} from 'react';
 import type {ReactNode} from 'react';
-import {useToast} from 'open-glass-ui';
+import {useToast} from './ui/controls';
 import {request,subscribe,isDesktop} from './bridge';
 import {pushUndo,runUndo} from './undo';
 import {builtinAssistants} from './assistants-data';

@@ -14,13 +14,6 @@
     border-radius: var(--radius-5xl);
     border: 1px solid #b8d2ef18
 }
-.ogui-input,.ogui-select,.ogui-textarea {
-    font-size: var(--text-sm);
-    color: #f2f6fc
-}
-.ogui-textarea {
-    line-height: 1.65
-}
 .task-composer {
     border-radius: var(--radius-4xl)
 }
@@ -46,15 +39,6 @@
     border-color: #c3afff75;
     box-shadow: inset 0 0 0 1px #c3afff33
 }
-.ogui-overlay__panel {
-    background: rgba(30,40,55,.97);
-    border: 1px solid #cedff02a;
-    max-width: 620px;
-    border-radius: var(--radius-5xl)
-}
-.ogui-dialog__panel {
-    max-width: 620px
-}
 .agent-list,.activity-details,.answer-panel,.run-events {
     border-radius: var(--radius-5xl)
 }
@@ -64,7 +48,7 @@
 .agent-model {
     font-size: var(--text-xs)
 }
-.solid-material [data-ogui-renderer],.solid-material .ogui-glass,.solid-material .navigation,.solid-material .inspector,.solid-material .setting-card,.solid-material .connection-row {
+.solid-material .navigation,.solid-material .inspector,.solid-material .setting-card,.solid-material .connection-row {
     backdrop-filter: none;
     background: #24212d
 }
@@ -91,24 +75,8 @@
         color: CanvasText
     }
 }
-.profile-picker .ogui-select__control {
-    display: grid
-}
-.ogui-overlay__surface {
-    background: rgba(24,22,30,.97);
-    border: 1px solid #cde1f52b;
-    max-width: 650px;
-    width: min(650px,calc(100% - 40px));
-    border-radius: var(--radius-5xl)
-}
-.ogui-theme {
-    background: transparent
-}
 .navigation,.inspector,.setting-card,.connection-row,.task-composer,.answer-panel,.run-events,.activity-details,.agent-list {
     border-color: rgba(231,218,255,.13)
-}
-.ogui-overlay__surface {
-    box-shadow: inset 0 1px 0 #ffffff18,0 24px 80px #0008
 }
 .sidebar {
     padding: 16px 10px 10px
@@ -153,7 +121,7 @@
         padding: 0 8px
     }
 }
-.mobile-bar .ogui-button {
+.mobile-bar .btn {
     padding: 0 10px;
     min-width: auto
 }
@@ -263,10 +231,10 @@
     border-radius: var(--radius-4xl);
     font-size: var(--text-md)
 }
-.ogui-button {
+.btn {
     transition: background var(--time-fast) var(--ease-out),transform var(--time-fast) var(--ease-out),box-shadow var(--time-fast),border-color var(--time-fast)
 }
-.ogui-button--quiet:hover {
+.btn-quiet:hover {
     background: var(--white-08)
 }
 .gs-trigger,[class*=gs-trigger] {
@@ -282,13 +250,6 @@
     border-radius: var(--radius-4xl);
     background: linear-gradient(180deg,rgba(255,110,110,.12),rgba(255,110,110,.05));
     border: 1px solid rgba(255,130,130,.22)
-}
-.ogui-toast {
-    background: var(--sheet),rgba(16,14,30,.62);
-    border: 1px solid var(--hair)
-}
-.ogui-toast__mark {
-    display: none
 }
 .usage-pop {
     border-radius: var(--radius-4xl)
@@ -413,7 +374,7 @@
     margin: 8px -10px 0;
     padding: 8px 14px 4px
 }
-.sidebar .side-icons .ogui-button {
+.sidebar .side-icons .btn {
     border-radius: var(--radius-lg)
 }
 .setting-card,.acard,.connection-row,.plugin-card,.assistant-card,.hside,.card {
@@ -478,7 +439,7 @@
 .harness-compose:focus-within {
     box-shadow: 0 1px 1px rgba(0,0,0,.35),0 0 0 4px rgba(160,140,255,.14),0 22px 54px -16px rgba(0,0,0,.65)
 }
-.harness-meta,.harness-compose,.composer,.gs-pop,.palette,.usage-pop,.ogui-toast,.ogui-dialog,[role=dialog].ogui-glass,.menu-pop {
+.harness-meta,.harness-compose,.composer,.gs-pop,.palette,.usage-pop,.menu-pop {
     background: var(--pointer),var(--glass-sheen),var(--glass-tint);
     background-attachment: fixed,scroll,scroll;
     backdrop-filter: var(--lens,blur(0px)) blur(var(--blur,22px)) saturate(1.9) brightness(1.1);
@@ -492,7 +453,7 @@
 .harness-meta {
     border-radius: var(--radius-5xl)
 }
-.gs-pop,.palette,.ogui-toast,.menu-pop {
+.gs-pop,.palette,.menu-pop {
     border-radius: var(--radius-5xl)
 }
 .composer:focus-within {
@@ -501,33 +462,33 @@
 .composer textarea {
     background: transparent
 }
-.solid-material .harness-meta,.solid-material .harness-compose,.solid-material .composer,.solid-material .gs-pop,.solid-material .palette,.solid-material .usage-pop,.solid-material .ogui-toast {
+.solid-material .harness-meta,.solid-material .harness-compose,.solid-material .composer,.solid-material .gs-pop,.solid-material .palette,.solid-material .usage-pop {
     background: #1b1830;
     backdrop-filter: none;
     -webkit-backdrop-filter: none
 }
 @media (prefers-reduced-transparency:reduce) {
-    .harness-meta,.harness-compose,.composer,.gs-pop,.palette,.usage-pop,.ogui-toast,.sidebar.navigation {
+    .harness-meta,.harness-compose,.composer,.gs-pop,.palette,.usage-pop,.sidebar.navigation {
         background: #1b1830;
         backdrop-filter: none
     }
 }
-.gs-trigger,.ogui-button:not(.ogui-button--primary):not(.ogui-button--quiet),.pfilter,.look-tile {
+.gs-trigger,.btn:not(.btn-primary):not(.btn-quiet),.pfilter,.look-tile {
     border: 0;
     border-radius: 999px;
     background: var(--white-08);
     box-shadow: inset 0 0 0 1px var(--white-08),inset 0 1px 0 var(--white-12)
 }
-.gs-trigger:hover,.ogui-button:not(.ogui-button--primary):not(.ogui-button--quiet):hover {
+.gs-trigger:hover,.btn:not(.btn-primary):not(.btn-quiet):hover {
     background: var(--white-12)
 }
 .look-tile {
     border-radius: var(--radius-4xl)
 }
-.ogui-button,.gs-trigger,.send-btn,.mic-btn,.pause-btn,.pfilter,.new-chat-btn,.side-item,.nav-item {
+.btn,.gs-trigger,.send-btn,.mic-btn,.pause-btn,.pfilter,.new-chat-btn,.side-item,.nav-item {
     transition: transform var(--time-slow) var(--ease-spring),background var(--time-base) var(--ease-out),box-shadow var(--time-base),color var(--time-base)
 }
-.ogui-button--primary,.send-btn:not(:disabled) {
+.btn-primary,.send-btn:not(:disabled) {
     background: linear-gradient(180deg,#c9bdff,#9b86f5);
     color: #17102e;
     border: 0;
@@ -559,7 +520,7 @@
 .sketch-dialog {
     width: min(1040px,calc(100vw - 32px))
 }
-.ui-pop,.palette,.gs-pop,.usage-pop,.ogui-toast {
+.ui-pop,.palette,.gs-pop,.usage-pop {
     background: var(--pointer),var(--glass-sheen),rgba(22,19,42,.66);
     background-attachment: fixed,scroll,scroll
 }
@@ -671,7 +632,7 @@
 .laica-tools-pop {
     padding: 6px
 }
-.laica-tools-pop .ogui-button,.laica-tools-pop button {
+.laica-tools-pop .btn,.laica-tools-pop button {
     justify-content: flex-start;
     gap: 9px;
     font-size: var(--text-sm);
@@ -680,7 +641,7 @@
     height: 30px;
     color: var(--ink-2)
 }
-.laica-tools-pop .ogui-button:hover,.laica-tools-pop button:hover {
+.laica-tools-pop .btn:hover,.laica-tools-pop button:hover {
     background: var(--white-08);
     color: #fff
 }
@@ -760,7 +721,7 @@
 .sidebar .side-nav .nav-item,.sidebar .side-nav .nav-item:hover {
     border: 0
 }
-.sidebar .new-chat-btn:hover,.sidebar .side-nav .nav-item:hover,.sidebar .side-item:hover,.sidebar .side-foot .ogui-button:hover {
+.sidebar .new-chat-btn:hover,.sidebar .side-nav .nav-item:hover,.sidebar .side-item:hover,.sidebar .side-foot .btn:hover {
     background: linear-gradient(180deg,rgba(179,165,247,.13),rgba(150,130,235,.07));
     box-shadow: none;
     border: 0
@@ -802,17 +763,6 @@
     .page-header {
         flex-wrap: wrap
     }
-}
-.ogui-toast-viewport {
-    top: 52px;
-    bottom: auto;
-    right: 18px;
-    width: min(22rem,calc(100vw - 2rem))
-}
-.ogui-toast {
-    border-radius: var(--radius-3xl);
-    padding: .7rem .85rem;
-    box-shadow: 0 14px 36px -16px rgba(0,0,0,.7),inset 0 1px 0 var(--white-08)
 }
 .tt-pop {
     width: 460px
@@ -906,7 +856,7 @@
 .work-detail {
     padding: 23px 21px;
     border-radius: var(--radius-4xl);
-    background: var(--ogui-lg-sheet);
+    background: rgb(8,10,14);
     border: 1px solid #ffffff18
 }
 @media (forced-colors:active) {

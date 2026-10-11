@@ -34,7 +34,6 @@ button:disabled,[aria-disabled=true]{opacity:.45;cursor:default}
 /* motion respects the system setting everywhere, not screen by screen */
 
 /* every control uses the arrow, as native apps do; only real links show the hand */
-[class*="ogui-"]{cursor:default}
 a[href],.file-link{cursor:pointer}
 .side-resize{cursor:col-resize}
 .img-thumb{cursor:zoom-in}

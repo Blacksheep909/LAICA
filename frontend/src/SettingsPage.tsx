@@ -3,11 +3,11 @@ import {CoAuthorCard} from './CoAuthor';
 import {ContinuityCard} from './TagTeam';
 import {UpdatesCard} from './Updates';
 import {ComputerCard} from './ComputerCard';
-import {loadLook,saveLook,DEFAULT_LOOK,ACCENTS,type Look,type GlassKind} from './look';
+import {loadLook,saveLook,DEFAULT_LOOK,ACCENTS,type Look} from './look';
 import {getDictationMode,setDictationMode} from './Composer';
 import type {DictationMode} from './Composer';
 import {useCallback,useEffect,useState} from 'react';
-import {Button,Dialog,Switch,useToast} from 'open-glass-ui';
+import {Button,Modal,Switch,useToast} from './ui/controls';
 import {Glass} from './ui/kit';
 import {Select} from './GlassSelect';
 import {Plus,Trash2,Pencil,Send,Globe,ShieldAlert,Copy} from 'lucide-react';
@@ -73,11 +73,11 @@ function McpTab({fail}:{fail:Fail}){
     <Glass material="regular" className="setting-card"><span className="eyebrow">SKILLS</span><h2>Reusable instructions</h2><p>Skills are folders with a SKILL.md file. Deleting one moves it to an archive instead of erasing it.</p>
       <div className="page-pad" style={{marginTop:16}}>{!tools.Skills.length&&<small>No skills found.</small>}{tools.Skills.map((m,i)=><div key={i} className="list-row"><div className="grow"><strong>{m.Name}</strong><small>{m.Detail}</small></div><span className="pill">{m.Source}</span><Button size="small" variant="quiet" aria-label={`Edit ${m.Name}`} onClick={()=>editSkill(m)}><Pencil size={14}/></Button><Button size="small" variant="quiet" aria-label={`Delete ${m.Name}`} onClick={()=>{if(window.confirm(`Archive the skill ${m.Name}?`))request('skillDelete',{Target:m.Target,Name:m.Name}).then(()=>{toast({title:'Skill archived'});load();}).catch(fail('Could not delete'));}}><Trash2 size={14}/></Button></div>)}</div>
       <div className="dialog-actions"><Button leadingIcon={<Plus size={15}/>} onClick={()=>setSkill({Target:'claude',Name:'',Description:'',Body:'',New:true})}>New skill</Button></div></Glass>
-    <Dialog title={skill?.New?'New skill':`Edit ${skill?.Name}`} open={skill!==null} onOpenChange={o=>{if(!o)setSkill(null);}}>{skill&&<div className="form-grid">
+    <Modal title={skill?.New?'New skill':`Edit ${skill?.Name}`} open={skill!==null} onOpenChange={o=>{if(!o)setSkill(null);}}>{skill&&<div className="form-grid">
       {skill.New&&<><Select aria-label="For" label="For" value={skill.Target} options={[{value:'claude',label:'Claude Code'},{value:'codex',label:'Codex'},{value:'shared',label:'Shared (.agents)'}]} onChange={e=>setSkill({...skill,Target:e.target.value})}/><label>Name<input className="hinput" value={skill.Name} onChange={e=>setSkill({...skill,Name:e.target.value})} placeholder="my-skill"/></label></>}
       <label className="full">When should it be used?<input className="hinput" value={skill.Description} onChange={e=>setSkill({...skill,Description:e.target.value})}/></label>
       <label className="full">Instructions<textarea style={{minHeight:180}} value={skill.Body} onChange={e=>setSkill({...skill,Body:e.target.value})}/></label>
-      <div className="full dialog-actions"><Button variant="quiet" onClick={()=>setSkill(null)}>Cancel</Button><Button variant="primary" disabled={!skill.Name.trim()||!skill.Description.trim()||!skill.Body.trim()} onClick={saveSkill}>Save skill</Button></div></div>}</Dialog>
+      <div className="full dialog-actions"><Button variant="quiet" onClick={()=>setSkill(null)}>Cancel</Button><Button variant="primary" disabled={!skill.Name.trim()||!skill.Description.trim()||!skill.Body.trim()} onClick={saveSkill}>Save skill</Button></div></div>}</Modal>
   </>;
 }
 
@@ -134,7 +134,7 @@ function AppearanceTab({onCss,animate,onAnimate,reduce,onReduce,snap,snapDisable
   const [look,setLookState]=useState(loadLook);
   const setLook=(p:Partial<Look>)=>{const n={...look,...p};setLookState(n);saveLook(n);};
   const [dict,setDict]=useState<DictationMode>(getDictationMode);
-  return <><Glass material="regular" className="setting-card"><span className="eyebrow">LOOK</span><h2>Glass style</h2><p>Pick how panels and menus are rendered. Applies instantly.</p><div className="look-grid">{([['smoked','Smoked','Dark, deep tint'],['clear','Clear','Almost see-through'],['frosted','Frosted','Soft milky blur'],['liquid','Liquid','Bright, refractive'],['lensed','Lensed','Strong lens edge']] as [GlassKind,string,string][]).map(([k,n,d])=><button key={k} type="button" className="look-tile" aria-pressed={look.glass===k} onClick={()=>setLook({glass:k})}><b>{n}</b><span>{d}</span></button>)}</div>
+  return <><Glass material="regular" className="setting-card"><span className="eyebrow">LOOK</span><h2>Look</h2><p>Accent, panel and text. Applies instantly.</p>
 <div className="look-swatches" role="group" aria-label="Accent colour">{ACCENTS.map(([n,c])=><button key={c} type="button" title={n} aria-label={n} className="look-swatch" style={{background:c}} aria-pressed={look.accent===c} onClick={()=>setLook({accent:c})}/>)}</div>
 <label className="look-range">Panel opacity<input type="range" min="10" max="90" value={Math.round(look.panel*100)} onChange={e=>setLook({panel:Number(e.target.value)/100})}/><span>{Math.round(look.panel*100)}%</span></label>
 <label className="look-range">Blur<input type="range" min="0" max="24" value={look.blur} onChange={e=>setLook({blur:Number(e.target.value)})}/><span>{look.blur}px</span></label>

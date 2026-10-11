@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useToast} from 'open-glass-ui';
+import {useToast} from './ui/controls';
 import {request} from './bridge';
 import {Select} from './GlassSelect';
 import type {GlassOption} from './GlassSelect';

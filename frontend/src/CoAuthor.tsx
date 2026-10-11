@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useState} from 'react';
-import {Switch} from 'open-glass-ui';
+import {Switch} from './ui/controls';
 import {request} from './bridge';
 
 interface Cfg { Enabled:boolean; Name:string; Email:string; Placeholder:boolean; Trailer:string; Projects:{Cwd:string;Enabled:boolean}[] }

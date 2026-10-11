@@ -3,6 +3,12 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.25.0]
+
+### Changed
+- **LAICA no longer uses the open-glass-ui library.** Buttons, switches, tabs, text boxes, dialogs and notifications are now LAICA's own, built on Radix. The app loads about 70 KB less CSS and 30 KB less JavaScript, and small controls are crisp flat surfaces instead of blurred glass.
+- **Settings > Appearance loses the five glass styles** (accent, panel and text remain).
+
 ## [0.24.1]
 
 ### Fixed

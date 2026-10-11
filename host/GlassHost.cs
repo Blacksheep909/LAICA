@@ -901,7 +901,6 @@ namespace Laica.GlassWorkspace
                         || uri.Host == "learn.microsoft.com"
                         || uri.Host == "ollama.com"
                         || uri.Host == "lmstudio.ai"
-                        || uri.Host == "moelueker.com"
                     )
                 )
             )

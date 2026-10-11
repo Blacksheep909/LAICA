@@ -2,7 +2,7 @@
 .harness.with-panel{grid-template-columns:230px minmax(0,1fr) minmax(300px,36%)}
 .hside{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:var(--radius-4xl);min-height:0;min-width:0}
 .hnew{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:var(--radius-2xl);background:var(--white-04);border:1px solid #ffffff10}
-.hnew .ogui-field{width:100%}
+.hnew .field{width:100%}
 .hinput{height:34px;width:100%;background:rgba(8,7,14,.45);border:1px solid #e7daff24;border-radius:var(--radius-lg);color:#f2f0fa;padding:0 10px;font-size:var(--text-sm)}
 .hlist{display:flex;flex-direction:column;gap:4px;overflow-y:auto;min-height:0;flex:1;scrollbar-width:thin;scrollbar-color:#53647a transparent}
 .hitem{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--radius-xl);border:1px solid transparent;background:transparent;color:#c9c3dc;text-align:left;min-width:0}

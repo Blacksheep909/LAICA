@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeft,ArrowRight,RotateCw,ExternalLink,Globe} from 'lucide-react';
-import {IconButton} from 'open-glass-ui';
+import {IconButton} from './ui/controls';
 import {request,isRemote} from './bridge';
 import {useHarness} from './harness-store';
 

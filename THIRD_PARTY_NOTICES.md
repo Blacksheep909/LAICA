@@ -67,7 +67,6 @@ These are compiled into `ui/` by Vite. The list is the full production dependenc
 | detect-node-es | 1.1.0 | [MIT](licenses/detect-node-es-1.1.0.txt) | https://github.com/thekashey/detect-node |
 | get-nonce | 1.0.1 | [MIT](licenses/get-nonce-1.0.1.txt) | git@github.com:theKashey/get-nonce |
 | lucide-react | 0.468.0 | [ISC](licenses/lucide-react-0.468.0.txt) | https://github.com/lucide-icons/lucide |
-| open-glass-ui | 0.4.0 | [MIT](licenses/open-glass-ui-0.4.0.txt) | https://github.com/moekoelueker/open-glass-ui |
 | react-dom | 19.2.0 | [MIT](licenses/react-dom-19.2.0.txt) | https://github.com/facebook/react |
 | react-remove-scroll-bar | 2.3.8 | MIT | https://github.com/theKashey/react-remove-scroll-bar |
 | react-remove-scroll | 2.7.2 | [MIT](licenses/react-remove-scroll-2.7.2.txt) | https://github.com/theKashey/react-remove-scroll |

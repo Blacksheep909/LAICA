@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useState} from 'react';
-import {Switch,Button,useToast} from 'open-glass-ui';
+import {Switch,Button,useToast} from './ui/controls';
 import {request} from './bridge';
 
 interface State { Enabled:boolean; Stopped:boolean; ServerFound:boolean; InstalledOn:string[]; Claude:boolean; Codex:boolean; Problems?:string }

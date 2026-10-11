@@ -71,16 +71,16 @@
 .harness-compose textarea{min-height:44px}
 
 /* ---------- the glass layer ---------- */
-.harness-meta,.harness-compose,.composer,.gs-pop,.palette,.usage-pop,.ogui-toast,.ogui-dialog,[role=dialog].ogui-glass,.menu-pop{
+.harness-meta,.harness-compose,.composer,.gs-pop,.palette,.usage-pop,.menu-pop{
   position:relative}
-.harness-meta::before,.harness-compose::before,.composer::before,.gs-pop::before,.palette::before,.usage-pop::before,.ogui-toast::before,.ogui-dialog::before,.menu-pop::before,.sidebar.navigation::before{
+.harness-meta::before,.harness-compose::before,.composer::before,.gs-pop::before,.palette::before,.usage-pop::before,.menu-pop::before,.sidebar.navigation::before{
   content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:var(--rim);pointer-events:none;z-index:2;
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 .sidebar.navigation::before{inset:0 0 0 auto}
 
 /* ---------- controls: capsules, springy ---------- */
-.ogui-button:active,.gs-trigger:active,.send-btn:active,.mic-btn:active,.pause-btn:active,.pfilter:active{transform:scale(.95)}
-.ogui-button--primary:hover,.send-btn:not(:disabled):hover{filter:brightness(1.06) saturate(1.05)}
+.btn:active,.gs-trigger:active,.send-btn:active,.mic-btn:active,.pause-btn:active,.pfilter:active{transform:scale(.95)}
+.btn-primary:hover,.send-btn:not(:disabled):hover{filter:brightness(1.06) saturate(1.05)}
 svg.lucide{stroke-width:1.75}
 
 /* ---------- messages ---------- */
@@ -88,7 +88,7 @@ svg.lucide{stroke-width:1.75}
 
 /* ---------- motion ---------- */
 @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.965)}to{opacity:1;transform:none}}
-.gs-pop,.palette,.ogui-toast,.menu-pop,.usage-pop{animation:pop .32s var(--ease-spring) both;transform-origin:50% 100%}
+.gs-pop,.palette,.menu-pop,.usage-pop{animation:pop .32s var(--ease-spring) both;transform-origin:50% 100%}
 
 /* ---- layout fixes ---- */
 .chat{grid-template-rows:minmax(0,1fr)}
@@ -370,7 +370,7 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 
 /* graph "more tools" menu: one consistent row style */
 .laica-tools-pop{gap:2px;min-width:200px}
-.laica-tools-pop .ogui-button,.laica-tools-pop button{width:100%}
+.laica-tools-pop .btn,.laica-tools-pop button{width:100%}
 .laica-tools-pop svg{flex:none}
 .laica-tools-pop .laica-grid-state{display:flex;align-items:center;gap:9px;min-height:30px;padding:0 9px;font-size:var(--text-sm);color:var(--ink-3)}
 
@@ -476,7 +476,7 @@ body.sb-dragging{cursor:col-resize;user-select:none}
 .composer .composer-right,.harness-compose .compose-right{padding-bottom:0}
 .harness-meta>*{flex-shrink:0}
 .harness-meta>b{flex:0 1 auto;min-width:56px}
-.harness-meta .ogui-icon-button,.harness-meta button{flex:none;min-width:28px}
+.harness-meta .btn-icon,.harness-meta button{flex:none;min-width:28px}
 .harness-meta .tt-chip{flex:0 1 auto;min-width:0;max-width:56%}
 .harness-meta .tt-chip .tt-label{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .harness-meta .tt-chip .tt-go,.harness-meta .tt-chip .tt-pct,.harness-meta .tt-chip .tt-halt{flex:none}

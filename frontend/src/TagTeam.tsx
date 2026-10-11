@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {Switch,useToast} from 'open-glass-ui';
+import {Switch,useToast} from './ui/controls';
 import {ArrowRightLeft,ChevronDown,Clock,FileText,Save} from 'lucide-react';
 import {request,isDesktop} from './bridge';
 import {Select} from './GlassSelect';

@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {Button,Dialog,useToast} from 'open-glass-ui';
+import {Button,Modal,useToast} from './ui/controls';
 import {Glass} from './ui/kit';
 import {Select} from './GlassSelect';
 import {Plus,Play,Pencil,Trash2} from 'lucide-react';
@@ -23,10 +23,10 @@ export default function AssistantsPage({workingDirectory,onStarted}:{workingDire
     {custom.length>0&&<div className="grid-cards">{custom.map(card)}</div>}
     <div className="section-heading"><div><h2>Built-in assistants</h2></div></div>
     <div className="grid-cards">{builtinAssistants.map(card)}</div>
-    <Dialog title={edit?.Id?'Edit assistant':'New assistant'} open={edit!==null} onOpenChange={o=>{if(!o)setEdit(null);}}>{edit&&<div className="form-grid">
+    <Modal title={edit?.Id?'Edit assistant':'New assistant'} open={edit!==null} onOpenChange={o=>{if(!o)setEdit(null);}}>{edit&&<div className="form-grid">
       <label className="full">Name<input className="hinput" value={edit.Name} onChange={e=>setEdit({...edit,Name:e.target.value})}/></label>
       <label className="full">Short description<input className="hinput" value={edit.Description} onChange={e=>setEdit({...edit,Description:e.target.value})}/></label>
       <label className="full">Rules<textarea value={edit.Rules} onChange={e=>setEdit({...edit,Rules:e.target.value})} placeholder="How should this assistant behave?"/></label>
-      <div className="full dialog-actions"><Button variant="quiet" onClick={()=>setEdit(null)}>Cancel</Button><Button variant="primary" onClick={saveEdit}>Save</Button></div></div>}</Dialog>
+      <div className="full dialog-actions"><Button variant="quiet" onClick={()=>setEdit(null)}>Cancel</Button><Button variant="primary" onClick={saveEdit}>Save</Button></div></div>}</Modal>
   </div>;
 }

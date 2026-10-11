@@ -11,15 +11,12 @@
 :root[data-backdrop="plain"] .app:before {
     opacity: .6
 }
-.sidebar.navigation::after,[data-ogui-glass]::after {
+.sidebar.navigation::after,[data-surface]::after {
     display: none
 }
 .sidebar .side-nav .nav-item.active::before,.sidebar .side-nav .nav-item.active::after,.sidebar .side-nav .nav-item[aria-current=page]::before,.sidebar .side-nav .nav-item[aria-current=page]::after {
     display: none;
     content: none
-}
-.ogui-toast {
-    transform-origin: 100% 0
 }
 .sidebar .side-nav .nav-item::before,.sidebar .side-nav .nav-item::after,.sidebar .side-nav .nav-item:hover::before,.sidebar .side-nav .nav-item:hover::after {
     display: none;
