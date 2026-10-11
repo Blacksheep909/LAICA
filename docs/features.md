@@ -71,6 +71,7 @@ The index is read once in the background, cached on disk and only re-read for lo
 - **Workflow designer** for multi-step graphs of agents.
 - **Assistants** are reusable agent presets.
 - **Channels:** Telegram is two-way (pair a chat with a one-time code and talk to an agent from your phone). Slack, Discord, Lark, DingTalk, WeCom and generic webhooks receive a notification when a scheduled task or team finishes.
+- **Insomnia** (Settings > Agents): keep the computer awake for 30 minutes to 12 hours so a long run is not cut off by sleep. Optionally keep the screen on, keep running with the lid closed, and stop when the battery falls below a limit. It ends by itself, and when LAICA quits.
 - **Remote access** (off by default) serves the same interface to a browser on your network behind a password, over Server-Sent Events.
 - A read-only **Codex bridge** (`LAICA.Bridge.exe`, an MCP server) lets Codex read LAICA's observed work.
 

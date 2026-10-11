@@ -6,17 +6,15 @@ Every release is made with `Release-Edition.ps1`, which builds, runs every test 
 ## [0.25.0]
 
 ### Added
-- **Insomnia: keep the computer awake for a set time** (Settings > Agents), on Windows, macOS and Linux. Choose 30 minutes to 12 hours, optionally keep the screen on, keep running with the lid closed, and stop if the battery falls below a limit. Windows holds a power request, macOS runs `caffeinate`, Linux holds a systemd inhibitor lock. Lid-closed mode changes one system setting; it is written to a recovery file first and put back when the timer ends, when LAICA quits, or the next time LAICA starts after a crash.
-
-- **LAICA for macOS and Linux.** An Electron app (`electron/`) around the same engine and interface as the Windows app. The engine runs as a small .NET 8 program (`laica-server`) that the window starts, signs itself in to and stops when you quit; the window adds native file and folder dialogs, Save as, Show in Finder / file manager, window controls and zoom. A new workflow builds `.dmg` and `.zip` for Mac (Apple silicon and Intel) and `.AppImage` and `.deb` for Linux. The builds are not signed. Not yet in these apps: the screen-control outline and Windows speech dictation (cloud dictation works).
+- **Insomnia: keep the computer awake for a set time** (Settings > Agents). Choose 30 minutes to 12 hours, optionally keep the screen on, keep running with the lid closed, and stop if the battery falls below a limit. Windows holds a power request, macOS runs `caffeinate`, Linux holds a systemd inhibitor lock. It is built for Windows first (the macOS and Linux versions of it are written but have not been tried on those systems yet). Lid-closed mode changes one system setting; it is written to a recovery file first and put back when the timer ends, when LAICA quits, or the next time LAICA starts after a crash.
 
 ### Fixed
-- **Codex was not found on macOS and Linux** (LAICA only looked for `codex.exe`). It now finds `codex` like the other agents.
-- **The Mac and Linux app can find your agents** even when opened from the Dock or a launcher, by using the PATH of your login shell.
+- **Codex is now found on macOS and Linux** (LAICA only looked for `codex.exe`). It finds `codex` like the other agents.
 
 ### Changed
 - **LAICA no longer uses the open-glass-ui library.** Buttons, switches, tabs, text boxes, dialogs and notifications are now LAICA's own, built on Radix. The app loads about 70 KB less CSS and 30 KB less JavaScript, and small controls are crisp flat surfaces instead of blurred glass.
 - **Settings > Appearance loses the five glass styles** (accent, panel and text remain).
+- **Each agent's command line and the way LAICA talks to it now live in one file** (`Vendors.cs`), so adding another agent CLI is a small change. Nothing about how Codex, Claude, Gemini, Qwen and the others behave changes; this was checked against the previous version turn by turn.
 
 ## [0.24.1]
 
