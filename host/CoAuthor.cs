@@ -70,8 +70,9 @@ exit 0
             {
                 return Path.GetFullPath(cwd ?? "").TrimEnd('\\', '/').ToLowerInvariant();
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return (cwd ?? "").ToLowerInvariant();
             }
         }
@@ -126,8 +127,9 @@ exit 0
                         File.WriteAllBytes(p, bytes);
                 }
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return null;
             }
             return h;
@@ -159,7 +161,10 @@ exit 0
                 lock (gate)
                     psi.EnvironmentVariables["LAICA_COAUTHOR"] = Str(c, "Name") + " <" + Str(c, "Email") + ">";
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         public object CoAuthorGet()

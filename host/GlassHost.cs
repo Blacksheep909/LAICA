@@ -133,7 +133,10 @@ namespace Laica.GlassWorkspace
                             )
                         );
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 }
             );
             web.Dock = DockStyle.Fill;
@@ -220,7 +223,10 @@ namespace Laica.GlassWorkspace
             {
                 web.ZoomFactor = Math.Max(0.5, Math.Min(2.5, factor));
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         void ToggleFullscreen()
@@ -323,8 +329,14 @@ namespace Laica.GlassWorkspace
                         : new Margins();
                 DwmExtendFrameIntoClientArea(Handle, ref margins);
             }
-            catch (DllNotFoundException) { }
-            catch (EntryPointNotFoundException) { }
+            catch (DllNotFoundException swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
+            catch (EntryPointNotFoundException swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         protected override void OnPaintBackground(PaintEventArgs e)
@@ -558,7 +570,10 @@ namespace Laica.GlassWorkspace
                     }
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             string id = null;
             SemaphoreSlim commandGate = null;
             bool entered = false;
@@ -904,7 +919,10 @@ namespace Laica.GlassWorkspace
                 {
                     BeginInvoke(new Action(() => Post(message)));
                 }
-                catch (InvalidOperationException) { }
+                catch (InvalidOperationException swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 return;
             }
             if (ready && web.CoreWebView2 != null)

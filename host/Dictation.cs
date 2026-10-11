@@ -48,7 +48,10 @@ namespace Laica
                         {
                             emit(a.Result.Text, false);
                         }
-                        catch (Exception) { }
+                        catch (Exception swallowed)
+                        {
+                            Log.Swallowed(swallowed);
+                        }
                     };
                     e.SpeechRecognized += (s, a) =>
                     {
@@ -57,7 +60,10 @@ namespace Laica
                             if (a.Result.Confidence > 0.2)
                                 emit(a.Result.Text, true);
                         }
-                        catch (Exception) { }
+                        catch (Exception swallowed)
+                        {
+                            Log.Swallowed(swallowed);
+                        }
                     };
                     e.RecognizeCompleted += (s, a) => Release(e);
                     e.RecognizeAsync(RecognizeMode.Multiple);
@@ -88,7 +94,10 @@ namespace Laica
             {
                 e.Dispose();
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         public void Stop()
@@ -102,8 +111,9 @@ namespace Laica
             {
                 e.RecognizeAsyncStop();
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 Release(e);
                 return;
             }
@@ -126,7 +136,10 @@ namespace Laica
                     e.RecognizeAsyncCancel();
                     e.Dispose();
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
         }
     }

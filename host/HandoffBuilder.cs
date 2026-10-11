@@ -110,8 +110,9 @@ namespace Laica
             {
                 return Convert.ToInt64(v);
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return 0;
             }
         }
@@ -141,7 +142,10 @@ namespace Laica
                         return full.Substring(root.Length).Replace('\\', '/');
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return path.Replace('\\', '/');
         }
 
@@ -378,7 +382,10 @@ namespace Laica
                     if (!known.Contains(f))
                         info.FolderOnly.Add(f);
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             info.Stage =
                 count == 0
                     ? "No requests yet."
@@ -436,8 +443,9 @@ namespace Laica
                 var d = js.Deserialize<Dictionary<string, object>>(detail);
                 return Str(d, "command");
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return detail ?? "";
             }
         }
@@ -454,8 +462,9 @@ namespace Laica
                     p = Str(d, "path");
                 return p;
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return "";
             }
         }
@@ -488,7 +497,10 @@ namespace Laica
                         );
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return list;
         }
 
@@ -518,8 +530,9 @@ namespace Laica
                     sub = Directory.GetDirectories(d);
                     fs = Directory.GetFiles(d);
                 }
-                catch (Exception)
+                catch (Exception swallowed)
                 {
+                    Log.Swallowed(swallowed);
                     continue;
                 }
                 foreach (string s in sub)
@@ -536,8 +549,9 @@ namespace Laica
                     {
                         fi = new FileInfo(f);
                     }
-                    catch (Exception)
+                    catch (Exception swallowed)
                     {
+                        Log.Swallowed(swallowed);
                         continue;
                     }
                     yield return fi;
@@ -574,7 +588,10 @@ namespace Laica
                         break;
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return list;
         }
 
@@ -610,7 +627,10 @@ namespace Laica
                         break;
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return list;
         }
 
@@ -635,8 +655,9 @@ namespace Laica
                 }
                 return n + "|" + total + "|" + newest;
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return "";
             }
         }

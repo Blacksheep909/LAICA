@@ -111,8 +111,9 @@ namespace Laica
             {
                 return Convert.ToInt32(ContGlobal()[k], CultureInfo.InvariantCulture);
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return Convert.ToInt32(ContDefaults[k]);
             }
         }
@@ -473,7 +474,10 @@ namespace Laica
                 if (full != null && full.ResetsUtc < DateTime.UtcNow.AddDays(8))
                     return full.ResetsUtc.AddMinutes(1);
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return fallback;
         }
 
@@ -524,8 +528,9 @@ namespace Laica
                     full = Path.Combine(cwd, "HANDOFF.md");
                 return full;
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return Path.Combine(cwd, "HANDOFF.md");
             }
         }
@@ -576,18 +581,15 @@ namespace Laica
                             Path.GetDirectoryName(path),
                             Path.GetFileNameWithoutExtension(path) + ".prev" + Path.GetExtension(path)
                         );
-                        File.WriteAllText(prev, existing);
+                        Disk.WriteText(prev, existing);
                     }
-                    string tmp = path + ".tmp";
-                    File.WriteAllText(tmp, merged);
-                    if (File.Exists(path))
-                        File.Delete(path);
-                    File.Move(tmp, path);
+                    Disk.WriteText(path, merged);
                 }
                 return path;
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return "";
             }
         }
@@ -637,11 +639,7 @@ namespace Laica
             {
                 string existing = File.Exists(path) ? File.ReadAllText(path) : "";
                 string next = HandoffBuilder.WithPinned(existing, pinned);
-                string tmp = path + ".tmp";
-                File.WriteAllText(tmp, next);
-                if (File.Exists(path))
-                    File.Delete(path);
-                File.Move(tmp, path);
+                Disk.WriteText(path, next);
             }
             return HandoffFileGet(cwd);
         }
@@ -762,7 +760,10 @@ namespace Laica
                         lock (handoffIo)
                             text = File.ReadAllText(p);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 string state = HandoffBuilder.ManagedOf(text);
                 string pinned = HandoffBuilder.PinnedOf(text);
                 if (state == "")
@@ -1381,7 +1382,10 @@ namespace Laica
                     WriteHandoffFile(root, fin);
                 SaveSession(root);
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         /// <summary>Checks waiting tag-team chats now instead of at the next timer tick.</summary>
@@ -1448,7 +1452,10 @@ namespace Laica
                     {
                         p.StandardInput.Close();
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                     var o = p.StandardOutput.ReadToEndAsync();
                     var e = p.StandardError.ReadToEndAsync();
                     if (!p.WaitForExit(ms))
@@ -1457,15 +1464,19 @@ namespace Laica
                         {
                             p.Kill();
                         }
-                        catch (Exception) { }
+                        catch (Exception swallowed)
+                        {
+                            Log.Swallowed(swallowed);
+                        }
                         return "";
                     }
                     exit = p.ExitCode;
                     return o.Result + e.Result;
                 }
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return "";
             }
         }
@@ -1745,7 +1756,10 @@ namespace Laica
                         : (root.Child ?? new Session { Harness = Str(spec, "Harness"), Model = Str(spec, "Model") });
                     cost = CostFor(t, tokens, false);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             // a plain-language rundown of what the next agent will take over, for the interface (the full text stays available)
             object summary = null;
@@ -1773,7 +1787,10 @@ namespace Laica
                         { "Stage", hi.Stage },
                     };
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             var switches = new List<object>();
             lock (gate)
@@ -1874,7 +1891,10 @@ namespace Laica
                             {
                                 File.Delete(Path.Combine(dir, "sessions", Safe(old.Id) + ".json"));
                             }
-                            catch (Exception) { }
+                            catch (Exception swallowed)
+                            {
+                                Log.Swallowed(swallowed);
+                            }
                         }
                         else
                             root.Pair.PModel = Str(d, "PartnerModel");

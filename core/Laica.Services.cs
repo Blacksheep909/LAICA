@@ -381,8 +381,14 @@ namespace Laica
                             EnvironmentVariableTarget.User
                         );
                     }
-                    catch (PlatformNotSupportedException) { }
-                    catch (SecurityException) { }
+                    catch (PlatformNotSupportedException swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
+                    catch (SecurityException swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 }
                 if (String.IsNullOrEmpty(configured))
                     throw new InvalidOperationException(

@@ -176,8 +176,9 @@ namespace Laica
                                 tail = Encoding.UTF8.GetString(buf, 0, n);
                             }
                         }
-                        catch (Exception)
+                        catch (Exception swallowed)
                         {
+                            Log.Swallowed(swallowed);
                             continue;
                         }
                         Match last = null,
@@ -273,7 +274,10 @@ namespace Laica
                     }
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             if (bestHit && best.Count > 0)
             {
                 var spent = best.OrderByDescending(w => w.Percent).ThenByDescending(w => w.Minutes).First();
@@ -322,8 +326,9 @@ namespace Laica
                             {
                                 return Directory.GetFiles(d, "*.jsonl");
                             }
-                            catch (Exception)
+                            catch (Exception swallowed)
                             {
+                                Log.Swallowed(swallowed);
                                 return new string[0];
                             }
                         })
@@ -379,7 +384,10 @@ namespace Laica
                                     ); // streaming repeats an id with growing counts: keep the last
                                 }
                             }
-                            catch (Exception) { }
+                            catch (Exception swallowed)
+                            {
+                                Log.Swallowed(swallowed);
+                            }
                             claudeFiles[fi.FullName] = new KeyValuePair<
                                 string,
                                 Dictionary<string, KeyValuePair<string, long>>
@@ -397,7 +405,10 @@ namespace Laica
                     }
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             lock (planGate)
             {
                 claudeDays = days;
@@ -476,7 +487,10 @@ namespace Laica
                 lock (planGate)
                     liveWindows["claude|" + type] = w;
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         static Dictionary<string, object> WinDto(PlanWin w)

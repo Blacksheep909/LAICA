@@ -33,8 +33,9 @@ namespace Laica
                 return json.Deserialize<Dictionary<string, object>>(File.ReadAllText(ComputerFile()))
                     ?? new Dictionary<string, object>();
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return new Dictionary<string, object>();
             }
         }
@@ -48,12 +49,8 @@ namespace Laica
         void ComputerWrite(Dictionary<string, object> d)
         {
             Directory.CreateDirectory(dir);
-            string p = ComputerFile(),
-                t = p + ".tmp";
-            File.WriteAllText(t, json.Serialize(d));
-            if (File.Exists(p))
-                File.Delete(p);
-            File.Move(t, p);
+            string p = ComputerFile();
+            Disk.WriteText(p, json.Serialize(d));
         }
 
         public object ComputerGet()
@@ -70,7 +67,10 @@ namespace Laica
                     if (Str(m, "Name") == ComputerServerName)
                         installed.Add(Str(m, "Target"));
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             var all = Harnesses();
             return new Dictionary<string, object>
             {
@@ -117,7 +117,10 @@ namespace Laica
                         {
                             McpRemove(t, ComputerServerName);
                         }
-                        catch (Exception) { }
+                        catch (Exception swallowed)
+                        {
+                            Log.Swallowed(swallowed);
+                        }
                         if (enable)
                             McpAdd(t, ComputerServerName, "\"" + ComputerExe() + "\"", "", "");
                     }
@@ -177,11 +180,17 @@ namespace Laica
                                     null
                                 );
                             }
-                            catch (Exception) { }
+                            catch (Exception swallowed)
+                            {
+                                Log.Swallowed(swallowed);
+                            }
                         }
                         Raise();
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 },
                 null,
                 1000,

@@ -151,13 +151,19 @@ namespace Laica
                     {
                         p.StandardInput.BaseStream.Write(bytes, 0, bytes.Length);
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 }
                 try
                 {
                     p.StandardInput.Close();
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 var outTask = p.StandardOutput.ReadToEndAsync();
                 var errTask = p.StandardError.ReadToEndAsync();
                 var exited = Task.Run(() => p.WaitForExit());

@@ -173,8 +173,9 @@ namespace Laica
                 {
                     return Convert.ToDouble(o, System.Globalization.CultureInfo.InvariantCulture);
                 }
-                catch (Exception)
+                catch (Exception swallowed)
                 {
+                    Log.Swallowed(swallowed);
                     return 0;
                 }
             };
@@ -394,7 +395,10 @@ namespace Laica
             {
                 StopTeam(id);
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             lock (gate)
             {
                 teams.RemoveAll(x => Str(x, "Id") == id);
@@ -433,7 +437,10 @@ namespace Laica
                 {
                     Stop(sid);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
         }
 
@@ -490,7 +497,10 @@ namespace Laica
                 {
                     RecordTeamRun(t, startedUtc, error == null ? "done" : (error == "Stopped." ? "stopped" : "failed"));
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 lock (gate)
                 {
                     teamRuns.Remove(id);
@@ -507,7 +517,10 @@ namespace Laica
                     {
                         TeamRanOut(t, error);
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 }
                 if (finished != null && error != "Stopped.")
                     finished("Team finished: " + Str(t, "Title"), Str(t, "Result"));
@@ -944,7 +957,10 @@ namespace Laica
                         );
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return result;
         }
     }

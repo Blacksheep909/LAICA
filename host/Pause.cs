@@ -147,7 +147,10 @@ namespace Laica
                     if (!p.HasExited)
                         SuspendTree(p.Id, true);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             Emit(s, "paused", s.Harness == "laica" ? "Paused. The agent will hold at its next step." : "Paused.", null);
             Raise();
@@ -174,7 +177,10 @@ namespace Laica
                     if (!p.HasExited)
                         SuspendTree(p.Id, false);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             s.Go.Set();
             Emit(s, "resumed", "Resumed.", null);
@@ -222,7 +228,10 @@ namespace Laica
                 {
                     Pause(sessionId);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
         }
 
@@ -256,7 +265,10 @@ namespace Laica
                 {
                     Pause(sid);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             Raise();
             return TeamDto(t);
@@ -290,7 +302,10 @@ namespace Laica
                 {
                     Resume(sid);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             Raise();
             return TeamDto(t);

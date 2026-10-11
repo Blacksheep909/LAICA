@@ -52,8 +52,9 @@ namespace Laica
                 if (File.Exists(configPath))
                     settings = json.Deserialize<Settings>(File.ReadAllText(configPath)) ?? new Settings();
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 settings = new Settings();
             }
             backend.Changed += state =>
@@ -126,7 +127,7 @@ namespace Laica
             settings.Port = port;
             settings.Lan = lan;
             lastError = null;
-            File.WriteAllText(configPath, json.Serialize(settings));
+            Disk.WriteText(configPath, json.Serialize(settings));
             if (enabled)
             {
                 TryStart();
@@ -180,7 +181,10 @@ namespace Laica
                 {
                     l.Stop();
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             lock (streams)
             {
@@ -190,7 +194,10 @@ namespace Laica
                     {
                         s.Close();
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 }
                 streams.Clear();
             }
@@ -213,8 +220,9 @@ namespace Laica
                 {
                     c = l.AcceptTcpClient();
                 }
-                catch (Exception)
+                catch (Exception swallowed)
                 {
+                    Log.Swallowed(swallowed);
                     return;
                 }
                 ThreadPool.QueueUserWorkItem(_ =>
@@ -223,14 +231,20 @@ namespace Laica
                     {
                         Handle(c);
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                     finally
                     {
                         try
                         {
                             c.Close();
                         }
-                        catch (Exception) { }
+                        catch (Exception swallowed)
+                        {
+                            Log.Swallowed(swallowed);
+                        }
                     }
                 });
             }
@@ -367,8 +381,9 @@ namespace Laica
             {
                 full = Path.GetFullPath(Path.Combine(assets, rel.Replace('/', Path.DirectorySeparatorChar)));
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 Respond(s, 400, "text/plain", "Bad path");
                 return;
             }
@@ -486,7 +501,10 @@ namespace Laica
                 if (d.TryGetValue("password", out p) && p != null)
                     password = Convert.ToString(p);
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             bool ok = false;
             if (!String.IsNullOrEmpty(settings.Hash) && password.Length > 0 && password.Length < 512)
             {
@@ -497,7 +515,10 @@ namespace Laica
                         Convert.FromBase64String(settings.Hash)
                     );
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             if (!ok)
             {
@@ -572,7 +593,10 @@ namespace Laica
                     }
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             finally
             {
                 lock (streams)
@@ -592,8 +616,9 @@ namespace Laica
             {
                 data = Encoding.UTF8.GetBytes("data: " + json.Serialize(message) + "\n\n");
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return;
             }
             foreach (var s in all)
@@ -606,15 +631,19 @@ namespace Laica
                         s.Flush();
                     }
                 }
-                catch (Exception)
+                catch (Exception swallowed)
                 {
+                    Log.Swallowed(swallowed);
                     lock (streams)
                         streams.Remove(s);
                     try
                     {
                         s.Close();
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowedInner)
+                    {
+                        Log.Swallowed(swallowedInner);
+                    }
                 }
             }
         }

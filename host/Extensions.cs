@@ -78,7 +78,10 @@ namespace Laica
                         }
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             try
             {
                 string ct = Path.Combine(CodexHomeDir(), "config.toml");
@@ -94,7 +97,10 @@ namespace Laica
                             }
                         );
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             foreach (
                 var root in new[]
                 {
@@ -125,7 +131,10 @@ namespace Laica
                             );
                         }
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             return new Dictionary<string, object> { { "Mcp", mcp.ToArray() }, { "Skills", skills.ToArray() } };
         }
@@ -227,7 +236,10 @@ namespace Laica
                     {
                         p.Kill();
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                     throw new TimeoutException("The command took too long.");
                 }
                 string text = (outp.Result + "\n" + err.Result).Trim();
@@ -367,7 +379,7 @@ namespace Laica
                 + "\n---\n\n"
                 + body.Trim()
                 + "\n";
-            File.WriteAllText(Path.Combine(dir, "SKILL.md"), text, new UTF8Encoding(false));
+            Disk.WriteText(Path.Combine(dir, "SKILL.md"), text);
             Raise();
         }
 

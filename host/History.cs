@@ -160,8 +160,9 @@ namespace Laica
                 {
                     o = json.Deserialize<Dictionary<string, object>>(line);
                 }
-                catch (Exception)
+                catch (Exception swallowed)
                 {
+                    Log.Swallowed(swallowed);
                     continue;
                 }
                 if (cwd == "" && Str(o, "cwd") != "")
@@ -207,8 +208,9 @@ namespace Laica
                 {
                     o = json.Deserialize<Dictionary<string, object>>(line);
                 }
-                catch (Exception)
+                catch (Exception swallowed)
                 {
+                    Log.Swallowed(swallowed);
                     continue;
                 }
                 var p = Obj(o, "payload");
@@ -256,10 +258,16 @@ namespace Laica
                             if (id != "" && name != "")
                                 meta.Names[id] = name;
                         }
-                        catch (Exception) { }
+                        catch (Exception swallowed)
+                        {
+                            Log.Swallowed(swallowed);
+                        }
                     }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             try
             {
                 string gs = System.IO.Path.Combine(home, ".codex-global-state.json");
@@ -320,7 +328,10 @@ namespace Laica
                         }
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return meta;
         }
 
@@ -419,14 +430,18 @@ namespace Laica
                         {
                             return (string)new JavaScriptSerializer().Deserialize<string>("\"" + found + "\"");
                         }
-                        catch (Exception)
+                        catch (Exception swallowed)
                         {
+                            Log.Swallowed(swallowed);
                             return found;
                         }
                     }
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return null;
         }
 
@@ -445,7 +460,10 @@ namespace Laica
                         foreach (string f in Directory.GetFiles(d, "*.jsonl"))
                             files.Add(new KeyValuePair<string, DateTime>(f, File.GetLastWriteTimeUtc(f)));
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 try
                 {
                     string root = System.IO.Path.Combine(CodexHomeDir(), "sessions");
@@ -453,7 +471,10 @@ namespace Laica
                         foreach (string f in Directory.GetFiles(root, "rollout-*.jsonl", SearchOption.AllDirectories))
                             files.Add(new KeyValuePair<string, DateTime>(f, File.GetLastWriteTimeUtc(f)));
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 var list = new List<HistEntry>();
                 foreach (var f in files.OrderByDescending(x => x.Value).Take(MaxHistory * 2))
                 {
@@ -474,7 +495,10 @@ namespace Laica
                         if (e != null)
                             list.Add(e);
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 }
                 var meta = LoadCodexMeta();
                 var desktop = LoadClaudeDesktopMeta(json);
@@ -587,10 +611,16 @@ namespace Laica
                             m.Active = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(ms);
                         map[id] = m;
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return map;
         }
 
@@ -646,7 +676,10 @@ namespace Laica
                 {
                     UpgradeImport(exist);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 return Dto(exist.Parent ?? exist);
             }
             var entry =
@@ -829,8 +862,9 @@ namespace Laica
                 {
                     o = json.Deserialize<Dictionary<string, object>>(line);
                 }
-                catch (Exception)
+                catch (Exception swallowed)
                 {
+                    Log.Swallowed(swallowed);
                     continue;
                 }
                 if (Str(o, "isSidechain") == "True" || Str(o, "isMeta") == "True")
@@ -943,7 +977,10 @@ namespace Laica
                         : Str(d, "diff");
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             if (text.IndexOf("*** ", StringComparison.Ordinal) < 0)
                 return "";
             var changes = new List<object>();
@@ -1006,7 +1043,10 @@ namespace Laica
                 {
                     return json.Deserialize<string>(lit);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             return lit.Substring(1, lit.Length - 2).Replace("\\'", "'").Replace("\\n", "\n").Replace("\\\\", "\\");
         }
@@ -1053,7 +1093,10 @@ namespace Laica
                                 images.Add(n);
                         }
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                     list.Add(WithImages(Ev("tool", "view_image", path, time), images));
                 }
                 else if (tool == "apply_patch")
@@ -1092,8 +1135,9 @@ namespace Laica
                     d["message"] = msg.StartsWith("gAAAA") ? "(sent to the helper)" : msg.Substring(0, 400) + "...";
                 return js.Serialize(d);
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return args;
             }
         }
@@ -1112,8 +1156,9 @@ namespace Laica
                     return String.Join(" ", arr.Cast<object>().Select(x => Convert.ToString(x)));
                 return Convert.ToString(c) ?? "";
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return "";
             }
         }
@@ -1132,8 +1177,9 @@ namespace Laica
                 {
                     o = json.Deserialize<Dictionary<string, object>>(line);
                 }
-                catch (Exception)
+                catch (Exception swallowed)
                 {
+                    Log.Swallowed(swallowed);
                     continue;
                 }
                 var p = Obj(o, "payload");
@@ -1264,7 +1310,10 @@ namespace Laica
                                 text = Convert.ToString(od["output"]);
                         }
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                     Add(list, WithImages(Ev("tool_result", Cap(text, 4000), null, time), SaveImages(s, output)));
                     open = true;
                 }

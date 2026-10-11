@@ -101,7 +101,10 @@ namespace Laica
                 {
                     c.Cancel();
                 }
-                catch (ObjectDisposedException) { }
+                catch (ObjectDisposedException swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             lock (gate)
                 foreach (var p in s.Pending.Values)
@@ -426,8 +429,9 @@ namespace Laica
             {
                 return json.DeserializeObject(String.IsNullOrWhiteSpace(args) ? "{}" : args);
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return new Dictionary<string, object>();
             }
         }
@@ -619,7 +623,7 @@ namespace Laica
                         return "The user denied this action.";
                     Emit(s, "tool", name, path);
                     Directory.CreateDirectory(Path.GetDirectoryName(full));
-                    File.WriteAllText(full, content, new UTF8Encoding(false));
+                    Disk.WriteText(full, content);
                     return "Wrote " + content.Length + " characters to " + path + ".";
                 }
                 case "edit_file":
@@ -641,11 +645,7 @@ namespace Laica
                     )
                         return "The user denied this action.";
                     Emit(s, "tool", name, path);
-                    File.WriteAllText(
-                        full,
-                        text.Substring(0, idx) + newS + text.Substring(idx + oldS.Length),
-                        new UTF8Encoding(false)
-                    );
+                    Disk.WriteText(full, text.Substring(0, idx) + newS + text.Substring(idx + oldS.Length));
                     return "Edited " + path + ".";
                 }
                 case "search":
@@ -686,7 +686,10 @@ namespace Laica
                                 }
                             }
                         }
-                        catch (Exception) { }
+                        catch (Exception swallowed)
+                        {
+                            Log.Swallowed(swallowed);
+                        }
                     }
                     return hits.Count == 0 ? "No matches." : String.Join("\n", hits);
                 }
@@ -730,7 +733,10 @@ namespace Laica
                     subs = Directory.GetDirectories(d);
                     files = Directory.GetFiles(d);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 foreach (string f in files)
                     yield return f;
                 foreach (string sub in subs)
@@ -840,7 +846,10 @@ namespace Laica
                     {
                         req.Abort();
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 })
             )
             {

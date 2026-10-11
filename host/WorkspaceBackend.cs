@@ -56,6 +56,7 @@ namespace Laica
         {
             if (String.IsNullOrWhiteSpace(appDir))
                 throw new ArgumentException("Application directory is required.", "appDir");
+            Log.Init(appDir);
             if (String.IsNullOrWhiteSpace(codexHome))
                 throw new ArgumentException("Codex home directory is required.", "codexHome");
             this.appDir = Path.GetFullPath(appDir);

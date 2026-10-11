@@ -113,7 +113,10 @@ namespace Laica
             {
                 Directory.CreateDirectory(Path.Combine(dir, "sessions"));
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             tasks = LoadList("tasks.json");
             agents = LoadList("agents.json");
             teams = LoadList("teams.json");
@@ -145,7 +148,10 @@ namespace Laica
                             return f;
                     }
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             return FindOnPath("claude.exe") ?? FindOnPath("claude.cmd");
         }
@@ -170,7 +176,10 @@ namespace Laica
                     foreach (string d in Directory.GetDirectories(pk, "Claude_*"))
                         list.Add(Path.Combine(d, "LocalCache", "Roaming", "Claude"));
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return list.ToArray();
         }
 
@@ -184,7 +193,10 @@ namespace Laica
                     if (File.Exists(p))
                         return p;
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                 roam = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -208,7 +220,10 @@ namespace Laica
                     if (File.Exists(p))
                         return p;
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             return null;
         }
@@ -352,7 +367,10 @@ namespace Laica
                         return t;
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return "";
         }
 
@@ -364,7 +382,10 @@ namespace Laica
                     if (Str(s.Events[i], "Kind") == "user")
                         return Str(s.Events[i], "TimeUtc");
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return "";
         }
 
@@ -500,7 +521,10 @@ namespace Laica
             {
                 dirty = GitTools.Status(root).Count;
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return new Dictionary<string, object>
             {
                 { "IsRepo", true },
@@ -575,14 +599,20 @@ namespace Laica
                         GitTools.Run(root, "rev-list --count " + s.BaseCommit + "..HEAD", false).Trim()
                     );
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 try
                 {
                     baseMoved = Convert.ToInt32(
                         GitTools.Run(s.RepoRoot, "rev-list --count " + s.BaseCommit + ".." + s.BaseBranch, false).Trim()
                     );
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             return new Dictionary<string, object>
             {
@@ -680,7 +710,10 @@ namespace Laica
                 {
                     GitTools.Run(s.RepoRoot, "merge --abort", false);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 throw new InvalidOperationException(
                     "The merge has conflicts and was cancelled; nothing was changed. " + ex.Message
                 );
@@ -770,7 +803,10 @@ namespace Laica
             {
                 Stop(id);
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             if (kidId != null)
             {
                 lock (gate)
@@ -780,7 +816,10 @@ namespace Laica
                     File.Delete(Path.Combine(dir, "sessions", Safe(kidId) + ".json"));
                     File.Delete(Path.Combine(dir, "sessions", Safe(kidId) + ".snap.json"));
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             lock (gate)
                 sessions.Remove(id);
@@ -803,14 +842,18 @@ namespace Laica
                 if (File.Exists(marker))
                     File.SetLastWriteTimeUtc(marker, DateTime.UtcNow);
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 try
                 {
                     File.Delete(Path.Combine(dir, "sessions", Safe(id) + ".json"));
                     File.Delete(Path.Combine(dir, "sessions", Safe(id) + ".snap.json"));
                 }
-                catch (Exception) { }
+                catch (Exception swallowedInner)
+                {
+                    Log.Swallowed(swallowedInner);
+                }
             }
             Raise();
         }
@@ -864,10 +907,16 @@ namespace Laica
                                 if (Directory.Exists(imgs))
                                     Directory.Delete(imgs, true);
                             }
-                            catch (Exception) { }
+                            catch (Exception swallowed)
+                            {
+                                Log.Swallowed(swallowed);
+                            }
                         }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         public void Stop(string id)
@@ -892,7 +941,10 @@ namespace Laica
                 {
                     Stop(kid.Id);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             CancelBuiltin(sx);
             ClearPause(sx);
@@ -903,7 +955,10 @@ namespace Laica
                     if (!p.HasExited)
                         KillTree(p.Id);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
         }
 
@@ -922,7 +977,10 @@ namespace Laica
                 )
                     k.WaitForExit(5000);
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         static string Safe(string id)
@@ -982,7 +1040,10 @@ namespace Laica
                     }
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             string sent = core;
             if (!String.IsNullOrWhiteSpace(s.Rules) && !s.HasSentRules)
             {
@@ -1115,7 +1176,10 @@ namespace Laica
                         proc.StandardInput.BaseStream.Write(bytes, 0, bytes.Length);
                     proc.StandardInput.Close();
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             var errors = new StringBuilder();
             proc.ErrorDataReceived += (o, e) =>
@@ -1135,20 +1199,29 @@ namespace Laica
                             Parse(s, parser, line);
                     }
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 if (parser == "gemini")
                     FlushText(s);
                 try
                 {
                     proc.WaitForExit();
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 int code = 0;
                 try
                 {
                     code = proc.ExitCode;
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 bool clean;
                 lock (gate)
                     clean = s.Ended;
@@ -1212,7 +1285,10 @@ namespace Laica
                         {
                             p.Kill();
                         }
-                        catch (Exception) { }
+                        catch (Exception swallowed)
+                        {
+                            Log.Swallowed(swallowed);
+                        }
                     }
                     else
                         ok =
@@ -1220,7 +1296,10 @@ namespace Laica
                             >= 0;
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             lock (streamJson)
                 streamJson[key] = ok;
             return ok;
@@ -1232,8 +1311,9 @@ namespace Laica
             {
                 return File.GetLastWriteTimeUtc(path).Ticks.ToString();
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return "";
             }
         }
@@ -1426,7 +1506,10 @@ namespace Laica
                     s.SnapHead = head;
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             lock (gate)
             {
                 s.Busy = false;
@@ -1471,8 +1554,9 @@ namespace Laica
             {
                 o = json.Deserialize<Dictionary<string, object>>(line);
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 Emit(s, "log", line, null);
                 return;
             }
@@ -1502,7 +1586,10 @@ namespace Laica
                     p.StandardInput.BaseStream.Write(bytes, 0, bytes.Length);
                     p.StandardInput.BaseStream.Flush();
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
         }
 
@@ -1679,7 +1766,10 @@ namespace Laica
                             lock (s.InLock)
                                 p.StandardInput.Close();
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 }
                 string sid = Str(o, "session_id");
                 if (sid != "")
@@ -2177,7 +2267,10 @@ namespace Laica
                     return json.Deserialize<List<Dictionary<string, object>>>(File.ReadAllText(p))
                         ?? new List<Dictionary<string, object>>();
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return new List<Dictionary<string, object>>();
         }
 
@@ -2185,14 +2278,13 @@ namespace Laica
         {
             try
             {
-                string p = Path.Combine(dir, name),
-                    t = p + ".tmp";
-                File.WriteAllText(t, json.Serialize(list));
-                if (File.Exists(p))
-                    File.Delete(p);
-                File.Move(t, p);
+                string p = Path.Combine(dir, name);
+                Disk.WriteText(p, json.Serialize(list));
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         void SaveSession(Session s)
@@ -2230,14 +2322,13 @@ namespace Laica
                 };
             try
             {
-                string p = Path.Combine(dir, "sessions", Safe(s.Id) + ".json"),
-                    t = p + ".tmp";
-                File.WriteAllText(t, json.Serialize(d));
-                if (File.Exists(p))
-                    File.Delete(p);
-                File.Move(t, p);
+                string p = Path.Combine(dir, "sessions", Safe(s.Id) + ".json");
+                Disk.WriteText(p, json.Serialize(d));
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             try
             {
                 Dictionary<string, string> snap;
@@ -2249,18 +2340,17 @@ namespace Laica
                 }
                 if (snap != null)
                 {
-                    string p = Path.Combine(dir, "sessions", Safe(s.Id) + ".snap.json"),
-                        t = p + ".tmp";
-                    File.WriteAllText(
-                        t,
+                    string p = Path.Combine(dir, "sessions", Safe(s.Id) + ".snap.json");
+                    Disk.WriteText(
+                        p,
                         json.Serialize(new Dictionary<string, object> { { "Head", head }, { "Files", snap } })
                     );
-                    if (File.Exists(p))
-                        File.Delete(p);
-                    File.Move(t, p);
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         void LoadSessions(string only = null)
@@ -2340,13 +2430,22 @@ namespace Laica
                                 }
                             }
                         }
-                        catch (Exception) { }
+                        catch (Exception swallowed)
+                        {
+                            Log.Swallowed(swallowed);
+                        }
                         sessions[s.Id] = s;
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         // ---------- custom agents ----------
@@ -2520,7 +2619,10 @@ namespace Laica
                                 due.Add(t);
                         }
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 }
             }
             foreach (var t in due)
@@ -2529,13 +2631,19 @@ namespace Laica
                 {
                     Execute(t);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             try
             {
                 PairTick();
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             // a turn can run for an hour: save it as it goes, so closing or crashing loses at most a few seconds of it
             List<Session> running;
             lock (gate)
@@ -2548,7 +2656,10 @@ namespace Laica
                     SaveSession(rs);
                     rs.SavedSeq = q;
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
         }
 
@@ -2758,7 +2869,7 @@ namespace Laica
                 throw new ArgumentException("Only existing files can be saved.");
             if (text != null && text.Length > 2 * 1024 * 1024)
                 throw new ArgumentException("File is too large to save here.");
-            File.WriteAllText(full, text ?? "", new UTF8Encoding(false));
+            Disk.WriteText(full, text ?? "");
         }
 
         // ---------- small key/value stores owned by the UI (assistants) ----------
@@ -2769,8 +2880,9 @@ namespace Laica
             {
                 return File.Exists(p) ? json.DeserializeObject(File.ReadAllText(p)) : null;
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return null;
             }
         }
@@ -2794,7 +2906,10 @@ namespace Laica
                     if (s.Proc != null && !s.Proc.HasExited)
                         KillTree(s.Proc.Id);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
         }
     }

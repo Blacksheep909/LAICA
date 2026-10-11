@@ -75,7 +75,10 @@ namespace Laica
                 if (h != null)
                     return key == "codex" ? "Codex (GPT)" : h.Name;
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return key;
         }
 
@@ -225,8 +228,9 @@ namespace Laica
             {
                 return Convert.ToInt64(v);
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return 0;
             }
         }
@@ -260,7 +264,10 @@ namespace Laica
                     {
                         Emit(main, "notice", "Automatic handoff failed: " + ex.Message, null);
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 }
             });
         }

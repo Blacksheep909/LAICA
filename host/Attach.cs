@@ -64,7 +64,10 @@ namespace Laica
                     return;
                 File.AppendAllText(ex, (text.Length > 0 && !text.EndsWith("\n") ? "\n" : "") + ".laica/\n");
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         static string UniquePath(string dir, string name)
@@ -93,7 +96,10 @@ namespace Laica
                 {
                     size = new FileInfo(path).Length;
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             return new Dictionary<string, object>
             {
@@ -124,8 +130,9 @@ namespace Laica
                 {
                     path = Path.GetFullPath(raw.Trim().Trim('"'));
                 }
-                catch (Exception)
+                catch (Exception swallowed)
                 {
+                    Log.Swallowed(swallowed);
                     throw new ArgumentException("That isn't a valid path.");
                 }
                 if (Directory.Exists(path))
@@ -187,7 +194,10 @@ namespace Laica
                 {
                     File.Delete(path);
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 throw new ArgumentException("That file is larger than 200 MB.");
             }
             using (var fs = new FileStream(path, append ? FileMode.Append : FileMode.Create, FileAccess.Write))
@@ -377,8 +387,9 @@ namespace Laica
                 }
                 return name;
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return null;
             }
         }
@@ -437,7 +448,10 @@ namespace Laica
                     if (n != null && !found.Contains(n))
                         found.Add(n);
                 }
-                catch (FormatException) { }
+                catch (FormatException swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             return found;
         }
@@ -466,7 +480,10 @@ namespace Laica
                         if (n != null)
                             found.Add(n);
                     }
-                    catch (FormatException) { }
+                    catch (FormatException swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 }
             }
             string path = Str(item, "path");
@@ -494,7 +511,10 @@ namespace Laica
                     }
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             return found;
         }
 

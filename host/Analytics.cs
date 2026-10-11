@@ -130,8 +130,9 @@ namespace Laica
                     anaFiles[kv.Key] = s;
                 }
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 anaFiles.Clear();
             }
         }
@@ -159,17 +160,16 @@ namespace Laica
                                     { "O", kv.Value.Tools.ToDictionary(d => d.Key, d => (object)d.Value) },
                                 }
                     );
-                string p = AnaCachePath(),
-                    tmp = p + ".tmp";
-                File.WriteAllText(
-                    tmp,
+                string p = AnaCachePath();
+                Disk.WriteText(
+                    p,
                     json.Serialize(new Dictionary<string, object> { { "Version", AnaVersion }, { "Files", files } })
                 );
-                if (File.Exists(p))
-                    File.Delete(p);
-                File.Move(tmp, p);
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         static string StampOf(FileInfo f)
@@ -210,7 +210,10 @@ namespace Laica
                         foreach (string f in Directory.GetFiles(r, "rollout-*.jsonl", SearchOption.AllDirectories))
                             work.Add(new KeyValuePair<FileInfo, string>(new FileInfo(f), "codex"));
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 try
                 {
                     string r = Path.Combine(ClaudeDir(), "projects");
@@ -219,7 +222,10 @@ namespace Laica
                         foreach (string f in Directory.GetFiles(d, "*.jsonl"))
                             work.Add(new KeyValuePair<FileInfo, string>(new FileInfo(f), "claude"));
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 work = work.OrderByDescending(w => w.Key.LastWriteTimeUtc).ToList();
                 lock (anaGate)
                 {
@@ -244,7 +250,10 @@ namespace Laica
                         {
                             s = w.Value == "codex" ? ScanCodex(w.Key, stamp) : ScanClaude(w.Key, stamp);
                         }
-                        catch (Exception) { }
+                        catch (Exception swallowed)
+                        {
+                            Log.Swallowed(swallowed);
+                        }
                         if (s != null)
                         {
                             lock (anaGate)
@@ -272,7 +281,10 @@ namespace Laica
                 if (changed)
                     SaveAnalyticsCache();
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             finally
             {
                 lock (anaGate)
@@ -622,7 +634,10 @@ namespace Laica
                                 };
                         }
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 return prices = p;
             }
         }
@@ -969,7 +984,10 @@ namespace Laica
                     }
                 );
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             Raise();
             return PricesGet();
         }
@@ -1024,7 +1042,10 @@ namespace Laica
                     }
                 }
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         bool verifiedLoaded;

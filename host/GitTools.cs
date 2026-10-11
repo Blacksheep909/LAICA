@@ -25,7 +25,10 @@ namespace Laica
                 {
                     candidates.Add(Path.Combine(d.Trim(), "git.exe"));
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
                 local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -42,7 +45,10 @@ namespace Laica
                             .Where(p => p.EndsWith(Path.Combine("cmd", "git.exe"), StringComparison.OrdinalIgnoreCase))
                     );
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             exe = candidates.FirstOrDefault(File.Exists);
             return exe;
         }
@@ -87,7 +93,10 @@ namespace Laica
                     {
                         p.Kill();
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                     throw new TimeoutException("git " + args.Split(' ')[0] + " timed out.");
                 }
                 p.WaitForExit();
@@ -114,8 +123,9 @@ namespace Laica
                 string r = Run(dir, "rev-parse --show-toplevel", false).Trim();
                 return r == "" ? null : Path.GetFullPath(r);
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return null;
             }
         }
@@ -126,8 +136,9 @@ namespace Laica
             {
                 return Run(dir, "rev-parse --abbrev-ref HEAD", false).Trim();
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return "";
             }
         }
@@ -138,8 +149,9 @@ namespace Laica
             {
                 return Run(dir, "rev-parse HEAD", false).Trim();
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return "";
             }
         }
@@ -235,7 +247,10 @@ namespace Laica
                             fi.Length + ":" + fi.LastWriteTimeUtc.Ticks;
                     }
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             return map;
         }
@@ -265,7 +280,10 @@ namespace Laica
                 {
                     commits = Run(dir, "log --oneline -n 10 " + headBefore + ".." + headAfter, false).Trim();
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             if (added.Count + removed.Count + changed.Count == 0 && commits == "")
                 return null;

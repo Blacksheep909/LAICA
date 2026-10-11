@@ -44,7 +44,10 @@ namespace Laica
                 if (File.Exists(path))
                     config = json.Deserialize<Dictionary<string, object>>(File.ReadAllText(path)) ?? config;
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             harness.Event += OnEvent;
             lock (gate)
             {
@@ -97,13 +100,12 @@ namespace Laica
                 config["Bound"] = b;
                 try
                 {
-                    string t = path + ".tmp";
-                    File.WriteAllText(t, json.Serialize(config));
-                    if (File.Exists(path))
-                        File.Delete(path);
-                    File.Move(t, path);
+                    Disk.WriteText(path, json.Serialize(config));
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             var h = Changed;
             if (h != null)
@@ -133,8 +135,9 @@ namespace Laica
                     ProtectedData.Unprotect(Convert.FromBase64String(s), null, DataProtectionScope.CurrentUser)
                 );
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return null;
             }
         }
@@ -326,7 +329,10 @@ namespace Laica
                         20000
                     );
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
         }
 
@@ -378,7 +384,10 @@ namespace Laica
                         {
                             Handle(Obj(u, "message"));
                         }
-                        catch (Exception) { }
+                        catch (Exception swallowed)
+                        {
+                            Log.Swallowed(swallowed);
+                        }
                     }
                     if (lastError != null)
                     {
@@ -454,7 +463,10 @@ namespace Laica
                     {
                         harness.Stop(sid);
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 }
                 Say(chat, "Stopped.");
                 return;
@@ -527,8 +539,9 @@ namespace Laica
                 harness.History(sid);
                 return true;
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return false;
             }
         }
@@ -564,7 +577,10 @@ namespace Laica
                         "Approval needed: " + Str(e, "Text") + "\n\n" + Str(d, "Input") + "\n\nReply /allow or /deny"
                     );
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             else if (kind == "error")
                 Say(chat, "Problem: " + Str(e, "Text"));
@@ -589,7 +605,10 @@ namespace Laica
                             sb.Append(Str(all[i], "Text"));
                         }
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
                 Say(chat, sb.Length == 0 ? "Done." : sb.ToString());
             }
         }
@@ -712,7 +731,10 @@ namespace Laica
                     {
                         Post(Unprotect(Str(hook, "Url")), Payload(Str(hook, "Kind"), text), 15000);
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 });
             }
         }

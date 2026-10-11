@@ -523,7 +523,10 @@ namespace Laica
                                 .Select(f => Path.GetFileNameWithoutExtension(f).ToLowerInvariant())
                         );
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             }
             startMenuNames = names.Distinct().ToArray();
             startMenuAt = DateTime.UtcNow;
@@ -541,8 +544,9 @@ namespace Laica
             {
                 return Directory.Exists(root) && Directory.GetDirectories(root, pattern).Length > 0;
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return false;
             }
         }
@@ -571,7 +575,10 @@ namespace Laica
                 }
                 Environment.SetEnvironmentVariable("PATH", String.Join(Path.PathSeparator.ToString(), parts));
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         Dictionary<string, string> DetectPrograms()
@@ -683,7 +690,10 @@ namespace Laica
                 if (exe != null)
                     text = RunCli(exe, "plugin list --json", 15000);
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             lock (pluginLists)
                 pluginLists[target] = new KeyValuePair<DateTime, string>(DateTime.UtcNow, text);
             return text;

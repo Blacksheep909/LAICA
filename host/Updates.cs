@@ -63,7 +63,10 @@ namespace Laica
                             CheckUpdates(false);
                         }
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 },
                 null,
                 25000,
@@ -77,7 +80,10 @@ namespace Laica
                     if (Convert.ToBoolean(UpdateState()["Auto"]))
                         VerifyPrices();
                 }
-                catch (Exception) { }
+                catch (Exception swallowed)
+                {
+                    Log.Swallowed(swallowed);
+                }
             })
             {
                 IsBackground = true,
@@ -198,7 +204,10 @@ namespace Laica
                     {
                         McpFreshen();
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                 }
             }
             finally
@@ -260,8 +269,9 @@ namespace Laica
                 return asm != null
                     && String.Equals(Path.GetFileName(asm.Location), "LAICA.exe", StringComparison.OrdinalIgnoreCase);
             }
-            catch (Exception)
+            catch (Exception swallowed)
             {
+                Log.Swallowed(swallowed);
                 return false;
             }
         }
@@ -311,7 +321,10 @@ namespace Laica
                     {
                         File.Delete(setup);
                     }
-                    catch (Exception) { }
+                    catch (Exception swallowed)
+                    {
+                        Log.Swallowed(swallowed);
+                    }
                     throw new InvalidOperationException(
                         "The downloaded installer failed its checksum, so it was not run."
                     );
@@ -400,12 +413,18 @@ namespace Laica
             {
                 changed.AddRange(FreshenClaude());
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             try
             {
                 changed.AddRange(FreshenCodex());
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
             var st = UpdateState();
             lock (gate)
             {
@@ -427,7 +446,10 @@ namespace Laica
                 if (!File.Exists(b))
                     File.Copy(path, b);
             }
-            catch (Exception) { }
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
         }
 
         List<string> FreshenClaude()
@@ -477,8 +499,10 @@ namespace Laica
                 string tmp = cj + ".laica-tmp";
                 File.WriteAllText(tmp, text, new UTF8Encoding(false));
                 json.Deserialize<Dictionary<string, object>>(File.ReadAllText(tmp));
-                File.Delete(cj);
-                File.Move(tmp, cj);
+                if (File.Exists(cj))
+                    File.Replace(tmp, cj, null);
+                else
+                    File.Move(tmp, cj);
             }
             return done;
         }
@@ -520,8 +544,10 @@ namespace Laica
                 BackupOnce(ct);
                 string tmp = ct + ".laica-tmp";
                 File.WriteAllText(tmp, result, new UTF8Encoding(false));
-                File.Delete(ct);
-                File.Move(tmp, ct);
+                if (File.Exists(ct))
+                    File.Replace(tmp, ct, null);
+                else
+                    File.Move(tmp, ct);
             }
             return done;
         }
