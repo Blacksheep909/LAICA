@@ -10,6 +10,10 @@ Every release is made with `Release-Edition.ps1`, which builds, runs every test 
 
 - **LAICA for macOS and Linux.** An Electron app (`electron/`) around the same engine and interface as the Windows app. The engine runs as a small .NET 8 program (`laica-server`) that the window starts, signs itself in to and stops when you quit; the window adds native file and folder dialogs, Save as, Show in Finder / file manager, window controls and zoom. A new workflow builds `.dmg` and `.zip` for Mac (Apple silicon and Intel) and `.AppImage` and `.deb` for Linux. The builds are not signed. Not yet in these apps: the screen-control outline and Windows speech dictation (cloud dictation works).
 
+### Fixed
+- **Codex was not found on macOS and Linux** (LAICA only looked for `codex.exe`). It now finds `codex` like the other agents.
+- **The Mac and Linux app can find your agents** even when opened from the Dock or a launcher, by using the PATH of your login shell.
+
 ### Changed
 - **LAICA no longer uses the open-glass-ui library.** Buttons, switches, tabs, text boxes, dialogs and notifications are now LAICA's own, built on Radix. The app loads about 70 KB less CSS and 30 KB less JavaScript, and small controls are crisp flat surfaces instead of blurred glass.
 - **Settings > Appearance loses the five glass styles** (accent, panel and text remain).

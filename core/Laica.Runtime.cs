@@ -294,18 +294,7 @@ namespace Laica
                 if (found != null && File.Exists(found))
                     return found;
             }
-            string path = Environment.GetEnvironmentVariable("PATH") ?? "";
-            foreach (string dir in path.Split(Path.PathSeparator))
-            {
-                try
-                {
-                    string p = Path.Combine(dir.Trim(), "codex.exe");
-                    if (File.Exists(p))
-                        return p;
-                }
-                catch { }
-            }
-            return null;
+            return HarnessManager.FindOnPath("codex.exe"); // on macOS and Linux the same program is just "codex"
         }
 
         public static async Task<List<ModelInfo>> LoadAsync(

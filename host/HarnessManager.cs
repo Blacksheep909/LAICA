@@ -184,7 +184,7 @@ namespace Laica
         }
 
         /// <summary>Finds a program by its Windows file name ("claude.exe", "gemini.cmd"); on macOS and Linux the same program has no extension.</summary>
-        static string FindOnPath(string file)
+        internal static string FindOnPath(string file)
         {
             if (Path.DirectorySeparatorChar != '/')
                 return FindOnPathExact(file);

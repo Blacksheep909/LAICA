@@ -2,7 +2,7 @@
 // LAICA for macOS and Linux. The engine (laica-server, .NET) runs next to this window and serves the same interface
 // and commands the Windows app uses; this file starts it, signs the window in, and supplies the native dialogs.
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell, screen } = require('electron');
-const { spawn } = require('child_process');
+const { spawn, execFile } = require('child_process');
 const crypto = require('crypto');
 const fs = require('fs');
 const net = require('net');
@@ -47,14 +47,26 @@ function freePort() {
   });
 }
 
+// An app opened from the Dock or a launcher gets a bare PATH, so the agent CLIs (codex, claude, gemini...) would not be found.
+// Ask the user's login shell for its PATH, as a terminal would have.
+function loginShellPath() {
+  if (process.platform === 'win32') return Promise.resolve('');
+  const sh = process.env.SHELL || '/bin/sh';
+  return new Promise((resolve) => {
+    execFile(sh, ['-ilc', 'printf %s "$PATH"'], { timeout: 4000 }, (err, out) => resolve(err ? '' : String(out).trim()));
+  });
+}
+
 async function startEngine() {
+  const shellPath = await loginShellPath();
+  const merged = [shellPath, process.env.PATH].filter(Boolean).join(path.delimiter);
   const port = await freePort();
   const password = crypto.randomBytes(24).toString('base64url');
   const bin = enginePath();
   const args = ['--ui', uiPath(), '--data', app.getPath('userData'), '--port', String(port), '--work', app.getPath('home')];
   const isDll = bin.endsWith('.dll');
   engine = spawn(isDll ? 'dotnet' : bin, isDll ? [bin, ...args] : args, {
-    env: { ...process.env, LAICA_APP_PASSWORD: password },
+    env: { ...process.env, PATH: merged, LAICA_APP_PASSWORD: password },
     stdio: ['pipe', 'pipe', 'pipe'], // the engine stops when this end of its input closes
   });
   await new Promise((resolve, reject) => {
