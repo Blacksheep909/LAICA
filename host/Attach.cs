@@ -30,13 +30,13 @@ namespace Laica
 
         static bool InsideFolder(string path, string folder)
         {
-            string f = folder.TrimEnd('\\', '/') + "\\";
+            string f = folder.TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
             return Path.GetFullPath(path).StartsWith(f, StringComparison.OrdinalIgnoreCase);
         }
 
         static string CleanName(string name)
         {
-            name = Path.GetFileName((name ?? "").Replace('/', '\\'));
+            name = Path.GetFileName((name ?? "").Replace('\\', '/'));
             foreach (char c in Path.GetInvalidFileNameChars())
                 name = name.Replace(c, '_');
             name = name.Trim().TrimEnd('.');

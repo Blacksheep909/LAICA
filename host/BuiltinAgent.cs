@@ -615,7 +615,7 @@ namespace Laica
                 }
                 case "write_file":
                 {
-                    string full = Inside(s.Cwd, path);
+                    string full = InsideForWrite(s.Cwd, path);
                     string content = Str(a, "content");
                     if (content.Length > 2 * 1024 * 1024)
                         return "Error: content is too large.";
@@ -628,7 +628,7 @@ namespace Laica
                 }
                 case "edit_file":
                 {
-                    string full = Inside(s.Cwd, path);
+                    string full = InsideForWrite(s.Cwd, path);
                     string oldS = Str(a, "old_string"),
                         newS = Str(a, "new_string");
                     if (!File.Exists(full))
@@ -656,7 +656,7 @@ namespace Laica
                     string root = Inside(s.Cwd, path == "" ? "." : path);
                     Emit(s, "tool", name, pat);
                     var hits = new List<string>();
-                    string baseDir = Path.GetFullPath(s.Cwd).TrimEnd('\\') + "\\";
+                    string baseDir = Path.GetFullPath(s.Cwd).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
                     foreach (string f in Walk(root))
                     {
                         if (hits.Count >= 100)

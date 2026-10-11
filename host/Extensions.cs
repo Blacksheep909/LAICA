@@ -348,7 +348,7 @@ namespace Laica
                 throw new ArgumentException("Use a short name with letters, numbers, - or _.");
             string root = Path.GetFullPath(SkillRoot(target));
             string dir = Path.GetFullPath(Path.Combine(root, name));
-            if (!dir.StartsWith(root + "\\", StringComparison.OrdinalIgnoreCase))
+            if (!dir.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("That skill name isn't valid.");
             return dir;
         }

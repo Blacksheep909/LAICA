@@ -330,7 +330,7 @@ namespace Laica
                     );
                 }
             }
-            string appDir = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\');
+            string appDir = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\', '/');
             string exe = Path.Combine(appDir, "LAICA.exe");
             string ps =
                 "Start-Sleep -Seconds 2; Start-Process -FilePath '"

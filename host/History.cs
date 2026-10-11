@@ -342,7 +342,7 @@ namespace Laica
             path = path.TrimEnd('\\', '/');
             root = root.TrimEnd('\\', '/');
             return path.Equals(root, StringComparison.OrdinalIgnoreCase)
-                || path.StartsWith(root + "\\", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
                 || path.StartsWith(root + "/", StringComparison.OrdinalIgnoreCase);
         }
 

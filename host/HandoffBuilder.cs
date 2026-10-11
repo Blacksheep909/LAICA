@@ -137,7 +137,7 @@ namespace Laica
                 if (!String.IsNullOrEmpty(cwd) && Path.IsPathRooted(path))
                 {
                     string full = Path.GetFullPath(path),
-                        root = Path.GetFullPath(cwd).TrimEnd('\\', '/') + "\\";
+                        root = Path.GetFullPath(cwd).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
                     if (full.StartsWith(root, StringComparison.OrdinalIgnoreCase))
                         return full.Substring(root.Length).Replace('\\', '/');
                 }
@@ -561,7 +561,7 @@ namespace Laica
 
         static string RelTo(string root, FileInfo f)
         {
-            string r = Path.GetFullPath(root).TrimEnd('\\', '/') + "\\";
+            string r = Path.GetFullPath(root).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
             return f.FullName.StartsWith(r, StringComparison.OrdinalIgnoreCase)
                 ? f.FullName.Substring(r.Length).Replace('\\', '/')
                 : f.FullName;

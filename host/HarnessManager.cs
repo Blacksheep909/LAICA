@@ -754,7 +754,7 @@ namespace Laica
                 GitTools.Run(repo, "branch -D " + branch, false);
             lock (gate)
             {
-                s.Cwd = repo + (cwdRel == "" ? "" : "\\" + cwdRel);
+                s.Cwd = cwdRel == "" ? repo : Path.Combine(repo, cwdRel);
                 s.Isolated = false;
                 s.WorktreePath = null;
                 s.Branch = null;
@@ -2770,6 +2770,22 @@ namespace Laica
             return full;
         }
 
+        /// <summary>
+        /// Like <see cref="Inside"/>, for a path that is about to be written: it also refuses a path that passes through a symbolic link or
+        /// junction, because a link inside a project can point anywhere and a write must not follow it out of the folder.
+        /// </summary>
+        static string InsideForWrite(string cwd, string rel)
+        {
+            string full = Inside(cwd, rel);
+            string root = Path.GetFullPath(cwd).TrimEnd('\\', '/');
+            for (string p = full; p.Length > root.Length; p = Path.GetDirectoryName(p))
+            {
+                if ((File.Exists(p) || Directory.Exists(p)) && (File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0)
+                    throw new ArgumentException("That path goes through a link, so it can't be written from here.");
+            }
+            return full;
+        }
+
         string CwdOf(string id)
         {
             lock (gate)
@@ -2797,7 +2813,7 @@ namespace Laica
                     new Dictionary<string, object>
                     {
                         { "Name", d.Name },
-                        { "Path", d.FullName.Substring(root.Length).TrimStart('\\') },
+                        { "Path", d.FullName.Substring(root.Length).TrimStart('\\', '/') },
                         { "Dir", true },
                         { "Size", 0L },
                     }
@@ -2813,7 +2829,7 @@ namespace Laica
                     new Dictionary<string, object>
                     {
                         { "Name", f.Name },
-                        { "Path", f.FullName.Substring(root.Length).TrimStart('\\') },
+                        { "Path", f.FullName.Substring(root.Length).TrimStart('\\', '/') },
                         { "Dir", false },
                         { "Size", f.Length },
                     }
@@ -2864,7 +2880,7 @@ namespace Laica
 
         public void WriteFile(string id, string rel, string text)
         {
-            string full = Inside(CwdOf(id), rel);
+            string full = InsideForWrite(CwdOf(id), rel);
             if (!File.Exists(full))
                 throw new ArgumentException("Only existing files can be saved.");
             if (text != null && text.Length > 2 * 1024 * 1024)

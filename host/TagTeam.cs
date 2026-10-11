@@ -211,7 +211,7 @@ namespace Laica
                 || p.Contains("..")
                 || p.IndexOfAny(Path.GetInvalidPathChars()) >= 0
                 || p.EndsWith("/")
-                || p.EndsWith("\\")
+                || (p.EndsWith("\\") || p.EndsWith("/"))
             )
                 return false;
             return true;
@@ -520,7 +520,7 @@ namespace Laica
             try
             {
                 string full = Path.GetFullPath(Path.Combine(cwd, rel));
-                string root = Path.GetFullPath(cwd).TrimEnd('\\') + "\\";
+                string root = Path.GetFullPath(cwd).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
                 if (!full.StartsWith(root, StringComparison.OrdinalIgnoreCase))
                     full = Path.Combine(cwd, "HANDOFF.md");
                 string dirp = Path.GetDirectoryName(full);
