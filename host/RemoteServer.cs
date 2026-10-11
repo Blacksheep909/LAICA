@@ -162,6 +162,7 @@ namespace Laica
                 stopping = false;
                 acceptor = new Thread(AcceptLoop) { IsBackground = true, Name = "laica-remote" };
                 acceptor.Start();
+                new Thread(SendLoop) { IsBackground = true, Name = "laica-remote-send" }.Start();
             }
             catch (Exception ex)
             {
@@ -173,6 +174,7 @@ namespace Laica
         void Stop()
         {
             stopping = true;
+            outboxSignal.Set();
             var l = listener;
             listener = null;
             if (l != null)
@@ -227,9 +229,10 @@ namespace Laica
                 }
                 ThreadPool.QueueUserWorkItem(_ =>
                 {
+                    bool keep = false;
                     try
                     {
-                        Handle(c);
+                        keep = Handle(c);
                     }
                     catch (Exception swallowed)
                     {
@@ -239,7 +242,8 @@ namespace Laica
                     {
                         try
                         {
-                            c.Close();
+                            if (!keep)
+                                c.Close();
                         }
                         catch (Exception swallowed)
                         {
@@ -261,6 +265,7 @@ namespace Laica
                 StringComparer.OrdinalIgnoreCase
             );
             public byte[] Body = new byte[0];
+            public bool KeepOpen;
         }
 
         static string ReadHead(Stream s)
@@ -280,20 +285,21 @@ namespace Laica
             return buf.Count == 0 ? null : Encoding.ASCII.GetString(buf.ToArray());
         }
 
-        void Handle(TcpClient client)
+        /// <summary>Serves one request. Returns true when the connection must stay open (an event stream).</summary>
+        bool Handle(TcpClient client)
         {
             client.ReceiveTimeout = 30000;
             client.SendTimeout = 30000;
             var stream = client.GetStream();
             string head = ReadHead(stream);
             if (head == null)
-                return;
+                return false;
             var lines = head.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
             var parts = lines[0].Split(' ');
             if (parts.Length < 3)
             {
                 Respond(stream, 400, "text/plain", "Bad request");
-                return;
+                return false;
             }
             var req = new Req
             {
@@ -316,7 +322,7 @@ namespace Laica
             if (len > MaxBody)
             {
                 Respond(stream, 413, "text/plain", "Too large");
-                return;
+                return false;
             }
             if (len > 0)
             {
@@ -326,11 +332,23 @@ namespace Laica
                 {
                     int n = stream.Read(req.Body, got, len - got);
                     if (n <= 0)
-                        return;
+                        return false;
                     got += n;
                 }
             }
+            if (!HostAllowed(req))
+            {
+                Respond(stream, 421, "text/plain", "Unexpected host");
+                return false;
+            }
+            string origin;
+            if (req.Headers.TryGetValue("Origin", out origin) && !SameOrigin(origin, req))
+            {
+                Respond(stream, 403, "text/plain", "Cross-origin request refused");
+                return false;
+            }
             Route(req, stream);
+            return req.KeepOpen;
         }
 
         void Route(Req r, Stream s)
@@ -357,7 +375,7 @@ namespace Laica
                     Respond(s, 401, "application/json", "{\"Error\":\"Sign in again.\"}");
                     return;
                 }
-                Sse(s);
+                Sse(r, s);
                 return;
             }
             if (r.Path == "/api/ping")
@@ -571,46 +589,32 @@ namespace Laica
             }
         }
 
-        void Sse(Stream s)
+        void Sse(Req r, Stream s)
         {
             var head = Encoding.ASCII.GetBytes(
                 "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-store\r\nConnection: keep-alive\r\nX-Accel-Buffering: no\r\n\r\n: ok\n\n"
             );
             s.Write(head, 0, head.Length);
             s.Flush();
+            var net = s as NetworkStream;
+            if (net != null)
+                net.WriteTimeout = 5000; // a client that stops reading is dropped, it does not hold anything up
             lock (streams)
                 streams.Add(s);
-            try
-            {
-                while (!stopping)
-                {
-                    Thread.Sleep(15000);
-                    lock (s)
-                    {
-                        var ping = Encoding.ASCII.GetBytes(": ping\n\n");
-                        s.Write(ping, 0, ping.Length);
-                        s.Flush();
-                    }
-                }
-            }
-            catch (Exception swallowed)
-            {
-                Log.Swallowed(swallowed);
-            }
-            finally
-            {
-                lock (streams)
-                    streams.Remove(s);
-            }
+            r.KeepOpen = true;
         }
+
+        // Events go to a queue and one thread writes them to every open stream, so an agent never waits on a slow browser.
+        // The same thread sends a comment every 15 seconds so idle streams stay open and dead ones are noticed.
+        readonly Queue<byte[]> outbox = new Queue<byte[]>();
+        readonly AutoResetEvent outboxSignal = new AutoResetEvent(false);
+        static readonly byte[] Ping = Encoding.ASCII.GetBytes(": ping\n\n");
 
         void Broadcast(object message)
         {
-            Stream[] all;
             lock (streams)
-                all = streams.ToArray();
-            if (all.Length == 0)
-                return;
+                if (streams.Count == 0)
+                    return;
             byte[] data;
             try
             {
@@ -621,6 +625,41 @@ namespace Laica
                 Log.Swallowed(swallowed);
                 return;
             }
+            lock (outbox)
+            {
+                if (outbox.Count >= 2000)
+                    outbox.Dequeue();
+                outbox.Enqueue(data);
+            }
+            outboxSignal.Set();
+        }
+
+        void SendLoop()
+        {
+            while (!stopping)
+            {
+                bool idle = !outboxSignal.WaitOne(15000);
+                if (stopping)
+                    return;
+                byte[] data;
+                while (true)
+                {
+                    lock (outbox)
+                        data = outbox.Count > 0 ? outbox.Dequeue() : null;
+                    if (data == null)
+                        break;
+                    WriteAll(data);
+                }
+                if (idle)
+                    WriteAll(Ping);
+            }
+        }
+
+        void WriteAll(byte[] data)
+        {
+            Stream[] all;
+            lock (streams)
+                all = streams.ToArray();
             foreach (var s in all)
             {
                 try
@@ -646,6 +685,30 @@ namespace Laica
                     }
                 }
             }
+        }
+
+        // A page on another site must not be able to talk to this server through the visitor's browser: a request that names an origin
+        // has to come from this server's own address, and on this computer only (not LAN) the address must be a loopback one, which also
+        // defeats DNS rebinding.
+        bool HostAllowed(Req r)
+        {
+            if (settings.Lan)
+                return true;
+            string host;
+            if (!r.Headers.TryGetValue("Host", out host) || host.Length == 0)
+                return true;
+            int colon = host.LastIndexOf(':');
+            string name = colon > 0 && host.IndexOf(']') < colon ? host.Substring(0, colon) : host;
+            return name == "localhost" || name == "127.0.0.1" || name == "[::1]";
+        }
+
+        static bool SameOrigin(string origin, Req r)
+        {
+            string host;
+            if (!r.Headers.TryGetValue("Host", out host))
+                return false;
+            int i = origin.IndexOf("://", StringComparison.Ordinal);
+            return i > 0 && String.Equals(origin.Substring(i + 3), host, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
