@@ -294,7 +294,9 @@ namespace Laica
                 int ac = PowerIndex(q, "AC"),
                     dc = PowerIndex(q, "DC");
                 if (ac < 0 || dc < 0)
-                    throw new InvalidOperationException("Could not read the current lid setting, so it was left alone.");
+                    throw new InvalidOperationException(
+                        "Could not read the current lid setting, so it was left alone."
+                    );
                 entry["Ac"] = ac;
                 entry["Dc"] = dc;
                 Journal(entry);
@@ -334,8 +336,14 @@ namespace Laica
                 bool ok = true;
                 if (kind == "windows")
                 {
-                    ok &= Run("powercfg", "/setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION " + Convert.ToInt32(entry["Ac"]));
-                    ok &= Run("powercfg", "/setdcvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION " + Convert.ToInt32(entry["Dc"]));
+                    ok &= Run(
+                        "powercfg",
+                        "/setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION " + Convert.ToInt32(entry["Ac"])
+                    );
+                    ok &= Run(
+                        "powercfg",
+                        "/setdcvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION " + Convert.ToInt32(entry["Dc"])
+                    );
                     ok &= Run("powercfg", "/setactive SCHEME_CURRENT");
                 }
                 else if (kind == "mac")
@@ -343,7 +351,8 @@ namespace Laica
                 if (ok)
                     ClearJournal();
                 else
-                    error = "LAICA could not put your lid-close setting back. Run the keep-awake timer again, or reset it in power settings.";
+                    error =
+                        "LAICA could not put your lid-close setting back. Run the keep-awake timer again, or reset it in power settings.";
             }
             catch (Exception swallowed)
             {

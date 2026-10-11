@@ -1140,10 +1140,8 @@ namespace Laica
                 StandardOutputEncoding = Encoding.UTF8,
                 StandardErrorEncoding = Encoding.UTF8,
             };
-            string parser = StructuredParser(s, info, exe);
-            psi.Arguments =
-                Arguments(s, info, sent)
-                + (parser == "gemini" || parser == "sdk" ? " --output-format stream-json" : "");
+            var protocol = ProtocolFor(StructuredParser(s, info, exe), s);
+            psi.Arguments = Arguments(s, info, sent) + protocol.ExtraArgs;
             CoAuthorEnv(psi, s.Cwd);
             if (
                 exe.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase)
@@ -1178,73 +1176,7 @@ namespace Laica
                 Finish(s, "Could not start " + info.Name + ": " + ex.Message);
                 return;
             }
-            if (parser == "claude")
-            {
-                // Interactive stream-json: the user message goes in as one JSON line and stdin stays open so permission answers can follow.
-                s.Interactive = true;
-                WriteLine(
-                    s,
-                    json.Serialize(
-                        new Dictionary<string, object>
-                        {
-                            { "type", "user" },
-                            {
-                                "message",
-                                new Dictionary<string, object> { { "role", "user" }, { "content", sent } }
-                            },
-                        }
-                    )
-                );
-            }
-            else if (parser == "codex" && s.Mode == "ask-first")
-            {
-                s.Interactive = true;
-                s.TurnPrompt = sent;
-                WriteLine(
-                    s,
-                    json.Serialize(
-                        new Dictionary<string, object>
-                        {
-                            { "id", 1 },
-                            { "method", "initialize" },
-                            {
-                                "params",
-                                new Dictionary<string, object>
-                                {
-                                    {
-                                        "clientInfo",
-                                        new Dictionary<string, object>
-                                        {
-                                            { "name", "laica" },
-                                            { "title", "LAICA" },
-                                            { "version", AppVersion.Value },
-                                        }
-                                    },
-                                    {
-                                        "capabilities",
-                                        new Dictionary<string, object> { { "experimentalApi", true } }
-                                    },
-                                }
-                            },
-                        }
-                    )
-                );
-            }
-            else
-            {
-                s.Interactive = false;
-                byte[] bytes = new UTF8Encoding(false).GetBytes(sent);
-                try
-                {
-                    if (!(info.Args ?? "").Contains("{prompt}"))
-                        proc.StandardInput.BaseStream.Write(bytes, 0, bytes.Length);
-                    proc.StandardInput.Close();
-                }
-                catch (Exception swallowed)
-                {
-                    Log.Swallowed(swallowed);
-                }
-            }
+            protocol.Begin(this, s, info, proc, sent);
             var errors = new StringBuilder();
             proc.ErrorDataReceived += (o, e) =>
             {
@@ -1260,15 +1192,14 @@ namespace Laica
                     while ((line = proc.StandardOutput.ReadLine()) != null)
                     {
                         if (line.Length > 0)
-                            Parse(s, parser, line);
+                            protocol.Line(this, s, line);
                     }
                 }
                 catch (Exception swallowed)
                 {
                     Log.Swallowed(swallowed);
                 }
-                if (parser == "gemini")
-                    FlushText(s);
+                protocol.End(this, s);
                 try
                 {
                     proc.WaitForExit();
@@ -1520,42 +1451,7 @@ namespace Laica
         {
             if (info.Custom)
                 return (info.Args ?? "").Replace("{prompt}", Quote(prompt)).Replace("{cwd}", Quote(s.Cwd));
-            if (s.Harness == "claude")
-                return "-p --output-format stream-json --input-format stream-json --verbose --permission-prompt-tool stdio --permission-mode "
-                    + s.Mode
-                    + (UseModel(s) ? " --model " + s.Model : "")
-                    + (UseEffort(s) ? " --effort " + s.Effort : "")
-                    + (s.ExternalId != null ? " --resume " + s.ExternalId : "");
-            if (s.Harness == "codex" && s.Mode == "ask-first")
-                return "app-server";
-            if (s.Harness == "codex")
-            {
-                string sandbox =
-                    s.Mode == "danger-full-access"
-                        ? "--dangerously-bypass-approvals-and-sandbox"
-                        : "-s " + (s.Mode == "read-only" ? "read-only" : "workspace-write");
-                string review = s.Mode == "approve-for-me" ? "--approve-for-me " : ""; // Codex's own automatic reviewer approves the safe requests and refuses the rest
-                if (s.Mode == "approve-for-me")
-                    sandbox = "";
-                return s.ExternalId != null
-                    ? "exec " + review + "resume " + s.ExternalId + " --json --skip-git-repo-check -"
-                    : "exec "
-                        + review
-                        + "--json --skip-git-repo-check "
-                        + (UseModel(s) ? "-m " + s.Model + " " : "")
-                        + (UseEffort(s) ? "-c model_reasoning_effort=" + s.Effort + " " : "")
-                        + sandbox
-                        + " -";
-            }
-            if (s.Harness == "gemini" || s.Harness == "qwen")
-                return "-p \" \"" + (UseModel(s) ? " -m " + s.Model : "") + (s.Mode == "yolo" ? " --yolo" : "");
-            if (s.Harness == "opencode")
-                return "run";
-            if (s.Harness == "goose")
-                return "run -i -";
-            if (s.Harness == "aider")
-                return "--yes --no-pretty --message-file -";
-            return "-p \" \"";
+            return VendorArguments(s);
         }
 
         void Finish(Session s, string error)
@@ -1604,35 +1500,6 @@ namespace Laica
             PairAfterTurn(s);
             SaveSession(s);
             Raise();
-        }
-
-        void Parse(Session s, string parser, string line)
-        {
-            if (parser == "text")
-            {
-                Emit(s, "assistant", line, "append");
-                return;
-            }
-            Dictionary<string, object> o;
-            try
-            {
-                o = json.Deserialize<Dictionary<string, object>>(line);
-            }
-            catch (Exception swallowed)
-            {
-                Log.Swallowed(swallowed);
-                Emit(s, "log", line, null);
-                return;
-            }
-            string type = Str(o, "type");
-            if (parser == "claude" || parser == "sdk")
-                ParseClaude(s, o, type);
-            else if (parser == "gemini")
-                ParseGemini(s, o, type);
-            else if (s.Mode == "ask-first" && parser == "codex")
-                ParseCodexApp(s, o);
-            else
-                ParseCodex(s, o, type);
         }
 
         void WriteLine(Session s, string line)
