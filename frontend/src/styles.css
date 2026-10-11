@@ -1,4 +1,20 @@
-/* The one stylesheet entry. Two cascade layers: the app, then the declarations that used to be !important. */
+/* The one stylesheet entry. Nothing in these files uses !important: the cascade is decided by three named layers.
+
+   tokens   sizes, radii, tints and times (tokens.css): change a value here, not in a rule
+   app      everything below, in this order. Later files win over earlier ones at equal specificity
+              workspace   page, theme variables, the plain building blocks
+              Shell       app frame: sidebar, title bar, home
+              GlassSelect the dropdown
+              Polish      the second pass of surface, type and motion
+              Liquid      the glass look and the chat
+              ui          menus, switches, tabs
+              Finish      native-app behaviour: cursors, focus ring, scrollbars, selection, reduced motion
+              Graph       the workflow designer
+              Activity    the activity page
+              Harness     chat panels and settings
+              overrides   rules that have to come last in app
+   pinned   declarations a more specific rule would otherwise beat (they used to be !important). Fix the rule that
+            beats them and the declaration can move into app. */
 @layer tokens, app, pinned;
 @import './tokens.css' layer(tokens);
 @import 'open-glass-ui/styles.css' layer(app);
@@ -12,4 +28,5 @@
 @import './Graph.css' layer(app);
 @import './Activity.css' layer(app);
 @import './Harness.css' layer(app);
+@import './overrides.css' layer(app);
 @import './pinned.css' layer(pinned);

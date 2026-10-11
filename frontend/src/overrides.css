@@ -1,0 +1,41 @@
+/* Declarations that must come after everything else in the app layer: they used to be !important, and the rules they beat sit later in the cascade. */
+.app:after {
+    display: none
+}
+.app.has-nebula:before {
+    display: none
+}
+.app:before {
+    opacity: 1
+}
+:root[data-backdrop="plain"] .app:before {
+    opacity: .6
+}
+.sidebar.navigation::after,[data-ogui-glass]::after {
+    display: none
+}
+.sidebar .side-nav .nav-item.active::before,.sidebar .side-nav .nav-item.active::after,.sidebar .side-nav .nav-item[aria-current=page]::before,.sidebar .side-nav .nav-item[aria-current=page]::after {
+    display: none;
+    content: none
+}
+.ogui-toast {
+    transform-origin: 100% 0
+}
+.sidebar .side-nav .nav-item::before,.sidebar .side-nav .nav-item::after,.sidebar .side-nav .nav-item:hover::before,.sidebar .side-nav .nav-item:hover::after {
+    display: none;
+    content: none;
+    border: 0;
+    box-shadow: none;
+    background: none
+}
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255,255,255,.34)
+}
+@media (prefers-reduced-motion:reduce) {
+    *,*::before,*::after {
+        scroll-behavior: auto
+    }
+}
+.laica-socket {
+    box-sizing: border-box
+}

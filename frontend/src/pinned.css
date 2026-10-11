@@ -1,4 +1,4 @@
-/* Declarations that used to carry !important. They sit in the last cascade layer, in their original order, so they still win. */
+/* Declarations that a more specific rule would otherwise beat. Kept in the last layer until that rule is fixed. */
 .navigation {
     border-radius: var(--radius-5xl);
     border: 1px solid rgba(220,237,255,.1)
@@ -160,9 +160,6 @@
 .mobile-bar .active {
     background: rgba(190,170,255,.2)
 }
-.app:after {
-    display: none
-}
 .side-section .side-toggle {
     display: flex
 }
@@ -178,9 +175,6 @@
 .inspector {
     overflow: hidden;
     padding: 0
-}
-.app.has-nebula:before {
-    display: none
 }
 .composer,.harness-stream,.hpanel,.hside {
     background: rgba(6,5,12,var(--laica-panel,.42));
@@ -330,15 +324,11 @@
 }
 .app:before {
     inset: -10%;
-    opacity: 1;
     animation: scene-a 70s ease-in-out infinite alternate;
     background: radial-gradient(38% 34% at 14% 10%,rgba(124,92,255,.17),transparent 68%),
     radial-gradient(34% 32% at 88% 14%,rgba(52,140,255,.11),transparent 70%),
     radial-gradient(40% 36% at 78% 96%,rgba(255,92,180,.09),transparent 70%),
     radial-gradient(32% 32% at 26% 92%,rgba(40,210,190,.07),transparent 70%)
-}
-:root[data-backdrop="plain"] .app:before {
-    opacity: .6
 }
 .app {
     padding: 0;
@@ -371,9 +361,6 @@
 }
 .app.has-titlebar .sidebar.navigation {
     padding-top: 46px
-}
-.sidebar.navigation::after,[data-ogui-glass]::after {
-    display: none
 }
 .sidebar .brand {
     margin: 0 6px 10px
@@ -770,10 +757,6 @@
     border: 0;
     box-shadow: inset 0 1px 0 var(--white-08)
 }
-.sidebar .side-nav .nav-item.active::before,.sidebar .side-nav .nav-item.active::after,.sidebar .side-nav .nav-item[aria-current=page]::before,.sidebar .side-nav .nav-item[aria-current=page]::after {
-    display: none;
-    content: none
-}
 .sidebar .side-nav .nav-item,.sidebar .side-nav .nav-item:hover {
     border: 0
 }
@@ -829,8 +812,7 @@
 .ogui-toast {
     border-radius: var(--radius-3xl);
     padding: .7rem .85rem;
-    box-shadow: 0 14px 36px -16px rgba(0,0,0,.7),inset 0 1px 0 var(--white-08);
-    transform-origin: 100% 0
+    box-shadow: 0 14px 36px -16px rgba(0,0,0,.7),inset 0 1px 0 var(--white-08)
 }
 .tt-pop {
     width: 460px
@@ -858,13 +840,6 @@
     box-shadow: none;
     outline: 0
 }
-.sidebar .side-nav .nav-item::before,.sidebar .side-nav .nav-item::after,.sidebar .side-nav .nav-item:hover::before,.sidebar .side-nav .nav-item:hover::after {
-    display: none;
-    content: none;
-    border: 0;
-    box-shadow: none;
-    background: none
-}
 .prov-duo {
     background: none;
     padding: 0;
@@ -884,15 +859,11 @@
 .file-card>summary {
     min-height: 34px
 }
-::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255,255,255,.34)
-}
 @media (prefers-reduced-motion:reduce) {
     *,*::before,*::after {
         animation-duration: .01ms;
         animation-iteration-count: 1;
-        transition-duration: .01ms;
-        scroll-behavior: auto
+        transition-duration: .01ms
     }
 }
 @media (prefers-reduced-motion:reduce) {
@@ -902,7 +873,6 @@
     }
 }
 .laica-socket {
-    box-sizing: border-box;
     min-width: 12px;
     min-height: 12px;
     width: 12px;
