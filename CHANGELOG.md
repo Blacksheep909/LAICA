@@ -3,6 +3,22 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.24.1]
+
+### Fixed
+- **Stop, Pause and git on macOS and Linux.** Stopping an agent only worked on Windows (it used `taskkill`), pausing needed a Windows call, git was only looked for as `git.exe`, agent CLIs only as `name.exe` or `name.cmd`, and the built-in agent's command tool needed PowerShell. All of them now work on macOS and Linux too.
+- **A repository's own commit hook that is not executable no longer fails the commit** when LAICA adds its co-author line (git skips such a hook; LAICA's wrapper now does too).
+- **Files could be written through a symbolic link or junction out of the project**, by the built-in agent or the editor. They are refused now.
+- **Settings, chats, remote-access settings and files an agent edits are saved safely.** A crash or a full disk leaves the old file or the new one, never half of one (saves used to delete the old file first).
+
+### Added
+- **A log file.** LAICA writes `logs/laica-YYYYMMDD.log` in its data folder (14 days, 5 MB a day) and records the failures it used to ignore silently. `LAICA_LOG=debug` includes the routine ones.
+
+### Changed
+- **Remote access is sturdier and safer.** Browser tabs watching a chat no longer each hold a server thread, a slow viewer can no longer hold up an agent, and requests from other websites (`Origin`) or from a rebinding hostname (`Host`) are refused.
+- **The checks run on Linux and macOS** (293 checks on .NET 8) next to Windows, with a server smoke test and a check that the interface only sends commands the engine knows.
+- The backend source is formatted with CSharpier (it had lines up to 2,500 characters).
+
 ## [0.24.0]
 
 ### Added

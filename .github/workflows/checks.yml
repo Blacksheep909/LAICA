@@ -61,6 +61,7 @@ jobs:
           pnpm check
           pnpm test
           pnpm exec vite build --base ./
+          node ../checks/contract.mjs
       - name: Engine (.NET 8)
         run: dotnet build server/LAICA.Server.csproj -c Release -nologo
       - name: Engine checks
