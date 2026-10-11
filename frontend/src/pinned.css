@@ -1,42 +1,42 @@
 /* Declarations that used to carry !important. They sit in the last cascade layer, in their original order, so they still win. */
 .navigation {
-    border-radius: 24px;
+    border-radius: var(--radius-5xl);
     border: 1px solid rgba(220,237,255,.1)
 }
 .navigation .nav-item {
-    border-radius: 14px
+    border-radius: var(--radius-2xl)
 }
 .small-menu {
     background: rgba(26,24,32,.97);
-    border-radius: 17px
+    border-radius: var(--radius-3xl)
 }
 .inspector {
-    border-radius: 22px;
+    border-radius: var(--radius-5xl);
     border: 1px solid #b8d2ef18
 }
 .ogui-input,.ogui-select,.ogui-textarea {
-    font-size: 12px;
+    font-size: var(--text-sm);
     color: #f2f6fc
 }
 .ogui-textarea {
     line-height: 1.65
 }
 .task-composer {
-    border-radius: 20px
+    border-radius: var(--radius-4xl)
 }
 .task-composer textarea {
     min-height: 58px
 }
 .setting-card {
-    border-radius: 22px;
+    border-radius: var(--radius-5xl);
     border: 1px solid #bbd6f318
 }
 .connection-row {
-    border-radius: 18px
+    border-radius: var(--radius-4xl)
 }
 .mode-option {
     padding: 23px;
-    border-radius: 18px;
+    border-radius: var(--radius-4xl);
     display: flex;
     align-items: flex-start;
     gap: 12px;
@@ -50,23 +50,19 @@
     background: rgba(30,40,55,.97);
     border: 1px solid #cedff02a;
     max-width: 620px;
-    border-radius: 24px
+    border-radius: var(--radius-5xl)
 }
 .ogui-dialog__panel {
     max-width: 620px
 }
-.ogui-toast {
-    background: #25212ffa;
-    border: 1px solid #cde4fd3b
-}
 .agent-list,.activity-details,.answer-panel,.run-events {
-    border-radius: 22px
+    border-radius: var(--radius-5xl)
 }
 .agent-list button {
     padding: 13px 10px
 }
 .agent-model {
-    font-size: 11px
+    font-size: var(--text-xs)
 }
 .solid-material [data-ogui-renderer],.solid-material .ogui-glass,.solid-material .navigation,.solid-material .inspector,.solid-material .setting-card,.solid-material .connection-row {
     backdrop-filter: none;
@@ -103,7 +99,7 @@
     border: 1px solid #cde1f52b;
     max-width: 650px;
     width: min(650px,calc(100% - 40px));
-    border-radius: 24px
+    border-radius: var(--radius-5xl)
 }
 .ogui-theme {
     background: transparent
@@ -118,20 +114,13 @@
     padding: 16px 10px 10px
 }
 .sidebar .side-nav .nav-item {
-    height: 32px;
-    min-height: 32px;
-    gap: 10px;
-    padding: 0 10px;
-    border-radius: 10px
+    border-radius: var(--radius-lg)
 }
 .side-foot .nav-item {
     height: 34px
 }
 .main-chat {
     padding: 0 0 0 4px
-}
-.composer {
-    border-radius: 20px
 }
 .composer .send-round,.send-round {
     width: 36px;
@@ -145,7 +134,7 @@
     display: inline-grid
 }
 .remote-card {
-    border-radius: 22px
+    border-radius: var(--radius-5xl)
 }
 @media (max-width:700px) {
     .app {
@@ -174,12 +163,6 @@
 .app:after {
     display: none
 }
-.app:before {
-    inset: -12%
-}
-.app.has-titlebar {
-    padding-top: 40px
-}
 .side-section .side-toggle {
     display: flex
 }
@@ -188,12 +171,6 @@
 }
 .titlebar-drag {
     padding: 0
-}
-.app.has-titlebar {
-    padding-top: 44px
-}
-.app.sidebar-hidden {
-    grid-template-columns: minmax(0,1fr)
 }
 .menu-pop {
     padding: 6px
@@ -204,34 +181,6 @@
 }
 .app.has-nebula:before {
     display: none
-}
-.app {
-    background: #030208
-}
-.app:before {
-    inset: -6%;
-    background: radial-gradient(ellipse 55% 45% at 6% 0%,rgba(112,86,184,.20),transparent 70%),radial-gradient(ellipse 50% 45% at 100% 100%,rgba(58,72,150,.15),transparent 70%)
-}
-.sidebar.navigation {
-    background: rgba(5,4,11,.46);
-    backdrop-filter: blur(7px) saturate(1.15);
-    -webkit-backdrop-filter: blur(7px) saturate(1.15)
-}
-.composer,.harness-stream,.hpanel,.hside {
-    background: rgba(6,5,12,.42);
-    backdrop-filter: blur(7px) saturate(1.1);
-    -webkit-backdrop-filter: blur(7px) saturate(1.1)
-}
-.assistant-card {
-    background: rgba(255,255,255,.028)
-}
-.assistant-card:hover {
-    background: rgba(255,255,255,.07)
-}
-.sidebar.navigation {
-    background: rgba(5,4,11,calc(var(--laica-panel,.42) + .04));
-    backdrop-filter: blur(var(--laica-blur,7px)) saturate(1.15);
-    -webkit-backdrop-filter: blur(var(--laica-blur,7px)) saturate(1.15)
 }
 .composer,.harness-stream,.hpanel,.hside {
     background: rgba(6,5,12,var(--laica-panel,.42));
@@ -246,172 +195,118 @@
 }
 .gs-pop {
     position: fixed;
-    border-radius: 18px;
+    border-radius: var(--radius-4xl);
     border: 1px solid #e7daff2b;
     box-shadow: inset 0 1px 0 #ffffff24,0 28px 70px #000b,0 2px 10px #0006
-}
-.app {
-    background: #04030a
-}
-.app:before {
-    inset: -8%;
-    opacity: 1;
-    background: radial-gradient(46% 42% at 8% 4%,rgba(128,96,255,.15),transparent 70%),
-    radial-gradient(40% 38% at 94% 8%,rgba(60,140,255,.10),transparent 72%),
-    radial-gradient(44% 40% at 84% 102%,rgba(255,110,190,.08),transparent 72%),
-    radial-gradient(34% 34% at 22% 98%,rgba(50,210,190,.06),transparent 72%)
 }
 .sidebar.navigation,.composer,.harness-stream,.hpanel,.hside,.usage-pop {
     background: var(--sheet),rgba(12,10,24,var(--laica-panel,.34));
     backdrop-filter: blur(calc(var(--laica-blur,7px) + 18px)) saturate(1.8) brightness(1.06);
     -webkit-backdrop-filter: blur(calc(var(--laica-blur,7px) + 18px)) saturate(1.8) brightness(1.06);
     border: 1px solid var(--hair);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.11),inset 3px 10px 22px -16px rgba(255,255,255,.16),0 1px 2px rgba(0,0,0,.45),0 34px 80px -26px rgba(0,0,0,.7)
-}
-.sidebar.navigation {
-    border-radius: 26px
+    box-shadow: inset 0 1px 0 var(--white-12),inset 3px 10px 22px -16px var(--white-16),0 1px 2px rgba(0,0,0,.45),0 34px 80px -26px rgba(0,0,0,.7)
 }
 .harness-stream,.hpanel,.hside {
-    border-radius: 24px
-}
-.composer {
-    border-radius: 24px
+    border-radius: var(--radius-5xl)
 }
 .composer:focus-within,.harness-compose textarea:focus {
     border-color: rgba(190,170,255,.4);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.12),0 0 0 4px rgba(160,140,255,.12),0 34px 80px -26px rgba(0,0,0,.7)
+    box-shadow: inset 0 1px 0 var(--white-12),0 0 0 4px rgba(160,140,255,.12),0 34px 80px -26px rgba(0,0,0,.7)
 }
 .side-item,.nav-item,.side-project {
-    border-radius: 12px
+    border-radius: var(--radius-xl)
 }
 .side-item:hover,.nav-item:hover {
-    background: rgba(255,255,255,.055)
+    background: var(--white-06)
 }
 .side-item.active,.side-item[aria-current=true],.nav-item.active {
     background: rgba(176,155,255,.16)
 }
 .new-chat {
-    border-radius: 14px;
+    border-radius: var(--radius-2xl);
     border: 1px solid rgba(200,185,255,.28);
     background: linear-gradient(180deg,rgba(176,155,255,.26),rgba(150,125,240,.16));
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.18),0 8px 22px -10px rgba(140,110,255,.55)
+    box-shadow: inset 0 1px 0 var(--white-16),0 8px 22px -10px rgba(140,110,255,.55)
 }
 .new-chat:hover {
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.22),0 12px 28px -10px rgba(140,110,255,.65)
+    box-shadow: inset 0 1px 0 var(--white-24),0 12px 28px -10px rgba(140,110,255,.65)
 }
 .side-search {
-    border-radius: 12px;
-    background: rgba(255,255,255,.04);
+    border-radius: var(--radius-xl);
+    background: var(--white-04);
     border: 1px solid var(--hair)
 }
 .prov {
     border-radius: 999px;
-    font-size: 9.5px;
+    font-size: var(--text-2xs);
     padding: 2px 7px;
     border: 0
 }
-.harness-meta {
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--hair)
-}
 .harness-meta b {
-    font-size: 14px
-}
-.harness-log {
-    padding: 22px 26px;
-    gap: 14px
+    font-size: var(--text-md)
 }
 .hmsg {
-    font-size: 14px;
     line-height: 1.7
 }
 .hmsg.user {
-    background: linear-gradient(180deg,rgba(176,155,255,.3),rgba(150,125,240,.2));
-    border: 1px solid rgba(206,192,255,.22);
-    border-radius: 20px 20px 6px 20px;
     padding: 10px 16px
 }
 .hmsg.assistant {
     background: transparent;
     border: 0;
-    padding: 2px 2px;
-    max-width: min(760px,92%)
+    padding: 2px 2px
 }
 .hmsg.tool,.hmsg.thinking {
-    font-size: 12px;
+    font-size: var(--text-sm);
     color: var(--ink-3)
 }
 .hmsg pre,.md-code {
     background: rgba(5,4,12,.55);
     border: 1px solid var(--hair);
-    border-radius: 14px
-}
-.harness-compose {
-    padding: 14px 18px 18px;
-    border-top: 0;
-    gap: 10px
+    border-radius: var(--radius-2xl)
 }
 .harness-compose textarea {
-    border-radius: 18px;
-    padding: 13px 16px;
-    background: rgba(255,255,255,.045);
-    border: 1px solid var(--hair-strong);
-    font-size: 14px
-}
-.harness-compose textarea:focus {
-    background: rgba(255,255,255,.065)
+    border-radius: var(--radius-4xl);
+    font-size: var(--text-md)
 }
 .ogui-button {
-    transition: background .18s var(--ease-out),transform .18s var(--ease-out),box-shadow .18s,border-color .18s
+    transition: background var(--time-fast) var(--ease-out),transform var(--time-fast) var(--ease-out),box-shadow var(--time-fast),border-color var(--time-fast)
 }
 .ogui-button--quiet:hover {
-    background: rgba(255,255,255,.07)
+    background: var(--white-08)
 }
 .gs-trigger,[class*=gs-trigger] {
-    border-radius: 14px
+    border-radius: var(--radius-2xl)
 }
 .assistant-card {
-    border-radius: 18px;
-    border: 1px solid var(--hair);
-    background: var(--sheet),rgba(255,255,255,.02);
-    transition: transform .25s var(--ease-out),background .25s,border-color .25s,box-shadow .25s
+    transition: transform var(--time-base) var(--ease-out),background var(--time-base),border-color var(--time-base),box-shadow var(--time-base)
 }
 .assistant-card:hover {
-    border-color: var(--hair-strong);
-    background: var(--sheet),rgba(255,255,255,.05)
+    border-color: var(--hair-strong)
 }
 .hmsg.limit {
-    border-radius: 18px;
+    border-radius: var(--radius-4xl);
     background: linear-gradient(180deg,rgba(255,110,110,.12),rgba(255,110,110,.05));
     border: 1px solid rgba(255,130,130,.22)
 }
 .ogui-toast {
-    border-radius: 18px;
     background: var(--sheet),rgba(16,14,30,.62);
-    border: 1px solid var(--hair);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.1),0 22px 50px -18px rgba(0,0,0,.7)
+    border: 1px solid var(--hair)
 }
 .ogui-toast__mark {
     display: none
 }
 .usage-pop {
-    border-radius: 20px
+    border-radius: var(--radius-4xl)
 }
 .usage-btn {
-    background: rgba(255,255,255,.05);
+    background: var(--white-06);
     border: 1px solid var(--hair)
-}
-.harness-compose {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px
 }
 .pause-btn {
     width: 34px;
     height: 34px;
-    border-radius: 50%;
-    background: rgba(255,255,255,.06);
-    border: 1px solid var(--hair)
+    border-radius: 50%
 }
 .pause-btn.is-paused {
     background: rgba(120,220,160,.2);
@@ -419,15 +314,15 @@
     color: #b9f5d2
 }
 .palette {
-    border-radius: 22px;
+    border-radius: var(--radius-5xl);
     padding: 0
 }
 .plugin-card {
     padding: 18px;
-    border-radius: 20px
+    border-radius: var(--radius-4xl)
 }
 .plugin-note {
-    font-size: 12px;
+    font-size: var(--text-sm);
     color: var(--ink-3)
 }
 .app {
@@ -472,8 +367,7 @@
     padding: 14px 10px 8px;
     background: var(--glass-sheen),rgba(14,12,30,.42);
     backdrop-filter: blur(34px) saturate(1.7) brightness(1.04);
-    -webkit-backdrop-filter: blur(34px) saturate(1.7) brightness(1.04);
-    box-shadow: inset -1px 0 0 var(--hair),18px 0 50px -30px rgba(0,0,0,.65)
+    -webkit-backdrop-filter: blur(34px) saturate(1.7) brightness(1.04)
 }
 .app.has-titlebar .sidebar.navigation {
     padding-top: 46px
@@ -487,14 +381,14 @@
 .sidebar .new-chat-btn,.sidebar .side-search,.sidebar .side-nav .nav-item,.sidebar .side-item {
     border: 0;
     box-shadow: none;
-    border-radius: 11px;
+    border-radius: var(--radius-xl);
     background: transparent
 }
 .sidebar .new-chat-btn {
     color: var(--ink)
 }
 .sidebar .side-search {
-    background: rgba(255,255,255,.05)
+    background: var(--white-06)
 }
 .sidebar .side-nav .nav-item {
     height: 34px;
@@ -503,15 +397,15 @@
     gap: 11px
 }
 .sidebar .new-chat-btn:hover,.sidebar .side-nav .nav-item:hover,.sidebar .side-item:hover {
-    background: rgba(255,255,255,.07)
+    background: var(--white-08)
 }
 .sidebar .side-nav .nav-item.active,.sidebar .side-item.on {
-    background: rgba(255,255,255,.115);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.1)
+    background: var(--white-12);
+    box-shadow: inset 0 1px 0 var(--white-12)
 }
 .sidebar .side-section {
     margin: 16px 8px 4px;
-    font-size: 12px;
+    font-size: var(--text-sm);
     letter-spacing: 0;
     text-transform: none;
     color: var(--ink-3)
@@ -525,7 +419,7 @@
 .sidebar .prov {
     background: transparent;
     padding: 0 2px;
-    font-size: 9px
+    font-size: var(--text-2xs)
 }
 .sidebar .side-foot {
     border-top: 1px solid var(--hair);
@@ -533,18 +427,18 @@
     padding: 8px 14px 4px
 }
 .sidebar .side-icons .ogui-button {
-    border-radius: 10px
+    border-radius: var(--radius-lg)
 }
 .setting-card,.acard,.connection-row,.plugin-card,.assistant-card,.hside,.card {
-    background: rgba(255,255,255,.04);
+    background: var(--white-04);
     border: 1px solid var(--hair);
-    border-radius: 20px;
+    border-radius: var(--radius-4xl);
     box-shadow: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none
 }
 .plugin-card:hover,.assistant-card:hover,.acard:hover {
-    background: rgba(255,255,255,.065);
+    background: var(--white-06);
     border-color: var(--hair-2)
 }
 .settings-content,.plugins-page,.home {
@@ -552,7 +446,7 @@
     padding-right: 28px
 }
 .hpanel {
-    background: rgba(255,255,255,.028);
+    background: var(--white-04);
     border: 0;
     border-left: 1px solid var(--hair);
     border-radius: 0;
@@ -582,8 +476,6 @@
     border-bottom: 0
 }
 .harness-compose {
-    padding: 10px 12px 10px;
-    gap: 6px;
     border-top: 0
 }
 .harness-compose textarea {
@@ -605,16 +497,16 @@
     backdrop-filter: var(--lens,blur(0px)) blur(var(--blur,22px)) saturate(1.9) brightness(1.1);
     -webkit-backdrop-filter: var(--lens,blur(0px)) blur(var(--blur,22px)) saturate(1.9) brightness(1.1);
     border: 0;
-    box-shadow: 0 1px 1px rgba(0,0,0,.4),0 22px 54px -18px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.1),inset 0 -14px 24px -18px rgba(255,255,255,.05)
+    box-shadow: 0 1px 1px rgba(0,0,0,.4),0 22px 54px -18px rgba(0,0,0,.65),inset 0 1px 0 var(--white-12),inset 0 -14px 24px -18px var(--white-06)
 }
 .harness-meta,.harness-compose,.composer {
-    border-radius: 26px
+    border-radius: var(--radius-5xl)
 }
 .harness-meta {
-    border-radius: 22px
+    border-radius: var(--radius-5xl)
 }
 .gs-pop,.palette,.ogui-toast,.menu-pop {
-    border-radius: 22px
+    border-radius: var(--radius-5xl)
 }
 .composer:focus-within {
     box-shadow: 0 1px 1px rgba(0,0,0,.35),0 0 0 4px rgba(160,140,255,.14),0 26px 60px -18px rgba(0,0,0,.7)
@@ -636,17 +528,17 @@
 .gs-trigger,.ogui-button:not(.ogui-button--primary):not(.ogui-button--quiet),.pfilter,.look-tile {
     border: 0;
     border-radius: 999px;
-    background: rgba(255,255,255,.075);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.09),inset 0 1px 0 rgba(255,255,255,.12)
+    background: var(--white-08);
+    box-shadow: inset 0 0 0 1px var(--white-08),inset 0 1px 0 var(--white-12)
 }
 .gs-trigger:hover,.ogui-button:not(.ogui-button--primary):not(.ogui-button--quiet):hover {
-    background: rgba(255,255,255,.12)
+    background: var(--white-12)
 }
 .look-tile {
-    border-radius: 18px
+    border-radius: var(--radius-4xl)
 }
 .ogui-button,.gs-trigger,.send-btn,.mic-btn,.pause-btn,.pfilter,.new-chat-btn,.side-item,.nav-item {
-    transition: transform .35s var(--ease-spring),background .2s var(--ease-out),box-shadow .2s,color .2s
+    transition: transform var(--time-slow) var(--ease-spring),background var(--time-base) var(--ease-out),box-shadow var(--time-base),color var(--time-base)
 }
 .ogui-button--primary,.send-btn:not(:disabled) {
     background: linear-gradient(180deg,#c9bdff,#9b86f5);
@@ -654,22 +546,17 @@
     border: 0;
     box-shadow: inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 4px rgba(80,50,200,.25),0 8px 22px -8px rgba(140,110,255,.7)
 }
-.send-btn:disabled {
-    background: rgba(255,255,255,.08);
-    color: var(--ink-3);
-    box-shadow: inset 0 0 0 1px var(--hair)
-}
 .hmsg.user {
     background: linear-gradient(180deg,rgba(181,166,255,.26),rgba(150,128,240,.16));
     border: 0;
-    box-shadow: inset 0 0 0 1px rgba(210,198,255,.2),inset 0 1px 0 rgba(255,255,255,.16),0 12px 30px -16px rgba(120,90,255,.5);
-    border-radius: 22px 22px 8px 22px
+    box-shadow: inset 0 0 0 1px rgba(210,198,255,.2),inset 0 1px 0 var(--white-16),0 12px 30px -16px rgba(120,90,255,.5);
+    border-radius: var(--radius-5xl) var(--radius-5xl) var(--radius-md) var(--radius-5xl)
 }
 .hmsg.assistant {
     max-width: 100%
 }
 .hmsg {
-    font-size: 14.5px
+    font-size: var(--text-md)
 }
 .sidebar .brand-mark {
     width: 28px;
@@ -707,13 +594,13 @@
     padding: 16px
 }
 .composer {
-    border-radius: 28px;
-    background: var(--pointer),linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.028) 60%,rgba(255,255,255,.02)),rgba(16,14,32,.26);
+    border-radius: var(--radius-5xl);
+    background: var(--pointer),linear-gradient(180deg,var(--white-08),var(--white-04) 60%,var(--white-04)),rgba(16,14,32,.26);
     background-attachment: fixed,scroll,scroll;
-    box-shadow: 0 1px 1px rgba(0,0,0,.3),0 34px 80px -30px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.07)
+    box-shadow: 0 1px 1px rgba(0,0,0,.3),0 34px 80px -30px rgba(0,0,0,.75),inset 0 1px 0 var(--white-08)
 }
 .composer textarea {
-    font-size: 15.5px;
+    font-size: var(--text-lg);
     padding: 20px 22px 6px
 }
 .plus-btn,.mic-btn {
@@ -722,47 +609,47 @@
     background: transparent
 }
 .plus-btn:hover,.mic-btn:hover:not(:disabled) {
-    background: rgba(255,255,255,.09)
+    background: var(--white-08)
 }
 .mic-btn.is-listening {
     background: rgba(255,95,110,.22)
 }
 .send-btn:disabled {
-    background: rgba(255,255,255,.07);
+    background: var(--white-08);
     color: rgba(255,255,255,.4);
     box-shadow: none
 }
 .pause-btn {
     border: 0;
     box-shadow: none;
-    background: rgba(255,255,255,.07)
+    background: var(--white-08)
 }
 .gs-trigger {
     border: 0;
     box-shadow: none;
-    background: rgba(255,255,255,.06)
+    background: var(--white-06)
 }
 .gs-trigger:hover {
-    background: rgba(255,255,255,.11)
+    background: var(--white-12)
 }
 .gs-trigger[aria-expanded=true] {
     background: rgba(181,166,255,.18)
 }
 .assistant-card {
     border: 0;
-    background: rgba(255,255,255,.035);
+    background: var(--white-04);
     box-shadow: none;
-    border-radius: 20px
+    border-radius: var(--radius-4xl)
 }
 .assistant-card:hover {
-    background: rgba(255,255,255,.075);
+    background: var(--white-08);
     box-shadow: none
 }
 .harness-meta {
-    box-shadow: 0 1px 1px rgba(0,0,0,.3),0 18px 44px -22px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.07)
+    box-shadow: 0 1px 1px rgba(0,0,0,.3),0 18px 44px -22px rgba(0,0,0,.65),inset 0 1px 0 var(--white-08)
 }
 .harness-compose {
-    box-shadow: 0 1px 1px rgba(0,0,0,.3),0 24px 60px -26px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.07)
+    box-shadow: 0 1px 1px rgba(0,0,0,.3),0 24px 60px -26px rgba(0,0,0,.7),inset 0 1px 0 var(--white-08)
 }
 .sidebar .side-section {
     justify-content: flex-start
@@ -800,14 +687,14 @@
 .laica-tools-pop .ogui-button,.laica-tools-pop button {
     justify-content: flex-start;
     gap: 9px;
-    font-size: 12px;
-    border-radius: 9px;
+    font-size: var(--text-sm);
+    border-radius: var(--radius-lg);
     min-height: 30px;
     height: 30px;
     color: var(--ink-2)
 }
 .laica-tools-pop .ogui-button:hover,.laica-tools-pop button:hover {
-    background: rgba(255,255,255,.09);
+    background: var(--white-08);
     color: #fff
 }
 .laica-tools-pop svg {
@@ -881,7 +768,7 @@
 .sidebar .side-nav .nav-item.active,.sidebar .side-nav .nav-item[aria-current=page],.sidebar .side-item.on {
     background: linear-gradient(180deg,rgba(179,165,247,.2),rgba(150,130,235,.12));
     border: 0;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.07)
+    box-shadow: inset 0 1px 0 var(--white-08)
 }
 .sidebar .side-nav .nav-item.active::before,.sidebar .side-nav .nav-item.active::after,.sidebar .side-nav .nav-item[aria-current=page]::before,.sidebar .side-nav .nav-item[aria-current=page]::after {
     display: none;
@@ -899,7 +786,7 @@
     background: linear-gradient(180deg,rgba(179,165,247,.24),rgba(150,130,235,.15))
 }
 .sidebar .side-item.on,.sidebar .side-item.nested.on,.sidebar .side-item.thread.on {
-    border-radius: 11px
+    border-radius: var(--radius-xl)
 }
 .sidebar .side-search,.sidebar .side-nav .nav-item {
     height: 34px;
@@ -907,7 +794,7 @@
     border: 0;
     outline: 0;
     box-shadow: none;
-    border-radius: 11px;
+    border-radius: var(--radius-xl);
     background: transparent
 }
 .sidebar .side-nav .nav-item:focus,.sidebar .side-nav .nav-item:focus-visible {
@@ -916,11 +803,6 @@
 }
 .sidebar .side-search:hover,.sidebar .side-search:focus-within {
     background: linear-gradient(180deg,rgba(179,165,247,.13),rgba(150,130,235,.07))
-}
-.sidebar .side-nav .nav-item.active,.sidebar .side-nav .nav-item[aria-current=page] {
-    background: linear-gradient(180deg,rgba(179,165,247,.2),rgba(150,130,235,.12));
-    outline: 0;
-    box-shadow: none
 }
 .composer-bar,.compose-bar {
     align-items: flex-end
@@ -945,9 +827,9 @@
     width: min(22rem,calc(100vw - 2rem))
 }
 .ogui-toast {
-    border-radius: 16px;
+    border-radius: var(--radius-3xl);
     padding: .7rem .85rem;
-    box-shadow: 0 14px 36px -16px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.08);
+    box-shadow: 0 14px 36px -16px rgba(0,0,0,.7),inset 0 1px 0 var(--white-08);
     transform-origin: 100% 0
 }
 .tt-pop {
@@ -1033,8 +915,8 @@
     min-height: 27px;
     height: 27px;
     padding: 0 9px;
-    border-radius: 6px;
-    font-size: 11px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-xs);
     background: transparent;
     box-shadow: none;
     border: 0
@@ -1049,11 +931,11 @@
     min-height: 26px;
     height: 26px;
     padding: 0;
-    border-radius: 7px
+    border-radius: var(--radius-md)
 }
 .work-detail {
     padding: 23px 21px;
-    border-radius: 20px;
+    border-radius: var(--radius-4xl);
     background: var(--ogui-lg-sheet);
     border: 1px solid #ffffff18
 }
@@ -1070,12 +952,12 @@
     }
 }
 .acard {
-    border-radius: 18px
+    border-radius: var(--radius-4xl)
 }
 .chk {
     flex-direction: row;
     gap: 8px
 }
 .list-row {
-    border-radius: 16px
+    border-radius: var(--radius-3xl)
 }

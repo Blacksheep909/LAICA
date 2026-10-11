@@ -10,7 +10,7 @@ body{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
 /* chrome behaves like chrome: it is not selectable and its controls use the arrow, as in native apps. Content stays selectable. */
 .sidebar,.pv-head,.harness-meta,.compose-bar,.step>summary,.steps>summary,.file-card>summary,.file-group>summary,.pv-switch,.titlebar,.app-status,button,[role=button],[role=tab],summary,label.chk{-webkit-user-select:none;user-select:none}
 button,[role=button],[role=tab],[role=menuitem],[role=option],summary,select,label.chk,.nav-item{cursor:default}
-a[href],.file-link,.side-resize{cursor:pointer}.side-resize{cursor:col-resize}
+a[href],.file-link,.side-resize{}.side-resize{cursor:col-resize}
 input,textarea,.hmsg,.hmsg *,.markdown,.pv-code,pre,code{-webkit-user-select:text;user-select:text}
 img{-webkit-user-drag:none;user-drag:none}
 
@@ -21,15 +21,15 @@ input:focus-visible,textarea:focus-visible{outline:none}
 
 /* scrollbars that stay out of the way: thin, rounded, and only visible while the pointer is over the area */
 *{scrollbar-width:thin;scrollbar-color:transparent transparent}
-*:hover{scrollbar-color:rgba(255,255,255,.2) transparent}
+*:hover{scrollbar-color:var(--white-24) transparent}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:transparent;border-radius:999px;border:3px solid transparent;background-clip:content-box}
-*:hover::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,.2)}
+*:hover::-webkit-scrollbar-thumb{background-color:var(--white-24)}
 
 /* a press is felt: controls dip a little under the pointer, and let go with the same spring they pressed with */
 button:not(:disabled):active,[role=tab]:active,.nav-item:active{transform:scale(.975)}
-button,[role=tab],.nav-item,summary{transition-property:background-color,color,box-shadow,transform,opacity,border-color;transition-duration:.16s;transition-timing-function:cubic-bezier(.2,.8,.2,1)}
+button,[role=tab],.nav-item,summary{transition-property:background-color,color,box-shadow,transform,opacity,border-color;transition-duration:var(--time-fast);transition-timing-function:cubic-bezier(.2,.8,.2,1)}
 button:disabled,[aria-disabled=true]{opacity:.45;cursor:default}
 
 /* motion respects the system setting everywhere, not screen by screen */

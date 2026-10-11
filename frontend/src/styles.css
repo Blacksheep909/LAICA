@@ -1,5 +1,6 @@
 /* The one stylesheet entry. Two cascade layers: the app, then the declarations that used to be !important. */
-@layer app, pinned;
+@layer tokens, app, pinned;
+@import './tokens.css' layer(tokens);
 @import 'open-glass-ui/styles.css' layer(app);
 @import './workspace.css' layer(app);
 @import './Shell.css' layer(app);
