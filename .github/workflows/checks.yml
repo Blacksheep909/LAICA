@@ -31,3 +31,39 @@ jobs:
           name: laica-windows-unsigned
           path: dist/*
           if-no-files-found: error
+
+  unix:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.0
+        with:
+          version: 11.19.0
+          run_install: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Interface (types, tests, build)
+        working-directory: frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm check
+          pnpm test
+          pnpm exec vite build --base ./
+      - name: Engine (.NET 8)
+        run: dotnet build server/LAICA.Server.csproj -c Release -nologo
+      - name: Engine checks
+        run: dotnet run --project checks/LAICA.Checks.csproj -c Release
+      - name: Server smoke test
+        run: checks/server-smoke.sh server/bin/Release/net8.0/laica-server.dll frontend/dist
