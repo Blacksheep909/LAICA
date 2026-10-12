@@ -315,6 +315,7 @@ public static class HarnessTests
             return FakeCodex();
         if (args.Length > 1 && args[0] == "--fake-tag")
             return TagTeamChecks.FakeTag(args[1]);
+        Watchdog.Start();
         foreach (string who in new[] { "AUTHOR", "COMMITTER" }) // the checks commit to throw-away repositories, whoever is signed in here
         {
             Environment.SetEnvironmentVariable("GIT_" + who + "_NAME", "LAICA checks");
@@ -3432,5 +3433,98 @@ public static class HarnessTests
         }
         Console.WriteLine(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         return failures;
+    }
+}
+
+/// <summary>
+/// Ends the checks with a process listing if nothing has been reported for a while, so a hang on one system (a stopped
+/// process that never resumes, say) fails quickly and says where, instead of running until the CI job times out.
+/// </summary>
+static class Watchdog
+{
+    sealed class Tap : System.IO.TextWriter
+    {
+        readonly System.IO.TextWriter inner;
+
+        public Tap(System.IO.TextWriter inner)
+        {
+            this.inner = inner;
+        }
+
+        public override System.Text.Encoding Encoding
+        {
+            get { return inner.Encoding; }
+        }
+
+        public override void Write(char value)
+        {
+            Touch(null);
+            inner.Write(value);
+        }
+
+        public override void Write(string value)
+        {
+            Touch(value);
+            inner.Write(value);
+        }
+
+        public override void WriteLine(string value)
+        {
+            Touch(value);
+            inner.WriteLine(value);
+        }
+
+        public override void Flush()
+        {
+            inner.Flush();
+        }
+    }
+
+    static long last = System.Diagnostics.Stopwatch.GetTimestamp();
+    static string lastLine = "";
+
+    static void Touch(string text)
+    {
+        last = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (!String.IsNullOrWhiteSpace(text))
+            lastLine = text.Trim();
+    }
+
+    public static void Start()
+    {
+        Console.SetOut(new Tap(Console.Out));
+        new System.Threading.Thread(() =>
+        {
+            while (true)
+            {
+                System.Threading.Thread.Sleep(5000);
+                double idle =
+                    (System.Diagnostics.Stopwatch.GetTimestamp() - last)
+                    / (double)System.Diagnostics.Stopwatch.Frequency;
+                if (idle < 180)
+                    continue;
+                Console.Error.WriteLine(
+                    "WATCHDOG: nothing reported for " + (int)idle + " s; the last line was: " + lastLine
+                );
+                try
+                {
+                    if (System.IO.Path.DirectorySeparatorChar == '/')
+                        using (
+                            var ps = System.Diagnostics.Process.Start(
+                                new System.Diagnostics.ProcessStartInfo("ps", "-axo pid,ppid,pgid,stat,etime,command")
+                                {
+                                    UseShellExecute = false,
+                                }
+                            )
+                        )
+                            ps.WaitForExit(10000);
+                }
+                catch (Exception) { }
+                Environment.Exit(3);
+            }
+        })
+        {
+            IsBackground = true,
+        }.Start();
     }
 }
