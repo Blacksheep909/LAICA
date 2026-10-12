@@ -987,7 +987,9 @@ namespace Laica
                     var found = new List<int>();
                     CollectChildren(pid, found, 0);
                     found.Reverse(); // the children first
-                    RunQuiet("kill", "-9 " + String.Join(" ", found.Select(x => x.ToString()).ToArray()));
+                    foreach (int target in found)
+                        if (target > 1 && target != Process.GetCurrentProcess().Id)
+                            sys_kill(target, 9);
                 }
                 catch (Exception swallowed)
                 {
@@ -1014,43 +1016,61 @@ namespace Laica
             }
         }
 
+        /// <summary>The process and every descendant, parents first. Read without starting a program (see UnixSignalTree).</summary>
         static void CollectChildren(int pid, List<int> into, int depth)
         {
             into.Add(pid);
             if (depth > 8)
                 return;
-            foreach (
-                string t in RunQuiet("pgrep", "-P " + pid)
-                    .Split(new[] { '\n', ' ' }, StringSplitOptions.RemoveEmptyEntries)
-            )
-            {
-                int child;
-                if (Int32.TryParse(t, out child))
+            foreach (int child in ChildPids(pid))
+                if (!into.Contains(child))
                     CollectChildren(child, into, depth + 1);
-            }
         }
 
-        static string RunQuiet(string exe, string args)
+        static List<int> ChildPids(int pid)
         {
-            Log.Trace("run " + exe + " " + args);
-            var psi = new ProcessStartInfo(exe, args)
+            var kids = new List<int>();
+            try
             {
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
-            string text;
-            using (var p = Process.Start(psi))
-            {
-                var output = p.StandardOutput.ReadToEndAsync();
-                p.StandardError.ReadToEndAsync();
-                p.WaitForExit(5000);
-                Log.Trace("done " + exe + " exited=" + p.HasExited);
-                text = output.IsCompleted ? output.Result : "";
+                if (Directory.Exists("/proc/self"))
+                {
+                    foreach (string dir in Directory.GetDirectories("/proc"))
+                    {
+                        int n;
+                        if (!Int32.TryParse(Path.GetFileName(dir), out n))
+                            continue;
+                        string stat;
+                        try
+                        {
+                            stat = File.ReadAllText(Path.Combine(dir, "stat"));
+                        }
+                        catch (Exception)
+                        {
+                            continue; // it ended while we looked
+                        }
+                        int close = stat.LastIndexOf(')');
+                        if (close < 0 || close + 2 >= stat.Length)
+                            continue;
+                        string[] fields = stat.Substring(close + 2).Split(' '); // state, parent, ...
+                        int parent;
+                        if (fields.Length > 1 && Int32.TryParse(fields[1], out parent) && parent == pid)
+                            kids.Add(n);
+                    }
+                }
+                else
+                {
+                    var buffer = new int[256];
+                    proc_listchildpids(pid, buffer, buffer.Length * sizeof(int));
+                    foreach (int child in buffer)
+                        if (child > 0)
+                            kids.Add(child);
+                }
             }
-            Log.Trace("closed " + exe);
-            return text;
+            catch (Exception swallowed)
+            {
+                Log.Swallowed(swallowed);
+            }
+            return kids;
         }
 
         static string Safe(string id)

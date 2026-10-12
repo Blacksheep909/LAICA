@@ -97,6 +97,9 @@ namespace Laica
         [DllImport("libc", EntryPoint = "kill")]
         static extern int sys_kill(int pid, int sig);
 
+        [DllImport("libproc")]
+        static extern int proc_listchildpids(int parent, int[] buffer, int bufferSize);
+
         /// <summary>SIGSTOP and SIGCONT differ between macOS (17, 19) and Linux (19, 18).</summary>
         static int UnixSignal(bool stop)
         {
