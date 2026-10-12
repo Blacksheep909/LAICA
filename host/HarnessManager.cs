@@ -1031,6 +1031,7 @@ namespace Laica
 
         static string RunQuiet(string exe, string args)
         {
+            Log.Trace("run " + exe + " " + args);
             var psi = new ProcessStartInfo(exe, args)
             {
                 UseShellExecute = false,
@@ -1043,6 +1044,7 @@ namespace Laica
                 var output = p.StandardOutput.ReadToEndAsync();
                 p.StandardError.ReadToEndAsync();
                 p.WaitForExit(5000);
+                Log.Trace("done " + exe + " exited=" + p.HasExited);
                 return output.IsCompleted ? output.Result : "";
             }
         }

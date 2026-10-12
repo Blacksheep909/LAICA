@@ -96,6 +96,7 @@ namespace Laica
 
         static void SuspendTree(int pid, bool suspend)
         {
+            Log.Trace((suspend ? "suspend " : "resume ") + pid);
             if (Path.DirectorySeparatorChar == '/')
             {
                 var found = new List<int>();
@@ -138,6 +139,7 @@ namespace Laica
 
         public void Pause(string id)
         {
+            Log.Trace("Pause " + id);
             Session s;
             Process p;
             lock (gate)
@@ -171,6 +173,7 @@ namespace Laica
 
         public void Resume(string id)
         {
+            Log.Trace("Resume " + id);
             Session s;
             Process p;
             lock (gate)

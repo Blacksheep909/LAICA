@@ -3509,15 +3509,35 @@ static class Watchdog
                 try
                 {
                     if (System.IO.Path.DirectorySeparatorChar == '/')
-                        using (
-                            var ps = System.Diagnostics.Process.Start(
-                                new System.Diagnostics.ProcessStartInfo("ps", "-axo pid,ppid,pgid,stat,etime,command")
-                                {
-                                    UseShellExecute = false,
-                                }
+                    {
+                        // on its own thread, so a process start that is itself stuck cannot stop the run from ending
+                        var listing = new System.Threading.Thread(() =>
+                        {
+                            using (
+                                var ps = System.Diagnostics.Process.Start(
+                                    new System.Diagnostics.ProcessStartInfo(
+                                        "ps",
+                                        "-axo pid,ppid,pgid,stat,etime,command"
+                                    )
+                                    {
+                                        UseShellExecute = false,
+                                    }
+                                )
                             )
-                        )
-                            ps.WaitForExit(10000);
+                                ps.WaitForExit(10000);
+                        })
+                        {
+                            IsBackground = true,
+                        };
+                        listing.Start();
+                        listing.Join(15000);
+                    }
+                }
+                catch (Exception) { }
+                Console.Error.Flush();
+                try
+                {
+                    System.Diagnostics.Process.GetCurrentProcess().Kill(); // Environment.Exit can wait on the very thing that is stuck
                 }
                 catch (Exception) { }
                 Environment.Exit(3);

@@ -61,6 +61,27 @@ namespace Laica
             Write("E", area, message, ex);
         }
 
+        static readonly bool tracing = Environment.GetEnvironmentVariable("LAICA_TRACE") == "1";
+
+        /// <summary>A line on stderr while LAICA_TRACE=1 (used by the checks to see where a run stops).</summary>
+        public static void Trace(string text)
+        {
+            if (!tracing)
+                return;
+            try
+            {
+                Console.Error.WriteLine(
+                    "TRACE "
+                        + DateTime.UtcNow.ToString("HH:mm:ss.fff")
+                        + " ["
+                        + Thread.CurrentThread.ManagedThreadId
+                        + "] "
+                        + text
+                );
+            }
+            catch (Exception) { }
+        }
+
         /// <summary>For a failure the caller carries on after. The same failure from the same line is written once, then counted.</summary>
         public static void Swallowed(
             Exception ex,

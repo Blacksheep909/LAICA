@@ -71,6 +71,8 @@ jobs:
         run: dotnet build server/LAICA.Server.csproj -c Release -nologo
       - name: Engine checks
         timeout-minutes: 8
+        env:
+          LAICA_TRACE: '1'
         run: dotnet run --project checks/LAICA.Checks.csproj -c Release
       - name: Server smoke test
         run: checks/server-smoke.sh server/bin/Release/net8.0/laica-server.dll frontend/dist
