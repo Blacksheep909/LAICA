@@ -373,8 +373,14 @@ public static class TagTeamChecks
                     1,
                     t0
                 ),
-                Ev("tool", "Edit", "{\"file_path\":\"C:\\\\Users\\\\x\\\\.claude\\\\projects\\\\p\\\\note.md\"}", 2, t0),
-                Ev("tool", "Edit", "{\"file_path\":\"" + folder.Replace("\\", "\\\\") + "\\\\real.cs\"}", 3, t0),
+                Ev("tool", "Edit", "{\"file_path\":\"/home/x/.claude/projects/p/note.md\"}", 2, t0),
+                Ev(
+                    "tool",
+                    "Edit",
+                    "{\"file_path\":\"" + Path.Combine(folder, "real.cs").Replace("\\", "\\\\") + "\"}",
+                    3,
+                    t0
+                ),
                 Ev("done", "", null, 4, t0),
             };
             var cleaned = HandoffBuilder.Build(codexEv, folder, "", "Codex", DateTime.UtcNow);
@@ -383,7 +389,8 @@ public static class TagTeamChecks
                     && !cleaned.Files.Any(f => f.Contains(".claude"))
                     && cleaned.Files.Any(f => f.StartsWith("real.cs")),
                 "handoff builder: the attachment preamble is dropped from the request, and agents' own notes are not listed as project files"
-            );            string merged = HandoffBuilder.Merge("# My notes\r\nkeep me\r\n", HandoffBuilder.RenderManaged(info));
+            );
+            string merged = HandoffBuilder.Merge("# My notes\r\nkeep me\r\n", HandoffBuilder.RenderManaged(info));
             Check(
                 merged.Contains("keep me")
                     && merged.Contains(HandoffBuilder.StartMark)

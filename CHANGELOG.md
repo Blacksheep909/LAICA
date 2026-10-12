@@ -3,6 +3,12 @@
 LAICA follows [Semantic Versioning](https://semver.org/). The `VERSION` file is the single source of truth: the build stamps it into the executable, `release.json`, `package.json` and the backend state.
 Every release is made with `Release-Edition.ps1`, which builds, runs every test suite, snapshots the source into `editions\v<version>\source.zip`, archives the previously installed edition into `editions\v<old>\installed.zip`, then overwrites the installed program. User data is never touched. See `RELEASE.md`.
 
+## [0.25.1]
+
+### Fixed
+- **The handoff rundown and the Goal in `HANDOFF.md` are tidier.** The rundown shows short file names and skips Claude's and Codex's own memory files; the request starts after "My request for Codex" instead of Codex's "Files mentioned by the user" block.
+- **The Tag-team pill no longer flashes "Off"** while it loads, or shows the previous chat's partner when you switch chats.
+
 ## [0.25.0]
 
 ### Added

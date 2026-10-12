@@ -148,6 +148,7 @@ namespace Laica
             string p = (path ?? "").Replace('\\', '/');
             return p.Contains("/.claude/") || p.Contains("/.codex/");
         }
+
         static string Rel(string cwd, string path)
         {
             if (String.IsNullOrEmpty(path))
@@ -861,8 +862,10 @@ namespace Laica
                         cmds.Add(text == "shell" ? detail : CommandOf(js, detail));
                     else if (text == "file change")
                         foreach (var c in ChangesOf(js, detail))
+                        {
                             if (!Noisy(c.Key))
                                 files.Add(Rel(cwd, c.Key) + " (" + c.Value + ")");
+                        }
                     else if (EditTools.Contains(text))
                     {
                         string p = PathOf(js, detail);

@@ -126,7 +126,10 @@ public static class RemoteTests
                     Do("GET", baseUrl + "/remote-flag.js", null, null).Contains("__LAICA_REMOTE__"),
                     "remote: serves the remote-mode flag"
                 );
-                string trav = Raw(port, "GET /%2e%2e/secret.txt HTTP/1.1\r\nHost: 127.0.0.1:" + port + "\r\nConnection: close\r\n\r\n");
+                string trav = Raw(
+                    port,
+                    "GET /%2e%2e/secret.txt HTTP/1.1\r\nHost: 127.0.0.1:" + port + "\r\nConnection: close\r\n\r\n"
+                );
                 Check(
                     !trav.Contains("top-secret") && (trav.Contains(" 404 ") || trav.Contains(" 400 ")),
                     "remote: path traversal is blocked"

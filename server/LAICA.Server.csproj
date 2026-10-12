@@ -20,7 +20,13 @@
     <Compile Include="../host/WorkspaceBackend.cs;../host/HarnessManager.cs;../host/GitTools.cs;../host/BuiltinAgent.cs;../host/Teams.cs;../host/Usage.cs;../host/Pause.cs;../host/Vendors.cs;../host/KeepAwake.cs;../host/Attach.cs;../host/Plugins.cs;../host/PlanUsage.cs;../host/Analytics.cs;../host/Handoff.cs;../host/HandoffBuilder.cs;../host/TagTeam.cs;../host/CoAuthor.cs;../host/Updates.cs;../host/Computer.cs;../host/Extensions.cs;../host/Channels.cs;../host/History.cs;../host/CliNodes.cs;../host/Workflows.cs;../host/RemoteServer.cs" />
   </ItemGroup>
   <Target Name="StampVersion" BeforeTargets="BeforeCompile;CoreCompile">
-    <ReadLinesFromFile File="../VERSION"><Output TaskParameter="Lines" PropertyName="LaicaVersion" /></ReadLinesFromFile>
-    <WriteLinesToFile File="$(IntermediateOutputPath)Version.g.cs" Overwrite="true" Lines="namespace Laica { public static class AppVersion { public const string Value = &quot;$(LaicaVersion)&quot;%3B } }" />
+    <ReadLinesFromFile File="../VERSION">
+      <Output TaskParameter="Lines" PropertyName="LaicaVersion" />
+    </ReadLinesFromFile>
+    <WriteLinesToFile
+      File="$(IntermediateOutputPath)Version.g.cs"
+      Overwrite="true"
+      Lines="namespace Laica { public static class AppVersion { public const string Value = &quot;$(LaicaVersion)&quot;%3B } }"
+    />
   </Target>
 </Project>

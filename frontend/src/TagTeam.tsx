@@ -25,6 +25,7 @@ export const countdown=(iso:string,now:number)=>{const ms=Date.parse(iso)-now;if
 export function usePair(id:string|undefined,watch:string|number){
   const [info,setInfo]=useState<PairInfo|null>(null);
   const load=useCallback(()=>{if(!id||!isDesktop)return Promise.resolve();return request<PairInfo>('pairGet',{Id:id}).then(setInfo).catch(()=>setInfo(null));},[id]);
+  useEffect(()=>{setInfo(null);},[id]); // another chat's partner must not show while this one loads
   useEffect(()=>{void load();},[load,watch]);
   useEffect(()=>{const t=setInterval(()=>{void load();},20000);return()=>clearInterval(t);},[load]);
   return {info,load};
@@ -148,8 +149,9 @@ export function TagTeamPills({session,models}:{session:HSession;models:Model[]})
   const {info,load}=usePair(session.Id,(session.Continuity??'')+(session.Busy?1:0));
   const options=usePartnerOptions(session.Harness,models);
   if(session.Harness==='workflow'||session.TeamId||!options.length||!isDesktop)return null;
-  const on=!!info&&info.Mode==='automatic'&&info.HasPartner;
-  const value=on?info!.Partner.Key+':'+(info!.Partner.Model||'default'):'';
+  if(!info)return <span className="tt-picker"><button type="button" className="tt-pill" disabled aria-busy="true"><ArrowRightLeft size={13}/><span>Tag-team</span><ChevronDown size={13}/></button></span>; // until it has loaded, so the pill does not flash "Off"
+  const on=info.Mode==='automatic'&&info.HasPartner;
+  const value=on?info.Partner.Key+':'+(info.Partner.Model||'default'):'';
   const apply=(patch:Record<string,unknown>)=>request('pairSet',{Id:session.Id,...patch}).then(()=>{void load();void reload();}).catch(e=>toast({title:'Could not change that',description:(e as Error).message,duration:6500}));
   const pick=(v:string)=>{if(!v){void apply({Mode:'assisted'});return;}const p=splitPartner(v);void apply({Mode:'automatic',PartnerHarness:p.harness,PartnerModel:p.model||'default'});};
   return <PartnerPicker options={options} models={models} value={value} onPick={pick} effort={info?.Partner.Effort??''} onEffort={e=>void apply({PartnerEffort:e||'default'})} permission={info?.PartnerMode??''} onPermission={m=>void apply({PartnerMode:m})} rules={rulesOf(info?.AutoSwitch??true,info?.SwitchBack??true)} onRules={r=>void apply(rulesPatch(r))}/>;
