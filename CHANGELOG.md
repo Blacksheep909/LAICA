@@ -7,6 +7,7 @@ Every release is made with `Release-Edition.ps1`, which builds, runs every test 
 
 ### Fixed
 - **The handoff rundown and the Goal in `HANDOFF.md` are tidier.** The rundown shows short file names and skips Claude's and Codex's own memory files; the request starts after "My request for Codex" instead of Codex's "Files mentioned by the user" block.
+- **Pausing, resuming and stopping an agent no longer start helper programs** (they read the agent's child processes and signal them directly). On macOS, starting a program while an agent is paused made LAICA hang. The checks now run on Linux and macOS in CI, with a watchdog that ends a hung run and says where.
 - **The Tag-team pill no longer flashes "Off"** while it loads, or shows the previous chat's partner when you switch chats.
 
 ## [0.25.0]
