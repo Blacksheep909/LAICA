@@ -1,0 +1,3 @@
+# pnpm 11 refuses to install when a dependency has an unapproved build script. esbuild needs its install step to fetch its binary.
+allowBuilds:
+  esbuild: true
