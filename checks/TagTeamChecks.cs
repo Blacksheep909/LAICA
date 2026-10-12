@@ -364,7 +364,26 @@ public static class TagTeamChecks
                     && !bigDelta.Contains("approach 3 because"),
                 "delta: carries each new reply in the agent's own words, and still nothing from before the cut-off"
             );
-            string merged = HandoffBuilder.Merge("# My notes\r\nkeep me\r\n", HandoffBuilder.RenderManaged(info));
+            var codexEv = new List<Dictionary<string, object>>
+            {
+                Ev(
+                    "user",
+                    "# Files mentioned by the user:\n\n## a.md: C:/x/a.md\n\n## My request for Codex:\nMake the hip stack denser",
+                    null,
+                    1,
+                    t0
+                ),
+                Ev("tool", "Edit", "{\"file_path\":\"C:\\\\Users\\\\x\\\\.claude\\\\projects\\\\p\\\\note.md\"}", 2, t0),
+                Ev("tool", "Edit", "{\"file_path\":\"" + folder.Replace("\\", "\\\\") + "\\\\real.cs\"}", 3, t0),
+                Ev("done", "", null, 4, t0),
+            };
+            var cleaned = HandoffBuilder.Build(codexEv, folder, "", "Codex", DateTime.UtcNow);
+            Check(
+                cleaned.Goal == "Make the hip stack denser"
+                    && !cleaned.Files.Any(f => f.Contains(".claude"))
+                    && cleaned.Files.Any(f => f.StartsWith("real.cs")),
+                "handoff builder: the attachment preamble is dropped from the request, and agents' own notes are not listed as project files"
+            );            string merged = HandoffBuilder.Merge("# My notes\r\nkeep me\r\n", HandoffBuilder.RenderManaged(info));
             Check(
                 merged.Contains("keep me")
                     && merged.Contains(HandoffBuilder.StartMark)

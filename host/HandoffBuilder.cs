@@ -128,6 +128,26 @@ namespace Laica
             return Clip(Regex.Replace(text ?? "", @"\s+", " "), max);
         }
 
+        /// <summary>
+        /// Codex puts "# Files mentioned by the user: ... ## My request for Codex:" in front of what you typed. The
+        /// request is what follows.
+        /// </summary>
+        static string CleanRequest(string text)
+        {
+            var m = Regex.Match(
+                text ?? "",
+                @"^\s*#\s*Files mentioned by the user.*?\r?\n##\s*My request[^\r\n]*[\r\n]+",
+                RegexOptions.Singleline | RegexOptions.IgnoreCase
+            );
+            return m.Success && text.Length > m.Length ? text.Substring(m.Length).Trim() : text;
+        }
+
+        /// <summary>The agents' own notes and memory (under .claude or .codex) are not part of the project.</summary>
+        static bool Noisy(string path)
+        {
+            string p = (path ?? "").Replace('\\', '/');
+            return p.Contains("/.claude/") || p.Contains("/.codex/");
+        }
         static string Rel(string cwd, string path)
         {
             if (String.IsNullOrEmpty(path))
@@ -227,6 +247,7 @@ namespace Laica
                         done.Add(Turn(turnRequest, turnFinal, turnFailed));
                         closeTurn();
                     }
+                    text = CleanRequest(text);
                     requests.Add(text);
                     if (firstUser == "")
                         firstUser = text;
@@ -262,7 +283,8 @@ namespace Laica
                     {
                         foreach (var ch in ChangesOf(js, detail))
                         {
-                            files.Add(new KeyValuePair<string, string>(Rel(cwd, ch.Key), ch.Value));
+                            if (!Noisy(ch.Key))
+                                files.Add(new KeyValuePair<string, string>(Rel(cwd, ch.Key), ch.Value));
                             turnFiles.Add(Rel(cwd, ch.Key));
                             if (t != DateTime.MinValue)
                                 recentEdits.Add(new KeyValuePair<string, DateTime>(Rel(cwd, ch.Key), t));
@@ -283,7 +305,8 @@ namespace Laica
                                     Index = i,
                                 }
                             );
-                            files.Add(new KeyValuePair<string, string>(p, name == "Write" ? "written" : "edited"));
+                            if (!Noisy(p))
+                                files.Add(new KeyValuePair<string, string>(p, name == "Write" ? "written" : "edited"));
                             turnFiles.Add(p);
                             if (t != DateTime.MinValue)
                                 recentEdits.Add(new KeyValuePair<string, DateTime>(p, t));
@@ -817,6 +840,7 @@ namespace Laica
                     detail = Str(e, "Detail");
                 if (kind == "user")
                 {
+                    text = CleanRequest(text);
                     lastUser = text;
                     talk.Add(new KeyValuePair<string, string>("user", text));
                 }
@@ -837,13 +861,15 @@ namespace Laica
                         cmds.Add(text == "shell" ? detail : CommandOf(js, detail));
                     else if (text == "file change")
                         foreach (var c in ChangesOf(js, detail))
-                            files.Add(Rel(cwd, c.Key) + " (" + c.Value + ")");
+                            if (!Noisy(c.Key))
+                                files.Add(Rel(cwd, c.Key) + " (" + c.Value + ")");
                     else if (EditTools.Contains(text))
                     {
                         string p = PathOf(js, detail);
                         if (p != "")
                         {
-                            files.Add(Rel(cwd, p) + " (" + (text == "Write" ? "written" : "edited") + ")");
+                            if (!Noisy(p))
+                                files.Add(Rel(cwd, p) + " (" + (text == "Write" ? "written" : "edited") + ")");
                             pending.Add(Rel(cwd, p));
                         }
                     }

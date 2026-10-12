@@ -58,6 +58,7 @@ export function TagTeamChip({session}:{session:HSession}){
 }
 
 /** The plain-language rundown: where the next agent picks up, as a short list, with the exact text one click away. */
+const shortPath=(p:string)=>p.split(/[\\\\/]/).filter(Boolean).slice(-2).join('/');
 function RunDown({info,target}:{info:PairInfo;target:string}){
   const s=info.Summary;
   const short=(t:string,n=170)=>{const x=(t||'').replace(/\s+/g,' ').trim();return x.length>n?x.slice(0,n-1)+'…':x;};
@@ -67,8 +68,8 @@ function RunDown({info,target}:{info:PairInfo;target:string}){
     {s?<ul>
       <li><i>{s.Unfinished?'Carries on with':'Next request'}</i><span>{short(s.Request)||'Waiting for your next message'}</span></li>
       {s.LastReply&&<li><i>{s.From} last said</i><span>{short(s.LastReply)}</span></li>}
-      {s.FilesTotal>0&&<li><i>Files changed ({s.FilesTotal})</i><span>{s.Files.map((f,i)=><span key={f}>{i>0&&', '}<FileLink path={f.replace(/ \((?:[^)]*)\)$/,'')}>{f.replace(/ \((?:[^)]*)\)$/,'')}</FileLink></span>)}{s.FilesTotal>s.Files.length?' …':''}</span></li>}
-      {s.Verify.length>0&&<li className="warn"><i>Check first</i><span>{s.Verify.map((f,i)=><span key={f}>{i>0&&', '}<FileLink path={f}>{f}</FileLink></span>)} (may be half-written)</span></li>}
+      {s.FilesTotal>0&&<li><i>Files changed ({s.FilesTotal})</i><span>{s.Files.map((f,i)=><span key={f}>{i>0&&', '}<FileLink path={f.replace(/ \((?:[^)]*)\)$/,'')}>{shortPath(f.replace(/ \((?:[^)]*)\)$/,''))}</FileLink></span>)}{s.FilesTotal>s.Files.length?' …':''}</span></li>}
+      {s.Verify.length>0&&<li className="warn"><i>Check first</i><span>{s.Verify.map((f,i)=><span key={f}>{i>0&&', '}<FileLink path={f}>{shortPath(f)}</FileLink></span>)} (may be half-written)</span></li>}
       {s.Commands.length>0&&<li><i>Recent commands</i><span>{s.Commands.map(c=>short(c,70)).join(' · ')}</span></li>}
       {s.Problems.length>0&&<li className="warn"><i>Problems</i><span>{s.Problems.map(c=>short(c,100)).join(' · ')}</span></li>}
       <li><i>Background</i><span>{s.Turns} earlier turn{s.Turns===1?'':'s'} summarised in <button type="button" className="tt-link" onClick={e=>{e.stopPropagation();window.dispatchEvent(new Event('laica-open-handoff'));}}>{info.HandoffFile}</button> <small>(click to read it)</small></span></li>
