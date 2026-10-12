@@ -1040,14 +1040,17 @@ namespace Laica
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
+            string text;
             using (var p = Process.Start(psi))
             {
                 var output = p.StandardOutput.ReadToEndAsync();
                 p.StandardError.ReadToEndAsync();
                 p.WaitForExit(5000);
                 Log.Trace("done " + exe + " exited=" + p.HasExited);
-                return output.IsCompleted ? output.Result : "";
+                text = output.IsCompleted ? output.Result : "";
             }
+            Log.Trace("closed " + exe);
+            return text;
         }
 
         static string Safe(string id)

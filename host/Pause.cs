@@ -94,6 +94,16 @@ namespace Laica
             return result;
         }
 
+        [DllImport("libc", EntryPoint = "kill")]
+        static extern int sys_kill(int pid, int sig);
+
+        /// <summary>SIGSTOP and SIGCONT differ between macOS (17, 19) and Linux (19, 18).</summary>
+        static int UnixSignal(bool stop)
+        {
+            bool mac = Directory.Exists("/System/Library/CoreServices");
+            return stop ? (mac ? 17 : 19) : (mac ? 19 : 18);
+        }
+
         static void SuspendTree(int pid, bool suspend)
         {
             Log.Trace((suspend ? "suspend " : "resume ") + pid);
@@ -103,10 +113,15 @@ namespace Laica
                 CollectChildren(pid, found, 0); // the process and every descendant, parents first
                 if (!suspend)
                     found.Reverse();
-                RunQuiet(
-                    "kill",
-                    (suspend ? "-STOP " : "-CONT ") + String.Join(" ", found.Select(x => x.ToString()).ToArray())
-                );
+                // The signal is sent directly rather than by starting `kill`: on macOS, starting a process while another one is
+                // being frozen left the caller stuck (seen in CI).
+                int signal = UnixSignal(suspend);
+                foreach (int target in found)
+                {
+                    if (target > 1 && target != Process.GetCurrentProcess().Id)
+                        sys_kill(target, signal);
+                }
+                Log.Trace("signalled " + found.Count);
                 return;
             }
             var all = ProcessTree(pid);
