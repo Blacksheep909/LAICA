@@ -3510,27 +3510,41 @@ static class Watchdog
                 {
                     if (System.IO.Path.DirectorySeparatorChar == '/')
                     {
-                        // on its own thread, so a process start that is itself stuck cannot stop the run from ending
-                        var listing = new System.Threading.Thread(() =>
+                        // each on its own thread: a process start that is itself stuck must not stop the run from ending
+                        Action<string, string, int> run = (exe, args, wait) =>
                         {
-                            using (
-                                var ps = System.Diagnostics.Process.Start(
-                                    new System.Diagnostics.ProcessStartInfo(
-                                        "ps",
-                                        "-axo pid,ppid,pgid,stat,etime,command"
+                            var t = new System.Threading.Thread(() =>
+                            {
+                                try
+                                {
+                                    using (
+                                        var pr = System.Diagnostics.Process.Start(
+                                            new System.Diagnostics.ProcessStartInfo(exe, args)
+                                            {
+                                                UseShellExecute = false,
+                                            }
+                                        )
                                     )
-                                    {
-                                        UseShellExecute = false,
-                                    }
-                                )
-                            )
-                                ps.WaitForExit(10000);
-                        })
-                        {
-                            IsBackground = true,
+                                        pr.WaitForExit(wait);
+                                }
+                                catch (Exception) { }
+                            })
+                            {
+                                IsBackground = true,
+                            };
+                            t.Start();
+                            t.Join(wait + 5000);
                         };
-                        listing.Start();
-                        listing.Join(15000);
+                        // where every thread of this process is right now (the CI installs dotnet-stack for this)
+                        string stack = System.IO.Path.Combine(
+                            Environment.GetEnvironmentVariable("HOME") ?? "",
+                            ".dotnet",
+                            "tools",
+                            "dotnet-stack"
+                        );
+                        if (System.IO.File.Exists(stack))
+                            run(stack, "report -p " + System.Diagnostics.Process.GetCurrentProcess().Id, 40000);
+                        run("ps", "-axo pid,ppid,pgid,stat,etime,command", 10000);
                     }
                 }
                 catch (Exception) { }

@@ -69,6 +69,9 @@ jobs:
           dotnet csharpier check host core checks server
       - name: Engine (.NET 8, unused code is an error)
         run: dotnet build server/LAICA.Server.csproj -c Release -nologo
+      - name: Stack tool (shows where a hung check is stuck)
+        continue-on-error: true
+        run: dotnet tool install --global dotnet-stack
       - name: Engine checks
         timeout-minutes: 8
         env:
