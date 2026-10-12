@@ -1,8 +1,12 @@
 // The interface and the engine talk through named commands. This checks both sides agree: every command the interface sends is one the
 // engine (or the Windows window) handles, and no command is handled that nothing sends.
 import fs from 'fs';
-const read=f=>fs.readFileSync(f,'utf8');
-const files=fs.readdirSync('frontend/src').filter(f=>/\.(ts|tsx)$/.test(f)).map(f=>'frontend/src/'+f);
+import path from 'path';
+import {fileURLToPath} from 'url';
+const root=path.join(path.dirname(fileURLToPath(import.meta.url)),'..'); // works from any folder
+const abs=f=>path.join(root,f);
+const read=f=>fs.readFileSync(abs(f),'utf8');
+const files=fs.readdirSync(abs('frontend/src')).filter(f=>/\.(ts|tsx)$/.test(f)).map(f=>'frontend/src/'+f);
 const sent=new Set();
 for(const f of files){for(const m of read(f).matchAll(/\brequest(?:<[^>(]*(?:<[^>]*>)?[^>(]*>)?\(\s*['"`]([A-Za-z0-9_]+)['"`]/g))sent.add(m[1]);}
 const handled=new Set();
