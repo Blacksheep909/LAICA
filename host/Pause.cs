@@ -167,8 +167,11 @@ namespace Laica
                     Log.Swallowed(swallowed);
                 }
             }
+            Log.Trace("Pause: suspended, announcing");
             Emit(s, "paused", s.Harness == "laica" ? "Paused. The agent will hold at its next step." : "Paused.", null);
+            Log.Trace("Pause: announced");
             Raise();
+            Log.Trace("Pause: done");
         }
 
         public void Resume(string id)

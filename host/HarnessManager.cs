@@ -366,6 +366,7 @@ namespace Laica
         // ---------- sessions ----------
         public object List()
         {
+            Log.Trace("List");
             lock (gate)
                 return sessions.Values.Where(x => x.Parent == null).Select(Dto).ToArray();
         }
@@ -2146,6 +2147,7 @@ namespace Laica
             };
             if (images != null && images.Count > 0)
                 e["Images"] = images.ToArray();
+            Log.Trace("Emit " + kind);
             lock (gate)
             {
                 e["N"] = ++s.Seq;
